@@ -73,8 +73,10 @@ onMounted(async () => {
       label: `${desc} (${code})`
     })).sort((a, b) => a.label.localeCompare(b.label))
 
-    fromCurrency.value = defaultList.find(c => c.code === 'USD')
-    toCurrency.value = defaultList.find(c => c.code === 'KHR')
+    currencyOptions.value = buildCurrencyOptions()
+
+    setDefaultCurrencies()
+
   } catch (err) {
     error.value = 'Failed to load currencies or rates.'
   }
@@ -102,7 +104,9 @@ const switchCurrencies = () => {
 
 const clear = () => {
   amount.value = 1
+  setDefaultCurrencies()
   result.value = null
+  
 }
 
 const formatNumber = (value) => {
@@ -110,6 +114,18 @@ const formatNumber = (value) => {
     minimumFractionDigits: 2,
     maximumFractionDigits: 4
   }).format(value)
+}
+
+const buildCurrencyOptions = () => {
+  return Object.entries(currencies.value).map(([code, desc]) => ({
+    code,
+    label: `${desc} (${code})`
+  })).sort((a, b) => a.label.localeCompare(b.label))
+}
+
+const setDefaultCurrencies = () => {
+  fromCurrency.value = currencyOptions.value.find(c => c.code === 'USD')
+  toCurrency.value = currencyOptions.value.find(c => c.code === 'KHR')
 }
 
 </script>
