@@ -26,6 +26,7 @@
           <DiscountCalculator v-else-if="activeTab.key === 'discount'" />
           <BMICalculator      v-else-if="activeTab.key === 'bmi'" />
           <WheelSpinner       v-else-if="activeTab.key === 'wheel'" />
+          <LinkQRGenerator    v-else-if="activeTab.key === 'linkqr'" />
         </keep-alive>
       </div>
     </div>
@@ -51,15 +52,17 @@ import UnitConverter     from './components/unit/UnitConverter.vue'
 import DiscountCalculator from './components/discount/DiscountCalculator.vue'
 import BMICalculator     from './components/bmi/BMICalculator.vue'
 import WheelSpinner      from './components/wheel/WheelSpinner.vue'
+import LinkQRGenerator   from './components/linkqr/LinkQRGenerator.vue'
 
 const tabs = [
-  { key: 'currency', label: 'Currency', icon: '💱' },
-  { key: 'loan',     label: 'Loan',     icon: '🏦' },
-  { key: 'wifi',     label: 'Wi-Fi QR', icon: '📶' },
-  { key: 'unit',     label: 'Unit',     icon: '📏' },
-  { key: 'discount', label: 'Discount', icon: '🏷️' },
-  { key: 'bmi',      label: 'BMI',      icon: '❤️' },
+  { key: 'currency', label: 'Currency Exchange',   icon: '💱' },
+  { key: 'loan',     label: 'Loan Calculate',       icon: '🏦' },
+  { key: 'wifi',     label: 'Wi-Fi QR Generate',   icon: '📶' },
+  { key: 'unit',     label: 'Unit Exchange',       icon: '📏' },
+  { key: 'discount', label: 'Discount Calculate',   icon: '🏷️' },
+  { key: 'bmi',      label: 'BMI Calculate',        icon: '❤️' },
   { key: 'wheel',    label: 'Spin Wheel', icon: '🎡' },
+  { key: 'linkqr',   label: 'Link QR Generate',    icon: '🔗' },
 ]
 
 const activeKey = ref('currency')
