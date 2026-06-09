@@ -30,7 +30,8 @@
           placeholder=""
         />
         <input
-          v-model.number="inputValue"
+          :value="inputValue ?? ''"
+          @input="inputValue = $event.target.value === '' ? null : Number($event.target.value)"
           type="number"
           placeholder="Enter value"
           class="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-base focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
@@ -62,6 +63,13 @@
         />
       </div>
     </div>
+
+    <button
+      @click="clear"
+      class="w-full bg-red-500 hover:bg-red-600 active:bg-red-700 text-white font-semibold py-2.5 rounded-xl transition-colors"
+    >
+      Clear
+    </button>
 
     <div v-if="result !== null" class="rounded-2xl bg-gradient-to-r from-blue-600 to-cyan-500 px-5 py-4 text-white shadow-lg">
       <p class="text-sm opacity-80 mb-1">Result</p>
@@ -111,6 +119,11 @@ const selectCategory = (key) => {
 
 const swap = () => {
   [fromUnit.value, toUnit.value] = [toUnit.value, fromUnit.value]
+}
+
+const clear = () => {
+  inputValue.value = null
+  setDefaultUnits()
 }
 
 watch(activeCategory, setDefaultUnits)

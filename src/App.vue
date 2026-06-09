@@ -11,6 +11,8 @@
           <LoanCalculator v-else-if="activeTab === 'loan'" />
           <WiFiQRGenerator v-else-if="activeTab === 'wifi'" />
           <UnitConverter v-else-if="activeTab === 'unit'" />
+          <DiscountCalculator v-else-if="activeTab === 'discount'" />
+          <BMICalculator v-else-if="activeTab === 'bmi'" />
         </keep-alive>
       </div>
     </div>
@@ -24,12 +26,16 @@ import CurrencyConverter from './components/currency/CurrencyConverter.vue'
 import LoanCalculator from './components/loan/LoanCalculator.vue'
 import WiFiQRGenerator from './components/wifi/WiFiQRGenerator.vue'
 import UnitConverter from './components/unit/UnitConverter.vue'
+import DiscountCalculator from './components/discount/DiscountCalculator.vue'
+import BMICalculator from './components/bmi/BMICalculator.vue'
 
 const tabs = [
   { key: 'currency', label: 'Currency' },
   { key: 'loan', label: 'Loan' },
   { key: 'wifi', label: 'Wi-Fi QR' },
   { key: 'unit', label: 'Unit' },
+  { key: 'discount', label: 'Discount' },
+  { key: 'bmi', label: 'BMI' },
 ]
 const activeTab = ref('currency')
 </script>
