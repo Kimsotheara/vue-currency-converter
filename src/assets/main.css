@@ -1,5 +1,19 @@
 @import "tailwindcss";
 
+/* App-like touch behavior: no double-tap zoom, no text-selection callouts on UI */
+html, body {
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* iOS Safari auto-zooms into focused inputs with font-size < 16px.
+   Force 16px minimum on touch-sized screens regardless of utility classes. */
+@media (max-width: 640px) {
+  input, select, textarea {
+    font-size: 16px !important;
+  }
+}
+
 /* vue-multiselect overrides */
 .multiselect__tags {
   border: 1px solid #d1d5db;
