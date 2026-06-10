@@ -1,7 +1,7 @@
 import { ref, computed } from 'vue'
 import jsPDF from 'jspdf'
-import autoTable from 'jspdf-autotable'
 import { formatCurrency } from '@/utils/format'
+import { downloadBlob } from '@/utils/download'
 
 export const docTypes = [
   { value: 'quotation', label: 'Quotation' },
@@ -90,105 +90,131 @@ export function useInvoiceGenerator() {
     items.value = [blankItem()]
   }
 
-  const downloadPdf = () => {
-    const doc = new jsPDF()
+  const esc = (s) => String(s ?? '')
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+
+  // Khmer (and other complex scripts) can't be shaped by jsPDF's text engine,
+  // so the document is rendered as HTML by the browser and captured to the PDF.
+  const buildDocumentHtml = () => {
+    const title = docType.value === 'invoice' ? 'INVOICE' : 'QUOTATION'
+    const fontStack = `-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, 'Noto Sans Khmer', 'Khmer OS', sans-serif`
+    const status = paymentStatuses.find(s => s.value === paymentStatus.value)?.label || ''
+
+    const rows = items.value.map(item => `
+      <tr>
+        <td style="border:1px solid #d1d5db;padding:6px 8px;">${esc(item.description)}</td>
+        <td style="border:1px solid #d1d5db;padding:6px 8px;text-align:right;">${item.qty || 0}</td>
+        <td style="border:1px solid #d1d5db;padding:6px 8px;text-align:right;">$${formatCurrency(item.unitPrice || 0)}</td>
+        <td style="border:1px solid #d1d5db;padding:6px 8px;text-align:right;color:#ef4444;">-$${formatCurrency(item.discount || 0)}</td>
+        <td style="border:1px solid #d1d5db;padding:6px 8px;word-break:break-word;">${esc(item.remark)}</td>
+        <td style="border:1px solid #d1d5db;padding:6px 8px;text-align:right;">$${formatCurrency(lineTotal(item))}</td>
+      </tr>`).join('')
+
+    const totalRow = (label, value, style = '') => `
+      <tr>
+        <td style="padding:3px 8px;text-align:right;font-weight:600;">${label}</td>
+        <td style="padding:3px 8px;text-align:right;min-width:110px;${style}">${value}</td>
+      </tr>`
+
+    return `
+      <div style="font-family:${fontStack};color:#1f2937;font-size:13px;width:794px;padding:40px;box-sizing:border-box;background:#ffffff;">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;">
+          <div>
+            <div style="font-size:24px;font-weight:700;">${title}</div>
+            <div style="color:#6b7280;">#${esc(docNumber.value)}</div>
+          </div>
+          <div style="text-align:right;">
+            <div style="font-weight:700;font-size:15px;">${esc(companyName.value)}</div>
+            <div style="color:#6b7280;font-size:12px;">${esc(companyAddress.value)}</div>
+            <div style="color:#6b7280;font-size:12px;">${esc(companyPhone.value)}</div>
+          </div>
+        </div>
+
+        <div style="display:flex;justify-content:space-between;margin-top:28px;">
+          <div>
+            <div style="font-weight:700;text-transform:uppercase;font-size:11px;color:#9ca3af;letter-spacing:1px;">Bill To</div>
+            <div style="font-weight:600;margin-top:2px;">${esc(customerName.value)}</div>
+            <div style="color:#6b7280;font-size:12px;">${esc(customerAddress.value)}</div>
+            <div style="color:#6b7280;font-size:12px;">${esc(customerPhone.value)}</div>
+          </div>
+          <div style="text-align:right;font-size:12px;">
+            <div><span style="color:#9ca3af;">${docType.value === 'invoice' ? 'Issue Date:' : 'Quotation Date:'}</span> <b>${formatDate(docDate.value)}</b></div>
+            ${docType.value === 'invoice' ? `
+              <div><span style="color:#9ca3af;">Due Date:</span> <b>${formatDate(dueDate.value)}</b></div>
+              <div><span style="color:#9ca3af;">Status:</span> <b>${esc(status)}</b></div>` : ''}
+          </div>
+        </div>
+
+        <table style="width:100%;border-collapse:collapse;margin-top:24px;font-size:12px;">
+          <thead>
+            <tr style="background:#2563eb;color:#ffffff;">
+              <th style="border:1px solid #2563eb;padding:7px 8px;text-align:left;">Description</th>
+              <th style="border:1px solid #2563eb;padding:7px 8px;text-align:right;">Qty</th>
+              <th style="border:1px solid #2563eb;padding:7px 8px;text-align:right;">Unit Price</th>
+              <th style="border:1px solid #2563eb;padding:7px 8px;text-align:right;">Discount</th>
+              <th style="border:1px solid #2563eb;padding:7px 8px;text-align:left;width:170px;">Remark</th>
+              <th style="border:1px solid #2563eb;padding:7px 8px;text-align:right;">Total</th>
+            </tr>
+          </thead>
+          <tbody>${rows}</tbody>
+        </table>
+
+        <div style="display:flex;justify-content:flex-end;margin-top:14px;">
+          <table style="border-collapse:collapse;font-size:13px;">
+            ${totalRow('Subtotal:', `$${formatCurrency(subtotal.value)}`)}
+            ${totalRow('Total Discount:', `-$${formatCurrency(totalDiscount.value)}`, 'color:#ef4444;')}
+            ${totalRow(`Tax (${taxRate.value || 0}%):`, `$${formatCurrency(taxAmount.value)}`)}
+            ${totalRow(
+              docType.value === 'invoice' ? 'Amount Due:' : 'Grand Total:',
+              `$${formatCurrency(grandTotal.value)}`,
+              'font-weight:700;font-size:16px;color:#2563eb;',
+            )}
+          </table>
+        </div>
+
+        ${notes.value ? `
+          <div style="margin-top:24px;border-top:1px solid #e5e7eb;padding-top:12px;">
+            <div style="font-weight:700;text-transform:uppercase;font-size:11px;color:#9ca3af;letter-spacing:1px;">Notes</div>
+            <div style="font-size:12px;color:#4b5563;white-space:pre-line;margin-top:4px;">${esc(notes.value)}</div>
+          </div>` : ''}
+      </div>`
+  }
+
+  const downloadPdf = async () => {
+    const html2canvas = (await import('html2canvas')).default
     const title = docType.value === 'invoice' ? 'INVOICE' : 'QUOTATION'
 
-    doc.setFontSize(18)
-    doc.setFont(undefined, 'bold')
-    doc.text(title, 14, 18)
+    const host = document.createElement('div')
+    host.style.cssText = 'position:fixed;left:-10000px;top:0;'
+    host.innerHTML = buildDocumentHtml()
+    document.body.appendChild(host)
 
-    doc.setFontSize(10)
-    doc.setFont(undefined, 'normal')
-    doc.text(`#${docNumber.value}`, 14, 25)
+    try {
+      await document.fonts.ready
+      const canvas = await html2canvas(host.firstElementChild, { scale: 2, backgroundColor: '#ffffff' })
 
-    // Company info (top right)
-    doc.setFontSize(11)
-    doc.setFont(undefined, 'bold')
-    doc.text(companyName.value || '', 196, 15, { align: 'right' })
-    doc.setFont(undefined, 'normal')
-    doc.setFontSize(9)
-    if (companyAddress.value) doc.text(companyAddress.value, 196, 21, { align: 'right' })
-    if (companyPhone.value) doc.text(companyPhone.value, 196, 26, { align: 'right' })
+      const pdf = new jsPDF('p', 'mm', 'a4')
+      const pageW = 210
+      const pageH = 297
+      const imgW = pageW
+      const imgH = (canvas.height * imgW) / canvas.width
+      const imgData = canvas.toDataURL('image/png')
 
-    // Customer & dates
-    let y = 38
-    doc.setFontSize(10)
-    doc.setFont(undefined, 'bold')
-    doc.text('Bill To:', 14, y)
-    doc.setFont(undefined, 'normal')
-    doc.text(customerName.value || '', 14, y + 5)
-    if (customerAddress.value) doc.text(customerAddress.value, 14, y + 10)
-    if (customerPhone.value) doc.text(customerPhone.value, 14, y + 15)
+      let position = 0
+      let heightLeft = imgH
+      pdf.addImage(imgData, 'PNG', 0, position, imgW, imgH)
+      heightLeft -= pageH
+      while (heightLeft > 0) {
+        position -= pageH
+        pdf.addPage()
+        pdf.addImage(imgData, 'PNG', 0, position, imgW, imgH)
+        heightLeft -= pageH
+      }
 
-    doc.setFont(undefined, 'bold')
-    doc.text(docType.value === 'invoice' ? 'Issue Date:' : 'Quotation Date:', 140, y)
-    doc.setFont(undefined, 'normal')
-    doc.text(formatDate(docDate.value), 196, y, { align: 'right' })
-
-    if (docType.value === 'invoice') {
-      doc.setFont(undefined, 'bold')
-      doc.text('Due Date:', 140, y + 5)
-      doc.setFont(undefined, 'normal')
-      doc.text(formatDate(dueDate.value), 196, y + 5, { align: 'right' })
-
-      doc.setFont(undefined, 'bold')
-      doc.text('Status:', 140, y + 10)
-      doc.setFont(undefined, 'normal')
-      const status = paymentStatuses.find(s => s.value === paymentStatus.value)?.label || ''
-      doc.text(status, 196, y + 10, { align: 'right' })
+      pdf.save(`${docNumber.value || title}.pdf`)
+    } finally {
+      host.remove()
     }
-
-    // Items table
-    autoTable(doc, {
-      startY: y + 23,
-      head: [['Description', 'Qty', 'Unit Price', 'Discount', 'Remark', 'Total']],
-      body: items.value.map(item => [
-        item.description || '',
-        String(item.qty || 0),
-        `$${formatCurrency(item.unitPrice || 0)}`,
-        `$${formatCurrency(item.discount || 0)}`,
-        item.remark || '',
-        `$${formatCurrency(lineTotal(item))}`,
-      ]),
-      theme: 'grid',
-      headStyles: { fillColor: [37, 99, 235] },
-      styles: { fontSize: 9 },
-      columnStyles: { 4: { cellWidth: 35 } },
-    })
-
-    let finalY = doc.lastAutoTable.finalY + 8
-
-    const totalsX = 140
-    doc.setFontSize(10)
-    doc.text('Subtotal:', totalsX, finalY)
-    doc.text(`$${formatCurrency(subtotal.value)}`, 196, finalY, { align: 'right' })
-
-    finalY += 6
-    doc.text('Total Discount:', totalsX, finalY)
-    doc.text(`-$${formatCurrency(totalDiscount.value)}`, 196, finalY, { align: 'right' })
-
-    finalY += 6
-    doc.text(`Tax (${taxRate.value || 0}%):`, totalsX, finalY)
-    doc.text(`$${formatCurrency(taxAmount.value)}`, 196, finalY, { align: 'right' })
-
-    finalY += 7
-    doc.setFont(undefined, 'bold')
-    doc.setFontSize(12)
-    doc.text(docType.value === 'invoice' ? 'Amount Due:' : 'Grand Total:', totalsX, finalY)
-    doc.text(`$${formatCurrency(grandTotal.value)}`, 196, finalY, { align: 'right' })
-
-    if (notes.value) {
-      finalY += 14
-      doc.setFont(undefined, 'bold')
-      doc.setFontSize(10)
-      doc.text('Notes:', 14, finalY)
-      doc.setFont(undefined, 'normal')
-      const lines = doc.splitTextToSize(notes.value, 182)
-      doc.text(lines, 14, finalY + 5)
-    }
-
-    doc.save(`${docNumber.value || title}.pdf`)
   }
 
   const downloadExcel = async () => {
@@ -297,12 +323,7 @@ export function useInvoiceGenerator() {
     const blob = new Blob([buffer], {
       type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
     })
-    const url = URL.createObjectURL(blob)
-    const link = document.createElement('a')
-    link.href = url
-    link.download = `${docNumber.value || title}.xlsx`
-    link.click()
-    URL.revokeObjectURL(url)
+    downloadBlob(blob, `${docNumber.value || title}.xlsx`)
   }
 
   return {

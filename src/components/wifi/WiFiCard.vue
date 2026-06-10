@@ -70,6 +70,7 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import QRCode from 'qrcode'
+import { downloadDataUrl } from '@/utils/download'
 
 const props = defineProps({ network: Object })
 defineEmits(['remove'])
@@ -192,9 +193,6 @@ const downloadQR = async () => {
   ctx.textBaseline = 'middle'
   ctx.fillText('Scan to connect instantly', totalW / 2, qrY + qrSize + 18)
 
-  const a = document.createElement('a')
-  a.download = `wifi-${props.network.ssid}.png`
-  a.href = canvas.toDataURL('image/png')
-  a.click()
+  downloadDataUrl(canvas.toDataURL('image/png'), `wifi-${props.network.ssid}.png`)
 }
 </script>

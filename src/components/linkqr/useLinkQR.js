@@ -1,6 +1,7 @@
 import { ref, computed, watch } from 'vue'
 import { detectPlatform } from './platforms.js'
 import { drawQRCard, TEMPLATES } from './qrCardDraw.js'
+import { downloadDataUrl } from '@/utils/download'
 
 const TEXT_PLATFORM = { name: 'Text', icon: '📝', gradient: ['#6366f1', '#8b5cf6'] }
 
@@ -85,10 +86,7 @@ export const useLinkQR = () => {
   const download = () => {
     if (!qrDataUrl.value) return
     const name = inputMode.value === 'text' ? 'text' : (platform.value?.name.toLowerCase() ?? 'link')
-    const a = document.createElement('a')
-    a.download = `qr-${name}.png`
-    a.href = qrDataUrl.value
-    a.click()
+    downloadDataUrl(qrDataUrl.value, `qr-${name}.png`)
   }
 
   return {
