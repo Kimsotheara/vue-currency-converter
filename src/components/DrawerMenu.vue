@@ -12,7 +12,7 @@
   <Transition name="slide">
     <div
       v-if="open"
-      class="fixed top-0 left-0 h-full w-72 bg-white z-50 flex flex-col shadow-2xl"
+      class="fixed top-0 left-0 h-full w-72 max-w-[85vw] bg-white z-50 flex flex-col shadow-2xl"
     >
       <!-- Drawer header -->
       <div class="bg-gradient-to-r from-blue-600 to-cyan-500 px-5 py-6">

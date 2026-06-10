@@ -18,8 +18,8 @@
       </button>
     </div>
 
-    <div class="flex items-start gap-3">
-      <div class="flex-1 space-y-1.5">
+    <div class="flex flex-col sm:flex-row sm:items-start gap-3">
+      <div class="flex-1 space-y-1.5 w-full">
         <label class="block text-sm font-semibold text-gray-700">From</label>
         <Multiselect
           v-model="fromUnit"
@@ -40,12 +40,12 @@
 
       <button
         @click="swap"
-        class="mt-8 shrink-0 w-10 h-10 flex items-center justify-center rounded-xl bg-gray-100 hover:bg-blue-100 hover:text-blue-600 text-gray-500 transition-colors text-lg"
+        class="self-center sm:self-auto sm:mt-8 shrink-0 w-10 h-10 flex items-center justify-center rounded-xl bg-gray-100 hover:bg-blue-100 hover:text-blue-600 text-gray-500 transition-colors text-lg rotate-90 sm:rotate-0"
       >
         ⇄
       </button>
 
-      <div class="flex-1 space-y-1.5">
+      <div class="flex-1 space-y-1.5 w-full">
         <label class="block text-sm font-semibold text-gray-700">To</label>
         <Multiselect
           v-model="toUnit"

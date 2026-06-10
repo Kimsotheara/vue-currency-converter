@@ -40,7 +40,7 @@
     </div>
 
     <div>
-      <div class="flex items-center justify-between mb-1">
+      <div class="flex flex-wrap items-center justify-between gap-1 mb-1">
         <label class="block text-sm font-semibold text-gray-700">
           Interest Rate (% {{ rateType === 'monthly' ? 'per month' : 'per year' }})
         </label>

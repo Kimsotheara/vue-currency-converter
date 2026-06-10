@@ -47,9 +47,9 @@
     </div>
 
     <div class="flex flex-col items-center">
-      <div v-if="generating" class="w-72 h-80 rounded-2xl bg-gray-100 animate-pulse" />
-      <img v-else-if="qrDataUrl" :src="qrDataUrl" class="w-72 rounded-2xl shadow-xl" alt="QR Preview" />
-      <div v-else class="w-72 h-80 rounded-2xl bg-gray-50 border-2 border-dashed border-gray-200 flex flex-col items-center justify-center gap-2 text-gray-300">
+      <div v-if="generating" class="w-72 max-w-full h-80 rounded-2xl bg-gray-100 animate-pulse" />
+      <img v-else-if="qrDataUrl" :src="qrDataUrl" class="w-72 max-w-full rounded-2xl shadow-xl" alt="QR Preview" />
+      <div v-else class="w-72 max-w-full h-80 rounded-2xl bg-gray-50 border-2 border-dashed border-gray-200 flex flex-col items-center justify-center gap-2 text-gray-300">
         <span class="text-5xl">{{ inputMode === 'link' ? '🔗' : '📝' }}</span>
         <p class="text-xs">{{ inputMode === 'link' ? 'Paste a link above' : 'Enter text above' }}</p>
       </div>
@@ -71,7 +71,7 @@
         </button>
       </div>
 
-      <div v-if="activeTab === 'Templates'" class="p-4 grid grid-cols-4 gap-2">
+      <div v-if="activeTab === 'Templates'" class="p-4 grid grid-cols-2 sm:grid-cols-4 gap-2">
         <button
           v-for="t in TEMPLATES"
           :key="t.id"

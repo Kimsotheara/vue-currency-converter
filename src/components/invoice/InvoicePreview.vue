@@ -1,0 +1,148 @@
+<template>
+  <div class="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4" @click.self="$emit('close')">
+    <div class="bg-white rounded-2xl shadow-2xl w-full max-w-lg md:max-w-2xl lg:max-w-3xl max-h-[90vh] overflow-y-auto">
+
+      <div class="p-6 space-y-5">
+        <div class="flex items-start justify-between">
+          <div>
+            <h2 class="text-xl font-bold text-gray-800">{{ docType === 'invoice' ? 'INVOICE' : 'QUOTATION' }}</h2>
+            <p class="text-sm text-gray-400">#{{ docNumber }}</p>
+          </div>
+          <div class="text-right">
+            <p class="font-bold text-gray-800">{{ companyName }}</p>
+            <p class="text-xs text-gray-400">{{ companyAddress }}</p>
+            <p class="text-xs text-gray-400">{{ companyPhone }}</p>
+          </div>
+        </div>
+
+        <div class="flex justify-between text-sm">
+          <div>
+            <p class="text-xs font-bold uppercase tracking-widest text-gray-400 mb-1">Bill To</p>
+            <p class="font-semibold text-gray-700">{{ customerName }}</p>
+            <p class="text-gray-500">{{ customerAddress }}</p>
+            <p class="text-gray-500">{{ customerPhone }}</p>
+          </div>
+          <div class="text-right">
+            <p>
+              <span class="text-gray-400">{{ docType === 'invoice' ? 'Issue Date: ' : 'Quotation Date: ' }}</span>
+              <span class="font-semibold text-gray-700">{{ formatDate(docDate) }}</span>
+            </p>
+            <template v-if="docType === 'invoice'">
+              <p>
+                <span class="text-gray-400">Due Date: </span>
+                <span class="font-semibold text-gray-700">{{ formatDate(dueDate) }}</span>
+              </p>
+              <p>
+                <span class="text-gray-400">Status: </span>
+                <span class="font-semibold text-gray-700">{{ statusLabel }}</span>
+              </p>
+            </template>
+          </div>
+        </div>
+
+        <div class="overflow-x-auto -mx-2 px-2">
+        <table class="w-full min-w-[480px] text-sm">
+          <thead>
+            <tr class="bg-blue-600 text-white">
+              <th class="text-left px-2 py-2 rounded-l-lg">Description</th>
+              <th class="text-right px-2 py-2">Qty</th>
+              <th class="text-right px-2 py-2">Price</th>
+              <th class="text-right px-2 py-2">Discount</th>
+              <th class="text-left px-2 py-2">Remark</th>
+              <th class="text-right px-2 py-2 rounded-r-lg">Total</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-gray-100">
+            <tr v-for="(item, index) in items" :key="index">
+              <td class="px-2 py-2">{{ item.description }}</td>
+              <td class="text-right px-2 py-2">{{ item.qty }}</td>
+              <td class="text-right px-2 py-2">${{ fmt(item.unitPrice) }}</td>
+              <td class="text-right px-2 py-2 text-red-500">-${{ fmt(item.discount || 0) }}</td>
+              <td class="px-2 py-2 text-gray-500 break-words max-w-[140px]">{{ item.remark }}</td>
+              <td class="text-right px-2 py-2">${{ fmt(lineTotal(item)) }}</td>
+            </tr>
+          </tbody>
+        </table>
+        </div>
+
+        <div class="border-t border-gray-100 pt-3 space-y-1 text-sm">
+          <div class="flex justify-between">
+            <span class="text-gray-500">Subtotal</span>
+            <span class="font-semibold text-gray-700">${{ fmt(subtotal) }}</span>
+          </div>
+          <div class="flex justify-between">
+            <span class="text-gray-500">Total Discount</span>
+            <span class="font-semibold text-red-500">-${{ fmt(totalDiscount) }}</span>
+          </div>
+          <div class="flex justify-between">
+            <span class="text-gray-500">Tax ({{ taxRate || 0 }}%)</span>
+            <span class="font-semibold text-gray-700">${{ fmt(taxAmount) }}</span>
+          </div>
+          <div class="flex justify-between text-base font-bold text-blue-600 pt-1">
+            <span>{{ docType === 'invoice' ? 'Amount Due' : 'Grand Total' }}</span>
+            <span>${{ fmt(grandTotal) }}</span>
+          </div>
+        </div>
+
+        <div v-if="notes" class="border-t border-gray-100 pt-3">
+          <p class="text-xs font-bold uppercase tracking-widest text-gray-400 mb-1">Notes</p>
+          <p class="text-sm text-gray-600 whitespace-pre-line">{{ notes }}</p>
+        </div>
+      </div>
+
+      <div class="flex flex-col sm:flex-row gap-2 p-4 border-t border-gray-100">
+        <button
+          @click="$emit('download')"
+          class="flex-1 bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white font-semibold py-2.5 rounded-xl transition-colors"
+        >
+          Download PDF
+        </button>
+        <button
+          @click="$emit('download-excel')"
+          class="flex-1 bg-green-600 hover:bg-green-700 active:bg-green-800 text-white font-semibold py-2.5 rounded-xl transition-colors"
+        >
+          Excel
+        </button>
+        <button
+          @click="$emit('close')"
+          class="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-700 font-semibold py-2.5 rounded-xl transition-colors"
+        >
+          Close
+        </button>
+      </div>
+
+    </div>
+  </div>
+</template>
+
+<script setup>
+import { computed } from 'vue'
+import { formatCurrency } from '@/utils/format'
+import { formatDate, paymentStatuses } from './useInvoiceGenerator'
+
+const props = defineProps({
+  docType: String,
+  docNumber: String,
+  docDate: String,
+  dueDate: String,
+  paymentStatus: String,
+  companyName: String,
+  companyAddress: String,
+  companyPhone: String,
+  customerName: String,
+  customerAddress: String,
+  customerPhone: String,
+  items: Array,
+  lineTotal: Function,
+  subtotal: Number,
+  totalDiscount: Number,
+  taxRate: Number,
+  taxAmount: Number,
+  grandTotal: Number,
+  notes: String,
+})
+defineEmits(['close', 'download', 'download-excel'])
+
+const fmt = formatCurrency
+const statusLabel = computed(() => paymentStatuses.find(s => s.value === props.paymentStatus)?.label || '')
+</script>

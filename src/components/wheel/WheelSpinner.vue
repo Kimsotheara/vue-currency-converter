@@ -20,7 +20,7 @@
 
     <div v-if="items.length >= 2" class="flex flex-col items-center">
       <div class="w-0 h-0 border-l-[10px] border-r-[10px] border-t-[22px] border-l-transparent border-r-transparent border-t-gray-800" />
-      <canvas ref="canvasRef" :width="CANVAS_SIZE" :height="CANVAS_SIZE" class="rounded-full shadow-xl" />
+      <canvas ref="canvasRef" :width="CANVAS_SIZE" :height="CANVAS_SIZE" class="rounded-full shadow-xl max-w-full h-auto" />
     </div>
 
     <div v-else class="flex flex-col items-center py-10 gap-2">
