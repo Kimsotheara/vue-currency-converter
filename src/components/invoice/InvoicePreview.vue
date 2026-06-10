@@ -48,7 +48,6 @@
               <th class="text-right px-2 py-2">Qty</th>
               <th class="text-right px-2 py-2">Price</th>
               <th class="text-right px-2 py-2">Discount</th>
-              <th class="text-left px-2 py-2">Remark</th>
               <th class="text-right px-2 py-2 rounded-r-lg">Total</th>
             </tr>
           </thead>
@@ -58,11 +57,15 @@
               <td class="text-right px-2 py-2">{{ item.qty }}</td>
               <td class="text-right px-2 py-2">${{ fmt(item.unitPrice) }}</td>
               <td class="text-right px-2 py-2 text-red-500">-${{ fmt(item.discount || 0) }}</td>
-              <td class="px-2 py-2 text-gray-500 break-words max-w-[140px]">{{ item.remark }}</td>
               <td class="text-right px-2 py-2">${{ fmt(lineTotal(item)) }}</td>
             </tr>
           </tbody>
         </table>
+        </div>
+
+        <div v-if="notes" class="border-t border-gray-100 pt-3">
+          <p class="text-xs font-bold uppercase tracking-widest text-gray-400 mb-1">Notes</p>
+          <p class="text-sm text-gray-600 whitespace-pre-line break-words">{{ notes }}</p>
         </div>
 
         <div class="border-t border-gray-100 pt-3 space-y-1 text-sm">
@@ -74,9 +77,9 @@
             <span class="text-gray-500">Total Discount</span>
             <span class="font-semibold text-red-500">-${{ fmt(totalDiscount) }}</span>
           </div>
-          <div class="flex justify-between">
-            <span class="text-gray-500">Tax ({{ taxRate || 0 }}%)</span>
-            <span class="font-semibold text-gray-700">${{ fmt(taxAmount) }}</span>
+          <div v-if="deposit > 0" class="flex justify-between">
+            <span class="text-gray-500">Deposit</span>
+            <span class="font-semibold text-green-600">-${{ fmt(deposit) }}</span>
           </div>
           <div class="flex justify-between text-base font-bold text-blue-600 pt-1">
             <span>{{ docType === 'invoice' ? 'Amount Due' : 'Grand Total' }}</span>
@@ -84,10 +87,6 @@
           </div>
         </div>
 
-        <div v-if="notes" class="border-t border-gray-100 pt-3">
-          <p class="text-xs font-bold uppercase tracking-widest text-gray-400 mb-1">Notes</p>
-          <p class="text-sm text-gray-600 whitespace-pre-line">{{ notes }}</p>
-        </div>
       </div>
 
       <div class="flex flex-col sm:flex-row gap-2 p-4 border-t border-gray-100">
@@ -136,8 +135,7 @@ const props = defineProps({
   lineTotal: Function,
   subtotal: Number,
   totalDiscount: Number,
-  taxRate: Number,
-  taxAmount: Number,
+  deposit: Number,
   grandTotal: Number,
   notes: String,
 })

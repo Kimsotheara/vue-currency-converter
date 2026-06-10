@@ -29,7 +29,7 @@ export const formatDate = (dateStr) => {
   return `${d}/${m}/${y}`
 }
 
-const blankItem = () => ({ description: '', qty: 1, unitPrice: 0, discount: 0, remark: '' })
+const blankItem = () => ({ description: '', qty: 1, unitPrice: 0, discount: 0 })
 
 export function useInvoiceGenerator() {
   const docType = ref('quotation')
@@ -46,8 +46,8 @@ export function useInvoiceGenerator() {
   const docDate = ref(todayInputValue())
   const dueDate = ref(addDays(todayInputValue(), 30))
   const paymentStatus = ref('unpaid')
+  const deposit = ref(null)
 
-  const taxRate = ref(0)
   const notes = ref('')
 
   const items = ref([blankItem()])
@@ -65,8 +65,11 @@ export function useInvoiceGenerator() {
 
   const subtotal = computed(() => items.value.reduce((sum, item) => sum + lineTotal(item), 0))
   const totalDiscount = computed(() => items.value.reduce((sum, item) => sum + lineDiscount(item), 0))
-  const taxAmount = computed(() => subtotal.value * ((taxRate.value || 0) / 100))
-  const grandTotal = computed(() => subtotal.value + taxAmount.value)
+  // Deposit only applies to invoices; never let the amount due go negative
+  const depositApplied = computed(() =>
+    docType.value === 'invoice' ? Math.min(deposit.value || 0, subtotal.value) : 0,
+  )
+  const grandTotal = computed(() => subtotal.value - depositApplied.value)
 
   const setDocType = (type) => {
     docType.value = type
@@ -85,7 +88,7 @@ export function useInvoiceGenerator() {
     docDate.value = todayInputValue()
     dueDate.value = addDays(todayInputValue(), 30)
     paymentStatus.value = 'unpaid'
-    taxRate.value = 0
+    deposit.value = null
     notes.value = ''
     items.value = [blankItem()]
   }
@@ -106,7 +109,6 @@ export function useInvoiceGenerator() {
         <td style="border:1px solid #d1d5db;padding:6px 8px;text-align:right;">${item.qty || 0}</td>
         <td style="border:1px solid #d1d5db;padding:6px 8px;text-align:right;">$${formatCurrency(item.unitPrice || 0)}</td>
         <td style="border:1px solid #d1d5db;padding:6px 8px;text-align:right;color:#ef4444;">-$${formatCurrency(item.discount || 0)}</td>
-        <td style="border:1px solid #d1d5db;padding:6px 8px;word-break:break-word;">${esc(item.remark)}</td>
         <td style="border:1px solid #d1d5db;padding:6px 8px;text-align:right;">$${formatCurrency(lineTotal(item))}</td>
       </tr>`).join('')
 
@@ -152,18 +154,24 @@ export function useInvoiceGenerator() {
               <th style="border:1px solid #2563eb;padding:7px 8px;text-align:right;">Qty</th>
               <th style="border:1px solid #2563eb;padding:7px 8px;text-align:right;">Unit Price</th>
               <th style="border:1px solid #2563eb;padding:7px 8px;text-align:right;">Discount</th>
-              <th style="border:1px solid #2563eb;padding:7px 8px;text-align:left;width:170px;">Remark</th>
               <th style="border:1px solid #2563eb;padding:7px 8px;text-align:right;">Total</th>
             </tr>
           </thead>
           <tbody>${rows}</tbody>
         </table>
 
-        <div style="display:flex;justify-content:flex-end;margin-top:14px;">
-          <table style="border-collapse:collapse;font-size:13px;">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:24px;margin-top:14px;">
+          <div style="flex:1;min-width:0;">
+            ${notes.value ? `
+              <div style="font-weight:700;text-transform:uppercase;font-size:11px;color:#9ca3af;letter-spacing:1px;">Notes</div>
+              <div style="font-size:12px;color:#4b5563;white-space:pre-line;margin-top:4px;word-break:break-word;">${esc(notes.value)}</div>` : ''}
+          </div>
+          <table style="border-collapse:collapse;font-size:13px;flex-shrink:0;">
             ${totalRow('Subtotal:', `$${formatCurrency(subtotal.value)}`)}
             ${totalRow('Total Discount:', `-$${formatCurrency(totalDiscount.value)}`, 'color:#ef4444;')}
-            ${totalRow(`Tax (${taxRate.value || 0}%):`, `$${formatCurrency(taxAmount.value)}`)}
+            ${depositApplied.value > 0
+              ? totalRow('Deposit:', `-$${formatCurrency(depositApplied.value)}`, 'color:#16a34a;')
+              : ''}
             ${totalRow(
               docType.value === 'invoice' ? 'Amount Due:' : 'Grand Total:',
               `$${formatCurrency(grandTotal.value)}`,
@@ -171,12 +179,6 @@ export function useInvoiceGenerator() {
             )}
           </table>
         </div>
-
-        ${notes.value ? `
-          <div style="margin-top:24px;border-top:1px solid #e5e7eb;padding-top:12px;">
-            <div style="font-weight:700;text-transform:uppercase;font-size:11px;color:#9ca3af;letter-spacing:1px;">Notes</div>
-            <div style="font-size:12px;color:#4b5563;white-space:pre-line;margin-top:4px;">${esc(notes.value)}</div>
-          </div>` : ''}
       </div>`
   }
 
@@ -225,7 +227,7 @@ export function useInvoiceGenerator() {
     const wb = new ExcelJS.Workbook()
     const ws = wb.addWorksheet(title)
     ws.columns = [
-      { width: 32 }, { width: 8 }, { width: 14 }, { width: 14 }, { width: 32 }, { width: 14 },
+      { width: 40 }, { width: 8 }, { width: 14 }, { width: 14 }, { width: 14 },
     ]
 
     // Header
@@ -234,11 +236,11 @@ export function useInvoiceGenerator() {
     ws.getCell('A2').value = `#${docNumber.value}`
     ws.getCell('A2').font = { color: { argb: 'FF6B7280' } }
 
-    ws.getCell('F1').value = companyName.value
-    ws.getCell('F1').font = { bold: true }
-    ws.getCell('F2').value = companyAddress.value
-    ws.getCell('F3').value = companyPhone.value
-    ;['F1', 'F2', 'F3'].forEach(ref => { ws.getCell(ref).alignment = { horizontal: 'right' } })
+    ws.getCell('E1').value = companyName.value
+    ws.getCell('E1').font = { bold: true }
+    ws.getCell('E2').value = companyAddress.value
+    ws.getCell('E3').value = companyPhone.value
+    ;['E1', 'E2', 'E3'].forEach(ref => { ws.getCell(ref).alignment = { horizontal: 'right' } })
 
     // Bill to & dates
     ws.getCell('A4').value = 'Bill To:'
@@ -247,23 +249,23 @@ export function useInvoiceGenerator() {
     ws.getCell('A6').value = customerAddress.value
     ws.getCell('A7').value = customerPhone.value
 
-    ws.getCell('E4').value = docType.value === 'invoice' ? 'Issue Date:' : 'Quotation Date:'
-    ws.getCell('E4').font = { bold: true }
-    ws.getCell('F4').value = formatDate(docDate.value)
+    ws.getCell('D4').value = docType.value === 'invoice' ? 'Issue Date:' : 'Quotation Date:'
+    ws.getCell('D4').font = { bold: true }
+    ws.getCell('E4').value = formatDate(docDate.value)
     if (docType.value === 'invoice') {
-      ws.getCell('E5').value = 'Due Date:'
-      ws.getCell('E5').font = { bold: true }
-      ws.getCell('F5').value = formatDate(dueDate.value)
-      ws.getCell('E6').value = 'Status:'
-      ws.getCell('E6').font = { bold: true }
-      ws.getCell('F6').value = paymentStatuses.find(s => s.value === paymentStatus.value)?.label || ''
+      ws.getCell('D5').value = 'Due Date:'
+      ws.getCell('D5').font = { bold: true }
+      ws.getCell('E5').value = formatDate(dueDate.value)
+      ws.getCell('D6').value = 'Status:'
+      ws.getCell('D6').font = { bold: true }
+      ws.getCell('E6').value = paymentStatuses.find(s => s.value === paymentStatus.value)?.label || ''
     }
-    ;['F4', 'F5', 'F6'].forEach(ref => { ws.getCell(ref).alignment = { horizontal: 'right' } })
+    ;['E4', 'E5', 'E6'].forEach(ref => { ws.getCell(ref).alignment = { horizontal: 'right' } })
 
     // Items table
     const headerRowNum = 9
     const headerRow = ws.getRow(headerRowNum)
-    headerRow.values = ['Description', 'Qty', 'Unit Price', 'Discount', 'Remark', 'Total']
+    headerRow.values = ['Description', 'Qty', 'Unit Price', 'Discount', 'Total']
     headerRow.eachCell(cell => {
       cell.font = { bold: true, color: { argb: 'FFFFFFFF' } }
       cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF2563EB' } }
@@ -278,45 +280,53 @@ export function useInvoiceGenerator() {
         item.qty || 0,
         item.unitPrice || 0,
         item.discount || 0,
-        item.remark || '',
         { formula: `MAX(0,B${r}*C${r}-D${r})` },
       ]
       row.getCell(3).numFmt = currencyFmt
       row.getCell(4).numFmt = currencyFmt
-      row.getCell(6).numFmt = currencyFmt
-      row.getCell(5).alignment = { wrapText: true }
+      row.getCell(5).numFmt = currencyFmt
     })
     const lastItemRow = firstItemRow + items.value.length - 1
 
     // Totals (formulas so the file stays editable)
     const subtotalRow = lastItemRow + 2
     const setTotal = (r, label, value, opts = {}) => {
-      ws.getCell(`E${r}`).value = label
-      ws.getCell(`E${r}`).font = { bold: true }
-      const cell = ws.getCell(`F${r}`)
+      ws.getCell(`D${r}`).value = label
+      ws.getCell(`D${r}`).font = { bold: true }
+      const cell = ws.getCell(`E${r}`)
       cell.value = value
       if (opts.currency !== false) cell.numFmt = currencyFmt
       if (opts.font) cell.font = opts.font
     }
-    setTotal(subtotalRow, 'Subtotal:', { formula: `SUM(F${firstItemRow}:F${lastItemRow})` })
+    setTotal(subtotalRow, 'Subtotal:', { formula: `SUM(E${firstItemRow}:E${lastItemRow})` })
     setTotal(subtotalRow + 1, 'Total Discount:', { formula: `-SUM(D${firstItemRow}:D${lastItemRow})` }, {
       font: { color: { argb: 'FFEF4444' } },
     })
-    setTotal(subtotalRow + 2, 'Tax Rate (%):', taxRate.value || 0, { currency: false })
-    setTotal(subtotalRow + 3, 'Tax Amount:', { formula: `F${subtotalRow}*F${subtotalRow + 2}/100` })
+
+    let grandRow = subtotalRow + 2
+    let grandFormula = `E${subtotalRow}`
+    if (docType.value === 'invoice') {
+      setTotal(subtotalRow + 2, 'Deposit:', deposit.value || 0, {
+        font: { color: { argb: 'FF16A34A' } },
+      })
+      grandRow = subtotalRow + 3
+      grandFormula = `MAX(0,E${subtotalRow}-E${subtotalRow + 2})`
+    }
     setTotal(
-      subtotalRow + 4,
+      grandRow,
       docType.value === 'invoice' ? 'Amount Due:' : 'Grand Total:',
-      { formula: `F${subtotalRow}+F${subtotalRow + 3}` },
+      { formula: grandFormula },
       { font: { bold: true, size: 12 } },
     )
 
+    // Notes sit under the table on the left, level with the totals
     if (notes.value) {
-      const notesRow = subtotalRow + 6
-      ws.getCell(`A${notesRow}`).value = 'Notes:'
-      ws.getCell(`A${notesRow}`).font = { bold: true }
-      ws.getCell(`A${notesRow + 1}`).value = notes.value
-      ws.getCell(`A${notesRow + 1}`).alignment = { wrapText: true }
+      ws.getCell(`A${subtotalRow}`).value = 'Notes:'
+      ws.getCell(`A${subtotalRow}`).font = { bold: true }
+      const noteCell = ws.getCell(`A${subtotalRow + 1}`)
+      noteCell.value = notes.value
+      noteCell.alignment = { wrapText: true, vertical: 'top' }
+      ws.mergeCells(`A${subtotalRow + 1}:B${subtotalRow + 4}`)
     }
 
     const buffer = await wb.xlsx.writeBuffer()
@@ -330,10 +340,10 @@ export function useInvoiceGenerator() {
     docType, setDocType,
     companyName, companyAddress, companyPhone,
     customerName, customerAddress, customerPhone,
-    docNumber, docDate, dueDate, paymentStatus,
-    taxRate, notes,
+    docNumber, docDate, dueDate, paymentStatus, deposit,
+    notes,
     items, addItem, removeItem, lineTotal,
-    subtotal, totalDiscount, taxAmount, grandTotal,
+    subtotal, totalDiscount, depositApplied, grandTotal,
     clear, downloadPdf, downloadExcel,
   }
 }

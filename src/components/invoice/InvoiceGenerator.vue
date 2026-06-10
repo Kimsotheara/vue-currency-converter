@@ -83,6 +83,12 @@
           </button>
         </div>
       </div>
+
+      <div v-if="docType === 'invoice'" class="md:col-span-2">
+        <label class="block text-sm font-semibold text-gray-700 mb-1">Deposit ($)</label>
+        <input v-model.number="deposit" type="number" placeholder="e.g. 100" min="0"
+          class="w-full border border-gray-300 rounded-xl px-3 py-2.5 text-base focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent" />
+      </div>
     </div>
 
     <!-- Items -->
@@ -124,11 +130,6 @@
               ✕
             </button>
           </div>
-          <div>
-            <label class="block text-xs font-semibold text-gray-400 uppercase tracking-wide mb-0.5">Remark</label>
-            <textarea v-model="item.remark" rows="2" placeholder="Optional comment"
-              class="w-full border border-gray-300 rounded-lg px-2.5 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-y"></textarea>
-          </div>
         </div>
       </div>
       <button
@@ -140,18 +141,11 @@
       </button>
     </div>
 
-    <!-- Tax & Notes -->
-    <div class="space-y-4 md:grid md:grid-cols-[1fr_2fr] md:gap-4 md:space-y-0 md:items-start">
-      <div>
-        <label class="block text-sm font-semibold text-gray-700 mb-1">Tax (%)</label>
-        <input v-model.number="taxRate" type="number" placeholder="e.g. 10" min="0"
-          class="w-full border border-gray-300 rounded-xl px-3 py-2.5 text-base focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent" />
-      </div>
-      <div>
-        <label class="block text-sm font-semibold text-gray-700 mb-1">Notes</label>
-        <textarea v-model="notes" rows="2" placeholder="Optional notes / payment terms"
-          class="w-full border border-gray-300 rounded-xl px-3 py-2.5 text-base focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"></textarea>
-      </div>
+    <!-- Notes -->
+    <div>
+      <label class="block text-sm font-semibold text-gray-700 mb-1">Notes</label>
+      <textarea v-model="notes" rows="2" placeholder="Optional notes / payment terms"
+        class="w-full border border-gray-300 rounded-xl px-3 py-2.5 text-base focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"></textarea>
     </div>
 
     <!-- Totals -->
@@ -171,9 +165,9 @@
           <span class="text-sm text-gray-500">Total Discount</span>
           <span class="text-sm font-semibold text-red-500">-${{ fmt(totalDiscount) }}</span>
         </div>
-        <div class="flex justify-between items-center px-5 py-3">
-          <span class="text-sm text-gray-500">Tax ({{ taxRate || 0 }}%)</span>
-          <span class="text-sm font-semibold text-gray-700">${{ fmt(taxAmount) }}</span>
+        <div v-if="depositApplied > 0" class="flex justify-between items-center px-5 py-3">
+          <span class="text-sm text-gray-500">Deposit</span>
+          <span class="text-sm font-semibold text-green-600">-${{ fmt(depositApplied) }}</span>
         </div>
       </div>
     </div>
@@ -227,10 +221,10 @@ const {
   docType, setDocType,
   companyName, companyAddress, companyPhone,
   customerName, customerAddress, customerPhone,
-  docNumber, docDate, dueDate, paymentStatus,
-  taxRate, notes,
+  docNumber, docDate, dueDate, paymentStatus, deposit,
+  notes,
   items, addItem, removeItem, lineTotal,
-  subtotal, totalDiscount, taxAmount, grandTotal,
+  subtotal, totalDiscount, depositApplied, grandTotal,
   clear, downloadPdf, downloadExcel,
 } = useInvoiceGenerator()
 
@@ -254,8 +248,7 @@ const previewProps = computed(() => ({
   lineTotal,
   subtotal: subtotal.value,
   totalDiscount: totalDiscount.value,
-  taxRate: taxRate.value,
-  taxAmount: taxAmount.value,
+  deposit: depositApplied.value,
   grandTotal: grandTotal.value,
   notes: notes.value,
 }))
