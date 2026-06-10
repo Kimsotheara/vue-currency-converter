@@ -17,7 +17,7 @@
       <!-- Drawer header -->
       <div class="bg-gradient-to-r from-blue-600 to-cyan-500 px-5 py-6">
 <!--        <p class="text-white text-xs font-semibold uppercase tracking-widest opacity-75 mb-1">Menu</p>-->
-        <h2 class="text-white text-xl font-bold">Multiple Tools</h2>
+        <h2 class="text-white text-xl font-bold">Multiple Toolkit</h2>
       </div>
 
       <!-- Tool list -->

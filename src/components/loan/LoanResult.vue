@@ -39,7 +39,8 @@
 </template>
 
 <script setup>
+import { formatCurrency } from '@/utils/format'
+
 defineProps({ result: Object })
-const fmt = (v) =>
-  new Intl.NumberFormat('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(v)
+const fmt = formatCurrency
 </script>

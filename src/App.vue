@@ -20,13 +20,14 @@
       <div class="max-w-lg mx-auto bg-white rounded-2xl shadow-sm p-5 sm:p-8">
         <keep-alive>
           <CurrencyConverter  v-if="activeTab.key === 'currency'" />
-          <LoanCalculator     v-else-if="activeTab.key === 'loan'" />
+          <VehicleLoanCalculator     v-else-if="activeTab.key === 'vehicleloan'" />
           <WiFiQRGenerator    v-else-if="activeTab.key === 'wifi'" />
           <UnitConverter      v-else-if="activeTab.key === 'unit'" />
           <DiscountCalculator v-else-if="activeTab.key === 'discount'" />
           <BMICalculator      v-else-if="activeTab.key === 'bmi'" />
           <WheelSpinner       v-else-if="activeTab.key === 'wheel'" />
           <LinkQRGenerator    v-else-if="activeTab.key === 'linkqr'" />
+          <SavingGoalCalculator v-else-if="activeTab.key === 'savinggoal'" />
         </keep-alive>
       </div>
     </div>
@@ -47,23 +48,25 @@
 import { ref, computed } from 'vue'
 import DrawerMenu        from './components/DrawerMenu.vue'
 import CurrencyConverter from './components/currency/CurrencyConverter.vue'
-import LoanCalculator    from './components/loan/LoanCalculator.vue'
+import VehicleLoanCalculator from './components/vehicleloan/VehicleLoanCalculator.vue'
 import WiFiQRGenerator   from './components/wifi/WiFiQRGenerator.vue'
 import UnitConverter     from './components/unit/UnitConverter.vue'
 import DiscountCalculator from './components/discount/DiscountCalculator.vue'
 import BMICalculator     from './components/bmi/BMICalculator.vue'
 import WheelSpinner      from './components/wheel/WheelSpinner.vue'
 import LinkQRGenerator   from './components/linkqr/LinkQRGenerator.vue'
+import SavingGoalCalculator from './components/savinggoal/SavingGoalCalculator.vue'
 
 const tabs = [
   { key: 'currency', label: 'Currency Exchange',   icon: '💱' },
-  { key: 'loan',     label: 'Loan Calculate',       icon: '🏦' },
+  { key: 'vehicleloan',     label: 'Loan Calculate',       icon: '🏦' },
   { key: 'wifi',     label: 'Wi-Fi QR Generate',   icon: '📶' },
   { key: 'unit',     label: 'Unit Exchange',       icon: '📏' },
   { key: 'discount', label: 'Discount Calculate',   icon: '🏷️' },
   { key: 'bmi',      label: 'BMI Calculate',        icon: '❤️' },
   { key: 'wheel',    label: 'Spin Wheel', icon: '🎡' },
   { key: 'linkqr',   label: 'Link QR Generate',    icon: '🔗' },
+  { key: 'savinggoal', label: 'Saving Goal Calculate',       icon: '🎯' },
 ]
 
 const activeKey = ref('currency')
