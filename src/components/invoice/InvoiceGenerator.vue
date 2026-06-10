@@ -21,6 +21,33 @@
     <!-- Company info -->
     <div class="space-y-3">
       <p class="text-xs font-bold uppercase tracking-widest text-gray-400">From</p>
+
+      <div class="flex items-center gap-3">
+        <div v-if="logo" class="relative shrink-0">
+          <img :src="logo.dataUrl" alt="Company logo"
+            class="h-14 w-14 rounded-full object-cover border border-gray-200 bg-white" />
+          <button
+            @click="removeLogo"
+            type="button"
+            title="Remove logo"
+            class="absolute -top-2 -right-2 w-5 h-5 flex items-center justify-center rounded-full bg-red-500 text-white text-xs shadow"
+          >
+            ✕
+          </button>
+        </div>
+        <label
+          class="cursor-pointer border-2 border-dashed border-gray-300 text-gray-500 hover:border-blue-400 hover:text-blue-600 rounded-xl px-4 py-2.5 text-sm font-semibold transition-colors"
+        >
+          {{ logo ? 'Change Logo' : '+ Upload Logo' }}
+          <input
+            type="file"
+            accept="image/png,image/jpeg,image/webp,image/svg+xml"
+            class="hidden"
+            @change="setLogoFile($event.target.files[0]); $event.target.value = ''"
+          />
+        </label>
+      </div>
+
       <input v-model="companyName" type="text" placeholder="Company Name"
         class="w-full border border-gray-300 rounded-xl px-3 py-2.5 text-base focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent" />
       <input v-model="companyAddress" type="text" placeholder="Company Address"
@@ -32,6 +59,33 @@
     <!-- Customer info -->
     <div class="space-y-3">
       <p class="text-xs font-bold uppercase tracking-widest text-gray-400">Bill To</p>
+
+      <div class="flex items-center gap-3">
+        <div v-if="customerLogo" class="relative shrink-0">
+          <img :src="customerLogo.dataUrl" alt="Customer logo"
+            class="h-14 w-14 rounded-full object-cover border border-gray-200 bg-white" />
+          <button
+            @click="removeCustomerLogo"
+            type="button"
+            title="Remove logo"
+            class="absolute -top-2 -right-2 w-5 h-5 flex items-center justify-center rounded-full bg-red-500 text-white text-xs shadow"
+          >
+            ✕
+          </button>
+        </div>
+        <label
+          class="cursor-pointer border-2 border-dashed border-gray-300 text-gray-500 hover:border-blue-400 hover:text-blue-600 rounded-xl px-4 py-2.5 text-sm font-semibold transition-colors"
+        >
+          {{ customerLogo ? 'Change Logo' : '+ Upload Logo' }}
+          <input
+            type="file"
+            accept="image/png,image/jpeg,image/webp,image/svg+xml"
+            class="hidden"
+            @change="setCustomerLogoFile($event.target.files[0]); $event.target.value = ''"
+          />
+        </label>
+      </div>
+
       <input v-model="customerName" type="text" placeholder="Customer Name"
         class="w-full border border-gray-300 rounded-xl px-3 py-2.5 text-base focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent" />
       <input v-model="customerAddress" type="text" placeholder="Customer Address"
@@ -84,11 +138,7 @@
         </div>
       </div>
 
-      <div v-if="docType === 'invoice'" class="md:col-span-2">
-        <label class="block text-sm font-semibold text-gray-700 mb-1">Deposit ($)</label>
-        <input v-model.number="deposit" type="number" placeholder="e.g. 100" min="0"
-          class="w-full border border-gray-300 rounded-xl px-3 py-2.5 text-base focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent" />
-      </div>
+
     </div>
 
     <!-- Items -->
@@ -139,6 +189,12 @@
       >
         + Add Item
       </button>
+    </div>
+
+    <div v-if="docType === 'invoice'" class="md:col-span-2">
+      <label class="block text-sm font-semibold text-gray-700 mb-1">Deposit ($)</label>
+      <input v-model.number="deposit" type="number" placeholder="e.g. 100" min="0"
+             class="w-full border border-gray-300 rounded-xl px-3 py-2.5 text-base focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent" />
     </div>
 
     <!-- Notes -->
@@ -222,6 +278,8 @@ const {
   companyName, companyAddress, companyPhone,
   customerName, customerAddress, customerPhone,
   docNumber, docDate, dueDate, paymentStatus, deposit,
+  logo, setLogoFile, removeLogo,
+  customerLogo, setCustomerLogoFile, removeCustomerLogo,
   notes,
   items, addItem, removeItem, lineTotal,
   subtotal, totalDiscount, depositApplied, grandTotal,
@@ -233,6 +291,8 @@ const fmt = formatCurrency
 const showPreview = ref(false)
 
 const previewProps = computed(() => ({
+  logo: logo.value?.dataUrl,
+  customerLogo: customerLogo.value?.dataUrl,
   docType: docType.value,
   docNumber: docNumber.value,
   docDate: docDate.value,

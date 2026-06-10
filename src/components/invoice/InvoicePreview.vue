@@ -9,6 +9,7 @@
             <p class="text-sm text-gray-400">#{{ docNumber }}</p>
           </div>
           <div class="text-right">
+            <img v-if="logo" :src="logo" alt="Company logo" class="h-12 w-12 rounded-full object-cover ml-auto mb-1" />
             <p class="font-bold text-gray-800">{{ companyName }}</p>
             <p class="text-xs text-gray-400">{{ companyAddress }}</p>
             <p class="text-xs text-gray-400">{{ companyPhone }}</p>
@@ -18,6 +19,7 @@
         <div class="flex justify-between text-sm">
           <div>
             <p class="text-xs font-bold uppercase tracking-widest text-gray-400 mb-1">Bill To</p>
+            <img v-if="customerLogo" :src="customerLogo" alt="Customer logo" class="h-12 w-12 rounded-full object-cover mb-1" />
             <p class="font-semibold text-gray-700">{{ customerName }}</p>
             <p class="text-gray-500">{{ customerAddress }}</p>
             <p class="text-gray-500">{{ customerPhone }}</p>
@@ -44,7 +46,8 @@
         <table class="w-full min-w-[480px] text-sm">
           <thead>
             <tr class="bg-blue-600 text-white">
-              <th class="text-left px-2 py-2 rounded-l-lg">Description</th>
+              <th class="text-center px-2 py-2 rounded-l-lg w-10">No</th>
+              <th class="text-left px-2 py-2">Description</th>
               <th class="text-right px-2 py-2">Qty</th>
               <th class="text-right px-2 py-2">Price</th>
               <th class="text-right px-2 py-2">Discount</th>
@@ -53,6 +56,7 @@
           </thead>
           <tbody class="divide-y divide-gray-100">
             <tr v-for="(item, index) in items" :key="index">
+              <td class="text-center px-2 py-2 text-gray-400">{{ index + 1 }}</td>
               <td class="px-2 py-2">{{ item.description }}</td>
               <td class="text-right px-2 py-2">{{ item.qty }}</td>
               <td class="text-right px-2 py-2">${{ fmt(item.unitPrice) }}</td>
@@ -120,6 +124,8 @@ import { formatCurrency } from '@/utils/format'
 import { formatDate, paymentStatuses } from './useInvoiceGenerator'
 
 const props = defineProps({
+  logo: String,
+  customerLogo: String,
   docType: String,
   docNumber: String,
   docDate: String,

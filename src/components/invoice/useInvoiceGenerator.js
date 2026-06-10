@@ -37,6 +37,42 @@ export function useInvoiceGenerator() {
   const companyName = ref('')
   const companyAddress = ref('')
   const companyPhone = ref('')
+  // { dataUrl, width, height } — downscaled PNG so PDF/Excel stay small
+  const logo = ref(null)
+  const customerLogo = ref(null)
+
+  // Crops the image to a circle (cover-fit, transparent corners) so the logo
+  // renders round everywhere — including PDF and Excel, which can't mask images.
+  const readLogoInto = (targetRef, file) => {
+    if (!file || !file.type.startsWith('image/')) return
+    const reader = new FileReader()
+    reader.onload = () => {
+      const img = new Image()
+      img.onload = () => {
+        const size = 240
+        const canvas = document.createElement('canvas')
+        canvas.width = size
+        canvas.height = size
+        const ctx = canvas.getContext('2d')
+        ctx.beginPath()
+        ctx.arc(size / 2, size / 2, size / 2, 0, Math.PI * 2)
+        ctx.closePath()
+        ctx.clip()
+        const scale = Math.max(size / img.width, size / img.height)
+        const w = img.width * scale
+        const h = img.height * scale
+        ctx.drawImage(img, (size - w) / 2, (size - h) / 2, w, h)
+        targetRef.value = { dataUrl: canvas.toDataURL('image/png'), width: size, height: size }
+      }
+      img.src = reader.result
+    }
+    reader.readAsDataURL(file)
+  }
+
+  const setLogoFile = (file) => readLogoInto(logo, file)
+  const removeLogo = () => { logo.value = null }
+  const setCustomerLogoFile = (file) => readLogoInto(customerLogo, file)
+  const removeCustomerLogo = () => { customerLogo.value = null }
 
   const customerName = ref('')
   const customerAddress = ref('')
@@ -78,6 +114,8 @@ export function useInvoiceGenerator() {
   }
 
   const clear = () => {
+    logo.value = null
+    customerLogo.value = null
     companyName.value = ''
     companyAddress.value = ''
     companyPhone.value = ''
@@ -103,8 +141,9 @@ export function useInvoiceGenerator() {
     const fontStack = `-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, 'Noto Sans Khmer', 'Khmer OS', sans-serif`
     const status = paymentStatuses.find(s => s.value === paymentStatus.value)?.label || ''
 
-    const rows = items.value.map(item => `
+    const rows = items.value.map((item, i) => `
       <tr>
+        <td style="border:1px solid #d1d5db;padding:6px 8px;text-align:center;color:#6b7280;">${i + 1}</td>
         <td style="border:1px solid #d1d5db;padding:6px 8px;">${esc(item.description)}</td>
         <td style="border:1px solid #d1d5db;padding:6px 8px;text-align:right;">${item.qty || 0}</td>
         <td style="border:1px solid #d1d5db;padding:6px 8px;text-align:right;">$${formatCurrency(item.unitPrice || 0)}</td>
@@ -126,6 +165,7 @@ export function useInvoiceGenerator() {
             <div style="color:#6b7280;">#${esc(docNumber.value)}</div>
           </div>
           <div style="text-align:right;">
+            ${logo.value ? `<img src="${logo.value.dataUrl}" style="height:56px;width:56px;border-radius:50%;display:block;margin-left:auto;margin-bottom:6px;" />` : ''}
             <div style="font-weight:700;font-size:15px;">${esc(companyName.value)}</div>
             <div style="color:#6b7280;font-size:12px;">${esc(companyAddress.value)}</div>
             <div style="color:#6b7280;font-size:12px;">${esc(companyPhone.value)}</div>
@@ -135,6 +175,7 @@ export function useInvoiceGenerator() {
         <div style="display:flex;justify-content:space-between;margin-top:28px;">
           <div>
             <div style="font-weight:700;text-transform:uppercase;font-size:11px;color:#9ca3af;letter-spacing:1px;">Bill To</div>
+            ${customerLogo.value ? `<img src="${customerLogo.value.dataUrl}" style="height:48px;width:48px;border-radius:50%;display:block;margin:6px 0;" />` : ''}
             <div style="font-weight:600;margin-top:2px;">${esc(customerName.value)}</div>
             <div style="color:#6b7280;font-size:12px;">${esc(customerAddress.value)}</div>
             <div style="color:#6b7280;font-size:12px;">${esc(customerPhone.value)}</div>
@@ -150,6 +191,7 @@ export function useInvoiceGenerator() {
         <table style="width:100%;border-collapse:collapse;margin-top:24px;font-size:12px;">
           <thead>
             <tr style="background:#2563eb;color:#ffffff;">
+              <th style="border:1px solid #2563eb;padding:7px 8px;text-align:center;width:36px;">No</th>
               <th style="border:1px solid #2563eb;padding:7px 8px;text-align:left;">Description</th>
               <th style="border:1px solid #2563eb;padding:7px 8px;text-align:right;">Qty</th>
               <th style="border:1px solid #2563eb;padding:7px 8px;text-align:right;">Unit Price</th>
@@ -227,45 +269,73 @@ export function useInvoiceGenerator() {
     const wb = new ExcelJS.Workbook()
     const ws = wb.addWorksheet(title)
     ws.columns = [
-      { width: 40 }, { width: 8 }, { width: 14 }, { width: 14 }, { width: 14 },
+      { width: 6 }, { width: 40 }, { width: 8 }, { width: 14 }, { width: 14 }, { width: 14 },
     ]
 
-    // Header
+    // Header — when a logo exists it gets its own tall row so nothing overlaps
+    if (logo.value) {
+      const imageId = wb.addImage({ base64: logo.value.dataUrl, extension: 'png' })
+      ws.getRow(1).height = 42
+      // Right-aligned: column F ends at A..F total width; 52px logo tucked into F
+      ws.addImage(imageId, {
+        tl: { col: 5.45, row: 0.05 },
+        ext: { width: 52, height: 52 },
+      })
+    }
+
     ws.getCell('A1').value = title
     ws.getCell('A1').font = { bold: true, size: 16 }
+    ws.getCell('A1').alignment = { vertical: 'middle' }
     ws.getCell('A2').value = `#${docNumber.value}`
     ws.getCell('A2').font = { color: { argb: 'FF6B7280' } }
 
-    ws.getCell('E1').value = companyName.value
-    ws.getCell('E1').font = { bold: true }
-    ws.getCell('E2').value = companyAddress.value
-    ws.getCell('E3').value = companyPhone.value
-    ;['E1', 'E2', 'E3'].forEach(ref => { ws.getCell(ref).alignment = { horizontal: 'right' } })
-
-    // Bill to & dates
-    ws.getCell('A4').value = 'Bill To:'
-    ws.getCell('A4').font = { bold: true }
-    ws.getCell('A5').value = customerName.value
-    ws.getCell('A6').value = customerAddress.value
-    ws.getCell('A7').value = customerPhone.value
-
-    ws.getCell('D4').value = docType.value === 'invoice' ? 'Issue Date:' : 'Quotation Date:'
-    ws.getCell('D4').font = { bold: true }
-    ws.getCell('E4').value = formatDate(docDate.value)
-    if (docType.value === 'invoice') {
-      ws.getCell('D5').value = 'Due Date:'
-      ws.getCell('D5').font = { bold: true }
-      ws.getCell('E5').value = formatDate(dueDate.value)
-      ws.getCell('D6').value = 'Status:'
-      ws.getCell('D6').font = { bold: true }
-      ws.getCell('E6').value = paymentStatuses.find(s => s.value === paymentStatus.value)?.label || ''
+    // Company text starts below the logo row when present
+    const compRow = logo.value ? 2 : 1
+    ws.getCell(`F${compRow}`).value = companyName.value
+    ws.getCell(`F${compRow}`).font = { bold: true }
+    ws.getCell(`F${compRow + 1}`).value = companyAddress.value
+    ws.getCell(`F${compRow + 2}`).value = companyPhone.value
+    for (let i = 0; i < 3; i++) {
+      ws.getCell(`F${compRow + i}`).alignment = { horizontal: 'right' }
     }
-    ;['E4', 'E5', 'E6'].forEach(ref => { ws.getCell(ref).alignment = { horizontal: 'right' } })
 
-    // Items table
-    const headerRowNum = 9
+    // Bill to & dates — one blank row after the company block
+    const billRow = compRow + 4
+    ws.getCell(`A${billRow}`).value = 'Bill To:'
+    ws.getCell(`A${billRow}`).font = { bold: true }
+    ws.getCell(`A${billRow}`).alignment = { vertical: 'middle' }
+    if (customerLogo.value) {
+      const imageId = wb.addImage({ base64: customerLogo.value.dataUrl, extension: 'png' })
+      ws.getRow(billRow).height = 42
+      // Sits right after the "Bill To:" label, at the start of column B
+      ws.addImage(imageId, {
+        tl: { col: 1.02, row: billRow - 1 + 0.05 },
+        ext: { width: 52, height: 52 },
+      })
+    }
+    ws.getCell(`A${billRow + 1}`).value = customerName.value
+    ws.getCell(`A${billRow + 2}`).value = customerAddress.value
+    ws.getCell(`A${billRow + 3}`).value = customerPhone.value
+
+    ws.getCell(`E${billRow}`).value = docType.value === 'invoice' ? 'Issue Date:' : 'Quotation Date:'
+    ws.getCell(`E${billRow}`).font = { bold: true }
+    ws.getCell(`F${billRow}`).value = formatDate(docDate.value)
+    if (docType.value === 'invoice') {
+      ws.getCell(`E${billRow + 1}`).value = 'Due Date:'
+      ws.getCell(`E${billRow + 1}`).font = { bold: true }
+      ws.getCell(`F${billRow + 1}`).value = formatDate(dueDate.value)
+      ws.getCell(`E${billRow + 2}`).value = 'Status:'
+      ws.getCell(`E${billRow + 2}`).font = { bold: true }
+      ws.getCell(`F${billRow + 2}`).value = paymentStatuses.find(s => s.value === paymentStatus.value)?.label || ''
+    }
+    for (let i = 0; i < 3; i++) {
+      ws.getCell(`F${billRow + i}`).alignment = { horizontal: 'right', vertical: 'middle' }
+    }
+
+    // Items table — one blank row after the bill-to block
+    const headerRowNum = billRow + 5
     const headerRow = ws.getRow(headerRowNum)
-    headerRow.values = ['Description', 'Qty', 'Unit Price', 'Discount', 'Total']
+    headerRow.values = ['No', 'Description', 'Qty', 'Unit Price', 'Discount', 'Total']
     headerRow.eachCell(cell => {
       cell.font = { bold: true, color: { argb: 'FFFFFFFF' } }
       cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF2563EB' } }
@@ -276,41 +346,43 @@ export function useInvoiceGenerator() {
       const r = firstItemRow + i
       const row = ws.getRow(r)
       row.values = [
+        i + 1,
         item.description || '',
         item.qty || 0,
         item.unitPrice || 0,
         item.discount || 0,
-        { formula: `MAX(0,B${r}*C${r}-D${r})` },
+        { formula: `MAX(0,C${r}*D${r}-E${r})` },
       ]
-      row.getCell(3).numFmt = currencyFmt
+      row.getCell(1).alignment = { horizontal: 'center' }
       row.getCell(4).numFmt = currencyFmt
       row.getCell(5).numFmt = currencyFmt
+      row.getCell(6).numFmt = currencyFmt
     })
     const lastItemRow = firstItemRow + items.value.length - 1
 
     // Totals (formulas so the file stays editable)
     const subtotalRow = lastItemRow + 2
     const setTotal = (r, label, value, opts = {}) => {
-      ws.getCell(`D${r}`).value = label
-      ws.getCell(`D${r}`).font = { bold: true }
-      const cell = ws.getCell(`E${r}`)
+      ws.getCell(`E${r}`).value = label
+      ws.getCell(`E${r}`).font = { bold: true }
+      const cell = ws.getCell(`F${r}`)
       cell.value = value
       if (opts.currency !== false) cell.numFmt = currencyFmt
       if (opts.font) cell.font = opts.font
     }
-    setTotal(subtotalRow, 'Subtotal:', { formula: `SUM(E${firstItemRow}:E${lastItemRow})` })
-    setTotal(subtotalRow + 1, 'Total Discount:', { formula: `-SUM(D${firstItemRow}:D${lastItemRow})` }, {
+    setTotal(subtotalRow, 'Subtotal:', { formula: `SUM(F${firstItemRow}:F${lastItemRow})` })
+    setTotal(subtotalRow + 1, 'Total Discount:', { formula: `-SUM(E${firstItemRow}:E${lastItemRow})` }, {
       font: { color: { argb: 'FFEF4444' } },
     })
 
     let grandRow = subtotalRow + 2
-    let grandFormula = `E${subtotalRow}`
+    let grandFormula = `F${subtotalRow}`
     if (docType.value === 'invoice') {
       setTotal(subtotalRow + 2, 'Deposit:', deposit.value || 0, {
         font: { color: { argb: 'FF16A34A' } },
       })
       grandRow = subtotalRow + 3
-      grandFormula = `MAX(0,E${subtotalRow}-E${subtotalRow + 2})`
+      grandFormula = `MAX(0,F${subtotalRow}-F${subtotalRow + 2})`
     }
     setTotal(
       grandRow,
@@ -326,7 +398,7 @@ export function useInvoiceGenerator() {
       const noteCell = ws.getCell(`A${subtotalRow + 1}`)
       noteCell.value = notes.value
       noteCell.alignment = { wrapText: true, vertical: 'top' }
-      ws.mergeCells(`A${subtotalRow + 1}:B${subtotalRow + 4}`)
+      ws.mergeCells(`A${subtotalRow + 1}:C${subtotalRow + 4}`)
     }
 
     const buffer = await wb.xlsx.writeBuffer()
@@ -341,6 +413,8 @@ export function useInvoiceGenerator() {
     companyName, companyAddress, companyPhone,
     customerName, customerAddress, customerPhone,
     docNumber, docDate, dueDate, paymentStatus, deposit,
+    logo, setLogoFile, removeLogo,
+    customerLogo, setCustomerLogoFile, removeCustomerLogo,
     notes,
     items, addItem, removeItem, lineTotal,
     subtotal, totalDiscount, depositApplied, grandTotal,
