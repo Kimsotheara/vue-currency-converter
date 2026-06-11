@@ -147,6 +147,34 @@
       <div class="space-y-2">
         <div v-for="(item, index) in items" :key="index" class="bg-gray-50 rounded-xl p-2 space-y-2">
           <div class="flex flex-wrap gap-2 items-end">
+            <!-- Optional item image -->
+            <div class="shrink-0">
+              <div v-if="item.image" class="relative">
+                <img :src="item.image.dataUrl" alt="Item image"
+                  class="h-10 w-10 rounded-lg object-cover border border-gray-200 bg-white" />
+                <button
+                  @click="removeItemImage(item)"
+                  type="button"
+                  title="Remove image"
+                  class="absolute -top-2 -right-2 w-4 h-4 flex items-center justify-center rounded-full bg-red-500 text-white text-[10px] shadow"
+                >
+                  ✕
+                </button>
+              </div>
+              <label
+                v-else
+                title="Add image (optional)"
+                class="cursor-pointer h-10 w-10 flex items-center justify-center border-2 border-dashed border-gray-300 text-gray-400 hover:border-blue-400 hover:text-blue-600 rounded-lg text-base transition-colors"
+              >
+                📷
+                <input
+                  type="file"
+                  accept="image/png,image/jpeg,image/webp"
+                  class="hidden"
+                  @change="setItemImage(item, $event.target.files[0]); $event.target.value = ''"
+                />
+              </label>
+            </div>
             <div class="flex-1 min-w-[120px]">
               <label class="block text-xs font-semibold text-gray-400 uppercase tracking-wide mb-0.5">Description</label>
               <input v-model="item.description" type="text" placeholder="Item"
@@ -160,11 +188,6 @@
             <div class="w-24">
               <label class="block text-xs font-semibold text-gray-400 uppercase tracking-wide mb-0.5">Unit Price</label>
               <input v-model.number="item.unitPrice" type="number" placeholder="0.00" min="0"
-                class="w-full border border-gray-300 rounded-lg px-2.5 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent" />
-            </div>
-            <div class="w-24">
-              <label class="block text-xs font-semibold text-gray-400 uppercase tracking-wide mb-0.5">Discount</label>
-              <input v-model.number="item.discount" type="number" placeholder="0.00" min="0"
                 class="w-full border border-gray-300 rounded-lg px-2.5 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent" />
             </div>
             <div class="w-20">
@@ -191,10 +214,34 @@
       </button>
     </div>
 
-    <div v-if="docType === 'invoice'" class="md:col-span-2">
-      <label class="block text-sm font-semibold text-gray-700 mb-1">Deposit ($)</label>
-      <input v-model.number="deposit" type="number" placeholder="e.g. 100" min="0"
-             class="w-full border border-gray-300 rounded-xl px-3 py-2.5 text-base focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent" />
+    <div class="grid gap-4" :class="docType === 'invoice' ? 'md:grid-cols-2' : ''">
+      <div>
+        <label class="block text-sm font-semibold text-gray-700 mb-1">Discount</label>
+        <div class="flex gap-2">
+          <input v-model.number="discountValue" type="number" min="0"
+            :placeholder="discountType === 'percent' ? 'e.g. 10' : 'e.g. 50'"
+            class="flex-1 min-w-0 border border-gray-300 rounded-xl px-3 py-2.5 text-base focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent" />
+          <div class="flex bg-gray-100 rounded-xl p-1 shrink-0">
+            <button
+              v-for="t in [{ value: 'amount', label: '$' }, { value: 'percent', label: '%' }]"
+              :key="t.value"
+              type="button"
+              @click="discountType = t.value"
+              :class="[
+                'px-4 rounded-lg text-sm font-semibold transition-colors duration-150',
+                discountType === t.value ? 'bg-blue-600 text-white shadow-sm' : 'text-gray-500 hover:text-gray-700',
+              ]"
+            >
+              {{ t.label }}
+            </button>
+          </div>
+        </div>
+      </div>
+      <div v-if="docType === 'invoice'">
+        <label class="block text-sm font-semibold text-gray-700 mb-1">Deposit ($)</label>
+        <input v-model.number="deposit" type="number" placeholder="e.g. 100" min="0"
+               class="w-full border border-gray-300 rounded-xl px-3 py-2.5 text-base focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent" />
+      </div>
     </div>
 
     <!-- Notes -->
@@ -218,8 +265,8 @@
           <span class="text-sm font-semibold text-gray-700">${{ fmt(subtotal) }}</span>
         </div>
         <div class="flex justify-between items-center px-5 py-3">
-          <span class="text-sm text-gray-500">Total Discount</span>
-          <span class="text-sm font-semibold text-red-500">-${{ fmt(totalDiscount) }}</span>
+          <span class="text-sm text-gray-500">{{ discountLabel }}</span>
+          <span class="text-sm font-semibold text-red-500">-${{ fmt(discountAmount) }}</span>
         </div>
         <div v-if="depositApplied > 0" class="flex justify-between items-center px-5 py-3">
           <span class="text-sm text-gray-500">Deposit</span>
@@ -282,7 +329,9 @@ const {
   customerLogo, setCustomerLogoFile, removeCustomerLogo,
   notes,
   items, addItem, removeItem, lineTotal,
-  subtotal, totalDiscount, depositApplied, grandTotal,
+  setItemImage, removeItemImage,
+  discountType, discountValue, discountAmount, discountLabel,
+  subtotal, depositApplied, grandTotal,
   clear, downloadPdf, downloadExcel,
 } = useInvoiceGenerator()
 
@@ -307,7 +356,8 @@ const previewProps = computed(() => ({
   items: items.value,
   lineTotal,
   subtotal: subtotal.value,
-  totalDiscount: totalDiscount.value,
+  discount: discountAmount.value,
+  discountLabel: discountLabel.value,
   deposit: depositApplied.value,
   grandTotal: grandTotal.value,
   notes: notes.value,
