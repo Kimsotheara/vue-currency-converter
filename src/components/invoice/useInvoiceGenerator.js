@@ -29,7 +29,8 @@ export const formatDate = (dateStr) => {
   return `${d}/${m}/${y}`
 }
 
-const blankItem = () => ({ description: '', qty: 1, unitPrice: 0, discount: 0 })
+// image: { dataUrl, width, height } | null — optional product photo per line
+const blankItem = () => ({ description: '', qty: 1, unitPrice: 0, image: null })
 
 export function useInvoiceGenerator() {
   const docType = ref('quotation')
@@ -74,6 +75,32 @@ export function useInvoiceGenerator() {
   const setCustomerLogoFile = (file) => readLogoInto(customerLogo, file)
   const removeCustomerLogo = () => { customerLogo.value = null }
 
+  // Square cover-crop, downscaled so PDF/Excel stay small
+  const setItemImage = (item, file) => {
+    if (!file || !file.type.startsWith('image/')) return
+    const reader = new FileReader()
+    reader.onload = () => {
+      const img = new Image()
+      img.onload = () => {
+        const size = 400
+        const canvas = document.createElement('canvas')
+        canvas.width = size
+        canvas.height = size
+        const ctx = canvas.getContext('2d')
+        ctx.fillStyle = '#ffffff'
+        ctx.fillRect(0, 0, size, size)
+        const scale = Math.max(size / img.width, size / img.height)
+        const w = img.width * scale
+        const h = img.height * scale
+        ctx.drawImage(img, (size - w) / 2, (size - h) / 2, w, h)
+        item.image = { dataUrl: canvas.toDataURL('image/png'), width: size, height: size }
+      }
+      img.src = reader.result
+    }
+    reader.readAsDataURL(file)
+  }
+  const removeItemImage = (item) => { item.image = null }
+
   const customerName = ref('')
   const customerAddress = ref('')
   const customerPhone = ref('')
@@ -84,6 +111,10 @@ export function useInvoiceGenerator() {
   const paymentStatus = ref('unpaid')
   const deposit = ref(null)
 
+  // Document-level discount (applies to quotation and invoice alike)
+  const discountType = ref('amount') // 'amount' | 'percent'
+  const discountValue = ref(null)
+
   const notes = ref('')
 
   const items = ref([blankItem()])
@@ -93,19 +124,32 @@ export function useInvoiceGenerator() {
     if (items.value.length > 1) items.value.splice(index, 1)
   }
 
-  const lineTotal = (item) =>
-    Math.max(0, (item.qty || 0) * (item.unitPrice || 0) - (item.discount || 0))
-
-  const lineDiscount = (item) =>
-    Math.min((item.qty || 0) * (item.unitPrice || 0), item.discount || 0)
+  const lineTotal = (item) => (item.qty || 0) * (item.unitPrice || 0)
 
   const subtotal = computed(() => items.value.reduce((sum, item) => sum + lineTotal(item), 0))
-  const totalDiscount = computed(() => items.value.reduce((sum, item) => sum + lineDiscount(item), 0))
+
+  // Never discount more than the subtotal; percent is capped at 100
+  const discountAmount = computed(() => {
+    const v = discountValue.value || 0
+    if (v <= 0 || subtotal.value <= 0) return 0
+    if (discountType.value === 'percent') {
+      return subtotal.value * Math.min(v, 100) / 100
+    }
+    return Math.min(v, subtotal.value)
+  })
+
+  const discountLabel = computed(() =>
+    discountType.value === 'percent' && (discountValue.value || 0) > 0
+      ? `Discount (${Math.min(discountValue.value, 100)}%)`
+      : 'Discount',
+  )
+
+  const afterDiscount = computed(() => subtotal.value - discountAmount.value)
   // Deposit only applies to invoices; never let the amount due go negative
   const depositApplied = computed(() =>
-    docType.value === 'invoice' ? Math.min(deposit.value || 0, subtotal.value) : 0,
+    docType.value === 'invoice' ? Math.min(deposit.value || 0, afterDiscount.value) : 0,
   )
-  const grandTotal = computed(() => subtotal.value - depositApplied.value)
+  const grandTotal = computed(() => afterDiscount.value - depositApplied.value)
 
   const setDocType = (type) => {
     docType.value = type
@@ -127,6 +171,8 @@ export function useInvoiceGenerator() {
     dueDate.value = addDays(todayInputValue(), 30)
     paymentStatus.value = 'unpaid'
     deposit.value = null
+    discountType.value = 'amount'
+    discountValue.value = null
     notes.value = ''
     items.value = [blankItem()]
   }
@@ -144,10 +190,14 @@ export function useInvoiceGenerator() {
     const rows = items.value.map((item, i) => `
       <tr>
         <td style="border:1px solid #d1d5db;padding:6px 8px;text-align:center;color:#6b7280;">${i + 1}</td>
-        <td style="border:1px solid #d1d5db;padding:6px 8px;">${esc(item.description)}</td>
+        <td style="border:1px solid #d1d5db;padding:6px 8px;">
+          <div style="display:flex;align-items:center;gap:10px;">
+            ${item.image ? `<img src="${item.image.dataUrl}" style="width:80px;height:80px;border-radius:8px;flex-shrink:0;display:block;" />` : ''}
+            <span>${esc(item.description)}</span>
+          </div>
+        </td>
         <td style="border:1px solid #d1d5db;padding:6px 8px;text-align:right;">${item.qty || 0}</td>
         <td style="border:1px solid #d1d5db;padding:6px 8px;text-align:right;">$${formatCurrency(item.unitPrice || 0)}</td>
-        <td style="border:1px solid #d1d5db;padding:6px 8px;text-align:right;color:#ef4444;">-$${formatCurrency(item.discount || 0)}</td>
         <td style="border:1px solid #d1d5db;padding:6px 8px;text-align:right;">$${formatCurrency(lineTotal(item))}</td>
       </tr>`).join('')
 
@@ -195,7 +245,6 @@ export function useInvoiceGenerator() {
               <th style="border:1px solid #2563eb;padding:7px 8px;text-align:left;">Description</th>
               <th style="border:1px solid #2563eb;padding:7px 8px;text-align:right;">Qty</th>
               <th style="border:1px solid #2563eb;padding:7px 8px;text-align:right;">Unit Price</th>
-              <th style="border:1px solid #2563eb;padding:7px 8px;text-align:right;">Discount</th>
               <th style="border:1px solid #2563eb;padding:7px 8px;text-align:right;">Total</th>
             </tr>
           </thead>
@@ -210,7 +259,9 @@ export function useInvoiceGenerator() {
           </div>
           <table style="border-collapse:collapse;font-size:13px;flex-shrink:0;">
             ${totalRow('Subtotal:', `$${formatCurrency(subtotal.value)}`)}
-            ${totalRow('Total Discount:', `-$${formatCurrency(totalDiscount.value)}`, 'color:#ef4444;')}
+            ${discountAmount.value > 0
+              ? totalRow(`${discountLabel.value}:`, `-$${formatCurrency(discountAmount.value)}`, 'color:#ef4444;')
+              : ''}
             ${depositApplied.value > 0
               ? totalRow('Deposit:', `-$${formatCurrency(depositApplied.value)}`, 'color:#16a34a;')
               : ''}
@@ -266,19 +317,27 @@ export function useInvoiceGenerator() {
     const title = docType.value === 'invoice' ? 'INVOICE' : 'QUOTATION'
     const currencyFmt = '"$"#,##0.00'
 
+    // The Image column only exists when at least one item has a photo
+    const hasImages = items.value.some(it => it.image)
+    const C = hasImages
+      ? { img: 'B', desc: 'C', qty: 'D', price: 'E', total: 'F' }
+      : { desc: 'B', qty: 'C', price: 'D', total: 'E' }
+    const labelCol = C.price
+    const lastCol = C.total
+
     const wb = new ExcelJS.Workbook()
     const ws = wb.addWorksheet(title)
-    ws.columns = [
-      { width: 6 }, { width: 40 }, { width: 8 }, { width: 14 }, { width: 14 }, { width: 14 },
-    ]
+    ws.columns = hasImages
+      ? [{ width: 6 }, { width: 13 }, { width: 36 }, { width: 8 }, { width: 14 }, { width: 14 }]
+      : [{ width: 6 }, { width: 40 }, { width: 8 }, { width: 14 }, { width: 14 }]
 
     // Header — when a logo exists it gets its own tall row so nothing overlaps
     if (logo.value) {
       const imageId = wb.addImage({ base64: logo.value.dataUrl, extension: 'png' })
       ws.getRow(1).height = 42
-      // Right-aligned: column F ends at A..F total width; 52px logo tucked into F
+      // Right-aligned: 52px logo tucked into the last column
       ws.addImage(imageId, {
-        tl: { col: 5.45, row: 0.05 },
+        tl: { col: (hasImages ? 5 : 4) + 0.45, row: 0.05 },
         ext: { width: 52, height: 52 },
       })
     }
@@ -291,12 +350,12 @@ export function useInvoiceGenerator() {
 
     // Company text starts below the logo row when present
     const compRow = logo.value ? 2 : 1
-    ws.getCell(`F${compRow}`).value = companyName.value
-    ws.getCell(`F${compRow}`).font = { bold: true }
-    ws.getCell(`F${compRow + 1}`).value = companyAddress.value
-    ws.getCell(`F${compRow + 2}`).value = companyPhone.value
+    ws.getCell(`${lastCol}${compRow}`).value = companyName.value
+    ws.getCell(`${lastCol}${compRow}`).font = { bold: true }
+    ws.getCell(`${lastCol}${compRow + 1}`).value = companyAddress.value
+    ws.getCell(`${lastCol}${compRow + 2}`).value = companyPhone.value
     for (let i = 0; i < 3; i++) {
-      ws.getCell(`F${compRow + i}`).alignment = { horizontal: 'right' }
+      ws.getCell(`${lastCol}${compRow + i}`).alignment = { horizontal: 'right' }
     }
 
     // Bill to & dates — one blank row after the company block
@@ -317,25 +376,27 @@ export function useInvoiceGenerator() {
     ws.getCell(`A${billRow + 2}`).value = customerAddress.value
     ws.getCell(`A${billRow + 3}`).value = customerPhone.value
 
-    ws.getCell(`E${billRow}`).value = docType.value === 'invoice' ? 'Issue Date:' : 'Quotation Date:'
-    ws.getCell(`E${billRow}`).font = { bold: true }
-    ws.getCell(`F${billRow}`).value = formatDate(docDate.value)
+    ws.getCell(`${labelCol}${billRow}`).value = docType.value === 'invoice' ? 'Issue Date:' : 'Quotation Date:'
+    ws.getCell(`${labelCol}${billRow}`).font = { bold: true }
+    ws.getCell(`${lastCol}${billRow}`).value = formatDate(docDate.value)
     if (docType.value === 'invoice') {
-      ws.getCell(`E${billRow + 1}`).value = 'Due Date:'
-      ws.getCell(`E${billRow + 1}`).font = { bold: true }
-      ws.getCell(`F${billRow + 1}`).value = formatDate(dueDate.value)
-      ws.getCell(`E${billRow + 2}`).value = 'Status:'
-      ws.getCell(`E${billRow + 2}`).font = { bold: true }
-      ws.getCell(`F${billRow + 2}`).value = paymentStatuses.find(s => s.value === paymentStatus.value)?.label || ''
+      ws.getCell(`${labelCol}${billRow + 1}`).value = 'Due Date:'
+      ws.getCell(`${labelCol}${billRow + 1}`).font = { bold: true }
+      ws.getCell(`${lastCol}${billRow + 1}`).value = formatDate(dueDate.value)
+      ws.getCell(`${labelCol}${billRow + 2}`).value = 'Status:'
+      ws.getCell(`${labelCol}${billRow + 2}`).font = { bold: true }
+      ws.getCell(`${lastCol}${billRow + 2}`).value = paymentStatuses.find(s => s.value === paymentStatus.value)?.label || ''
     }
     for (let i = 0; i < 3; i++) {
-      ws.getCell(`F${billRow + i}`).alignment = { horizontal: 'right', vertical: 'middle' }
+      ws.getCell(`${lastCol}${billRow + i}`).alignment = { horizontal: 'right', vertical: 'middle' }
     }
 
     // Items table — one blank row after the bill-to block
     const headerRowNum = billRow + 5
     const headerRow = ws.getRow(headerRowNum)
-    headerRow.values = ['No', 'Description', 'Qty', 'Unit Price', 'Discount', 'Total']
+    headerRow.values = hasImages
+      ? ['No', 'Image', 'Description', 'Qty', 'Unit Price', 'Total']
+      : ['No', 'Description', 'Qty', 'Unit Price', 'Total']
     headerRow.eachCell(cell => {
       cell.font = { bold: true, color: { argb: 'FFFFFFFF' } }
       cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF2563EB' } }
@@ -344,46 +405,69 @@ export function useInvoiceGenerator() {
     const firstItemRow = headerRowNum + 1
     items.value.forEach((item, i) => {
       const r = firstItemRow + i
-      const row = ws.getRow(r)
-      row.values = [
-        i + 1,
-        item.description || '',
-        item.qty || 0,
-        item.unitPrice || 0,
-        item.discount || 0,
-        { formula: `MAX(0,C${r}*D${r}-E${r})` },
-      ]
-      row.getCell(1).alignment = { horizontal: 'center' }
-      row.getCell(4).numFmt = currencyFmt
-      row.getCell(5).numFmt = currencyFmt
-      row.getCell(6).numFmt = currencyFmt
+      ws.getCell(`A${r}`).value = i + 1
+      ws.getCell(`A${r}`).alignment = { horizontal: 'center', vertical: 'middle' }
+      ws.getCell(`${C.desc}${r}`).value = item.description || ''
+      ws.getCell(`${C.desc}${r}`).alignment = { vertical: 'middle' }
+      ws.getCell(`${C.qty}${r}`).value = item.qty || 0
+      ws.getCell(`${C.qty}${r}`).alignment = { vertical: 'middle' }
+      ws.getCell(`${C.price}${r}`).value = item.unitPrice || 0
+      ws.getCell(`${C.price}${r}`).numFmt = currencyFmt
+      ws.getCell(`${C.price}${r}`).alignment = { vertical: 'middle' }
+      ws.getCell(`${C.total}${r}`).value = { formula: `${C.qty}${r}*${C.price}${r}` }
+      ws.getCell(`${C.total}${r}`).numFmt = currencyFmt
+      ws.getCell(`${C.total}${r}`).alignment = { vertical: 'middle' }
+      if (hasImages) {
+        ws.getRow(r).height = 66
+        if (item.image) {
+          const imageId = wb.addImage({ base64: item.image.dataUrl, extension: 'png' })
+          ws.addImage(imageId, {
+            tl: { col: 1.05, row: r - 1 + 0.04 },
+            ext: { width: 82, height: 82 },
+          })
+        }
+      }
     })
     const lastItemRow = firstItemRow + items.value.length - 1
 
     // Totals (formulas so the file stays editable)
     const subtotalRow = lastItemRow + 2
     const setTotal = (r, label, value, opts = {}) => {
-      ws.getCell(`E${r}`).value = label
-      ws.getCell(`E${r}`).font = { bold: true }
-      const cell = ws.getCell(`F${r}`)
+      ws.getCell(`${labelCol}${r}`).value = label
+      ws.getCell(`${labelCol}${r}`).font = { bold: true }
+      const cell = ws.getCell(`${lastCol}${r}`)
       cell.value = value
       if (opts.currency !== false) cell.numFmt = currencyFmt
       if (opts.font) cell.font = opts.font
     }
-    setTotal(subtotalRow, 'Subtotal:', { formula: `SUM(F${firstItemRow}:F${lastItemRow})` })
-    setTotal(subtotalRow + 1, 'Total Discount:', { formula: `-SUM(E${firstItemRow}:E${lastItemRow})` }, {
-      font: { color: { argb: 'FFEF4444' } },
-    })
+    setTotal(subtotalRow, 'Subtotal:', { formula: `SUM(${C.total}${firstItemRow}:${C.total}${lastItemRow})` })
 
-    let grandRow = subtotalRow + 2
-    let grandFormula = `F${subtotalRow}`
+    let nextRow = subtotalRow + 1
+    let discountRow = 0
+    if (discountAmount.value > 0) {
+      discountRow = nextRow
+      const value = discountType.value === 'percent'
+        ? { formula: `-${lastCol}${subtotalRow}*${Math.min(discountValue.value || 0, 100)}/100` }
+        : -discountAmount.value
+      setTotal(discountRow, `${discountLabel.value}:`, value, {
+        font: { color: { argb: 'FFEF4444' } },
+      })
+      nextRow++
+    }
+
+    let depositRow = 0
     if (docType.value === 'invoice') {
-      setTotal(subtotalRow + 2, 'Deposit:', deposit.value || 0, {
+      depositRow = nextRow
+      setTotal(depositRow, 'Deposit:', deposit.value || 0, {
         font: { color: { argb: 'FF16A34A' } },
       })
-      grandRow = subtotalRow + 3
-      grandFormula = `MAX(0,F${subtotalRow}-F${subtotalRow + 2})`
+      nextRow++
     }
+
+    const grandRow = nextRow
+    const grandFormula = `MAX(0,${lastCol}${subtotalRow}` +
+      (discountRow ? `+${lastCol}${discountRow}` : '') +
+      (depositRow ? `-${lastCol}${depositRow}` : '') + ')'
     setTotal(
       grandRow,
       docType.value === 'invoice' ? 'Amount Due:' : 'Grand Total:',
@@ -417,7 +501,9 @@ export function useInvoiceGenerator() {
     customerLogo, setCustomerLogoFile, removeCustomerLogo,
     notes,
     items, addItem, removeItem, lineTotal,
-    subtotal, totalDiscount, depositApplied, grandTotal,
+    setItemImage, removeItemImage,
+    discountType, discountValue, discountAmount, discountLabel,
+    subtotal, depositApplied, grandTotal,
     clear, downloadPdf, downloadExcel,
   }
 }

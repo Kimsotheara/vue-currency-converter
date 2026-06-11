@@ -50,17 +50,21 @@
               <th class="text-left px-2 py-2">Description</th>
               <th class="text-right px-2 py-2">Qty</th>
               <th class="text-right px-2 py-2">Price</th>
-              <th class="text-right px-2 py-2">Discount</th>
               <th class="text-right px-2 py-2 rounded-r-lg">Total</th>
             </tr>
           </thead>
           <tbody class="divide-y divide-gray-100">
             <tr v-for="(item, index) in items" :key="index">
               <td class="text-center px-2 py-2 text-gray-400">{{ index + 1 }}</td>
-              <td class="px-2 py-2">{{ item.description }}</td>
+              <td class="px-2 py-2">
+                <div class="flex items-center gap-2.5">
+                  <img v-if="item.image" :src="item.image.dataUrl" alt="Item image"
+                    class="h-16 w-16 rounded-lg object-cover border border-gray-100 shrink-0" />
+                  <span>{{ item.description }}</span>
+                </div>
+              </td>
               <td class="text-right px-2 py-2">{{ item.qty }}</td>
               <td class="text-right px-2 py-2">${{ fmt(item.unitPrice) }}</td>
-              <td class="text-right px-2 py-2 text-red-500">-${{ fmt(item.discount || 0) }}</td>
               <td class="text-right px-2 py-2">${{ fmt(lineTotal(item)) }}</td>
             </tr>
           </tbody>
@@ -77,9 +81,9 @@
             <span class="text-gray-500">Subtotal</span>
             <span class="font-semibold text-gray-700">${{ fmt(subtotal) }}</span>
           </div>
-          <div class="flex justify-between">
-            <span class="text-gray-500">Total Discount</span>
-            <span class="font-semibold text-red-500">-${{ fmt(totalDiscount) }}</span>
+          <div v-if="discount > 0" class="flex justify-between">
+            <span class="text-gray-500">{{ discountLabel }}</span>
+            <span class="font-semibold text-red-500">-${{ fmt(discount) }}</span>
           </div>
           <div v-if="deposit > 0" class="flex justify-between">
             <span class="text-gray-500">Deposit</span>
@@ -140,7 +144,8 @@ const props = defineProps({
   items: Array,
   lineTotal: Function,
   subtotal: Number,
-  totalDiscount: Number,
+  discount: Number,
+  discountLabel: String,
   deposit: Number,
   grandTotal: Number,
   notes: String,
