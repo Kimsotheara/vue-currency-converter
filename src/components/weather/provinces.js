@@ -1,0 +1,55 @@
+export const provinces = [
+  { id: 'phnompenh', name: 'Phnom Penh', km: 'ភ្នំពេញ', lat: 11.5564, lon: 104.9282 },
+  { id: 'banteaymeanchey', name: 'Banteay Meanchey', km: 'បន្ទាយមានជ័យ', lat: 13.5859, lon: 102.9737 },
+  { id: 'battambang', name: 'Battambang', km: 'បាត់ដំបង', lat: 13.0957, lon: 103.2022 },
+  { id: 'kampongcham', name: 'Kampong Cham', km: 'កំពង់ចាម', lat: 11.9924, lon: 105.4645 },
+  { id: 'kampongchhnang', name: 'Kampong Chhnang', km: 'កំពង់ឆ្នាំង', lat: 12.2505, lon: 104.6655 },
+  { id: 'kampongspeu', name: 'Kampong Speu', km: 'កំពង់ស្ពឺ', lat: 11.4534, lon: 104.5209 },
+  { id: 'kampongthom', name: 'Kampong Thom', km: 'កំពង់ធំ', lat: 12.7110, lon: 104.8887 },
+  { id: 'kampot', name: 'Kampot', km: 'កំពត', lat: 10.6104, lon: 104.1810 },
+  { id: 'kandal', name: 'Kandal', km: 'កណ្តាល', lat: 11.4789, lon: 104.9510 },
+  { id: 'kep', name: 'Kep', km: 'កែប', lat: 10.4831, lon: 104.3167 },
+  { id: 'kohkong', name: 'Koh Kong', km: 'កោះកុង', lat: 11.6153, lon: 102.9837 },
+  { id: 'kratie', name: 'Kratie', km: 'ក្រចេះ', lat: 12.4881, lon: 106.0188 },
+  { id: 'mondulkiri', name: 'Mondulkiri', km: 'មណ្ឌលគិរី', lat: 12.4554, lon: 107.1883 },
+  { id: 'oddarmeanchey', name: 'Oddar Meanchey', km: 'ឧត្តរមានជ័យ', lat: 14.1817, lon: 103.5168 },
+  { id: 'pailin', name: 'Pailin', km: 'ប៉ៃលិន', lat: 12.8489, lon: 102.6093 },
+  { id: 'preahvihear', name: 'Preah Vihear', km: 'ព្រះវិហារ', lat: 13.8077, lon: 104.9800 },
+  { id: 'preahsihanouk', name: 'Preah Sihanouk', km: 'ព្រះសីហនុ', lat: 10.6268, lon: 103.5022 },
+  { id: 'preyveng', name: 'Prey Veng', km: 'ព្រៃវែង', lat: 11.4868, lon: 105.3253 },
+  { id: 'pursat', name: 'Pursat', km: 'ពោធិ៍សាត់', lat: 12.5388, lon: 103.9192 },
+  { id: 'ratanakiri', name: 'Ratanakiri', km: 'រតនគិរី', lat: 13.7395, lon: 106.9873 },
+  { id: 'siemreap', name: 'Siem Reap', km: 'សៀមរាប', lat: 13.3633, lon: 103.8564 },
+  { id: 'stungtreng', name: 'Stung Treng', km: 'ស្ទឹងត្រែង', lat: 13.5259, lon: 105.9683 },
+  { id: 'svayrieng', name: 'Svay Rieng', km: 'ស្វាយរៀង', lat: 11.0877, lon: 105.7993 },
+  { id: 'takeo', name: 'Takeo', km: 'តាកែវ', lat: 10.9908, lon: 104.7850 },
+  { id: 'tboungkhmum', name: 'Tboung Khmum', km: 'ត្បូងឃ្មុំ', lat: 11.9118, lon: 105.6582 },
+]
+
+const codes = {
+  0: ['Clear sky', '☀️'],
+  1: ['Mainly clear', '🌤️'],
+  2: ['Partly cloudy', '⛅'],
+  3: ['Overcast', '☁️'],
+  45: ['Foggy', '🌫️'],
+  48: ['Foggy', '🌫️'],
+  51: ['Light drizzle', '🌦️'],
+  53: ['Drizzle', '🌦️'],
+  55: ['Heavy drizzle', '🌧️'],
+  61: ['Light rain', '🌦️'],
+  63: ['Rain', '🌧️'],
+  65: ['Heavy rain', '🌧️'],
+  66: ['Freezing rain', '🌧️'],
+  67: ['Freezing rain', '🌧️'],
+  80: ['Light showers', '🌦️'],
+  81: ['Showers', '🌧️'],
+  82: ['Heavy showers', '⛈️'],
+  95: ['Thunderstorm', '⛈️'],
+  96: ['Thunderstorm + hail', '⛈️'],
+  99: ['Thunderstorm + hail', '⛈️'],
+}
+
+export const weatherInfo = (code) => {
+  const [label, emoji] = codes[code] || ['—', '🌡️']
+  return { label, emoji }
+}
