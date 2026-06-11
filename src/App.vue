@@ -29,6 +29,7 @@
           <LinkQRGenerator    v-else-if="activeTab.key === 'linkqr'" />
           <SavingGoalCalculator v-else-if="activeTab.key === 'savinggoal'" />
           <InvoiceGenerator   v-else-if="activeTab.key === 'invoice'" />
+          <InvitationCardGenerator v-else-if="activeTab.key === 'invitation'" />
         </keep-alive>
       </div>
     </div>
@@ -58,6 +59,7 @@ import WheelSpinner      from './components/wheel/WheelSpinner.vue'
 import LinkQRGenerator   from './components/linkqr/LinkQRGenerator.vue'
 import SavingGoalCalculator from './components/savinggoal/SavingGoalCalculator.vue'
 const InvoiceGenerator = defineAsyncComponent(() => import('./components/invoice/InvoiceGenerator.vue'))
+const InvitationCardGenerator = defineAsyncComponent(() => import('./components/invitation/InvitationCardGenerator.vue'))
 
 const tabs = [
   { key: 'currency', label: 'Currency Exchange',   icon: '💱' },
@@ -70,6 +72,7 @@ const tabs = [
   { key: 'linkqr',   label: 'Link QR Generate',    icon: '🔗' },
   { key: 'savinggoal', label: 'Saving Goal Calculate',       icon: '🎯' },
   { key: 'invoice',  label: 'Quotation / Invoice Generate',  icon: '🧾' },
+  { key: 'invitation', label: 'Invitation Card Generate', icon: '💌' },
 ]
 
 const activeKey = ref('currency')
@@ -77,7 +80,7 @@ const drawerOpen = ref(false)
 const activeTab = computed(() => tabs.find(t => t.key === activeKey.value))
 
 // Form-heavy tools get a wider canvas on tablet / desktop
-const wideTabs = ['invoice']
+const wideTabs = ['invoice', 'invitation']
 const containerWidth = computed(() =>
   wideTabs.includes(activeKey.value)
     ? 'w-full max-w-lg md:max-w-3xl lg:max-w-4xl'
