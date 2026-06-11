@@ -106,17 +106,17 @@
       </div>
 
       <div class="flex gap-2">
-        <div class="flex-1">
+        <div class="flex-1 min-w-0">
           <label class="block text-sm font-semibold text-gray-700 mb-1">
             {{ docType === 'invoice' ? 'Issue Date' : 'Quotation Date' }}
           </label>
           <input v-model="docDate" type="date"
-            class="w-full border border-gray-300 rounded-xl px-3 py-2.5 text-base focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent" />
+            class="w-full min-w-0 appearance-none border border-gray-300 rounded-xl px-3 py-2.5 text-base bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent" />
         </div>
-        <div v-if="docType === 'invoice'" class="flex-1">
+        <div v-if="docType === 'invoice'" class="flex-1 min-w-0">
           <label class="block text-sm font-semibold text-gray-700 mb-1">Due Date</label>
           <input v-model="dueDate" type="date"
-            class="w-full border border-gray-300 rounded-xl px-3 py-2.5 text-base focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent" />
+            class="w-full min-w-0 appearance-none border border-gray-300 rounded-xl px-3 py-2.5 text-base bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent" />
         </div>
       </div>
 
@@ -145,60 +145,76 @@
     <div>
       <p class="text-xs font-bold uppercase tracking-widest text-gray-400 mb-2">Items</p>
       <div class="space-y-2">
-        <div v-for="(item, index) in items" :key="index" class="bg-gray-50 rounded-xl p-2 space-y-2">
-          <div class="flex flex-wrap gap-2 items-end">
-            <!-- Optional item image -->
-            <div class="shrink-0">
-              <div v-if="item.image" class="relative">
-                <img :src="item.image.dataUrl" alt="Item image"
-                  class="h-10 w-10 rounded-lg object-cover border border-gray-200 bg-white" />
-                <button
-                  @click="removeItemImage(item)"
-                  type="button"
-                  title="Remove image"
-                  class="absolute -top-2 -right-2 w-4 h-4 flex items-center justify-center rounded-full bg-red-500 text-white text-[10px] shadow"
+        <div v-for="(item, index) in items" :key="index" class="bg-gray-50 rounded-xl p-2">
+          <div class="flex flex-col gap-2 sm:flex-row sm:items-end">
+
+            <!-- Image + description (+ remove on mobile) -->
+            <div class="flex gap-2 items-end flex-1 min-w-0">
+              <div class="shrink-0">
+                <div v-if="item.image" class="relative">
+                  <img :src="item.image.dataUrl" alt="Item image"
+                    class="h-10 w-10 rounded-lg object-cover border border-gray-200 bg-white" />
+                  <button
+                    @click="removeItemImage(item)"
+                    type="button"
+                    title="Remove image"
+                    class="absolute -top-2 -right-2 w-4 h-4 flex items-center justify-center rounded-full bg-red-500 text-white text-[10px] shadow"
+                  >
+                    ✕
+                  </button>
+                </div>
+                <label
+                  v-else
+                  title="Add image (optional)"
+                  class="cursor-pointer h-10 w-10 flex items-center justify-center border-2 border-dashed border-gray-300 text-gray-400 hover:border-blue-400 hover:text-blue-600 rounded-lg text-base transition-colors"
                 >
-                  ✕
-                </button>
+                  📷
+                  <input
+                    type="file"
+                    accept="image/png,image/jpeg,image/webp"
+                    class="hidden"
+                    @change="setItemImage(item, $event.target.files[0]); $event.target.value = ''"
+                  />
+                </label>
               </div>
-              <label
-                v-else
-                title="Add image (optional)"
-                class="cursor-pointer h-10 w-10 flex items-center justify-center border-2 border-dashed border-gray-300 text-gray-400 hover:border-blue-400 hover:text-blue-600 rounded-lg text-base transition-colors"
+              <div class="flex-1 min-w-0">
+                <label class="block text-xs font-semibold text-gray-400 uppercase tracking-wide mb-0.5">Description</label>
+                <input v-model="item.description" type="text" placeholder="Item"
+                  class="w-full border border-gray-300 rounded-lg px-2.5 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent" />
+              </div>
+            </div>
+
+            <!-- Qty / price / total / remove: one even row on mobile, inline on desktop -->
+            <div class="flex gap-2 items-end">
+              <div class="flex-1 min-w-0 sm:flex-none sm:w-16">
+                <label class="block text-xs font-semibold text-gray-400 uppercase tracking-wide mb-0.5">Qty</label>
+                <input v-model.number="item.qty" type="number" placeholder="0" min="0"
+                  class="w-full border border-gray-300 rounded-lg px-2.5 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent" />
+              </div>
+              <div class="flex-1 min-w-0 sm:flex-none sm:w-24">
+                <label class="block text-xs font-semibold text-gray-400 uppercase tracking-wide mb-0.5">Unit Price</label>
+                <input v-model.number="item.unitPrice" type="number" placeholder="0.00" min="0"
+                  class="w-full border border-gray-300 rounded-lg px-2.5 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent" />
+              </div>
+              <div class="flex-1 min-w-0 sm:flex-none sm:w-24">
+                <label class="block text-xs font-semibold text-gray-400 uppercase tracking-wide mb-0.5 text-right">Total</label>
+                <p class="text-sm font-semibold text-gray-700 text-right py-2 truncate">${{ fmt(lineTotal(item)) }}</p>
+              </div>
+              <button
+                @click="removeItem(index)"
+                type="button"
+                title="Remove item"
+                class="w-9 h-9 flex items-center justify-center rounded-lg bg-red-50 text-red-500 hover:bg-red-100 transition-colors shrink-0 sm:hidden"
               >
-                📷
-                <input
-                  type="file"
-                  accept="image/png,image/jpeg,image/webp"
-                  class="hidden"
-                  @change="setItemImage(item, $event.target.files[0]); $event.target.value = ''"
-                />
-              </label>
+                ✕
+              </button>
             </div>
-            <div class="flex-1 min-w-[120px]">
-              <label class="block text-xs font-semibold text-gray-400 uppercase tracking-wide mb-0.5">Description</label>
-              <input v-model="item.description" type="text" placeholder="Item"
-                class="w-full border border-gray-300 rounded-lg px-2.5 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent" />
-            </div>
-            <div class="w-16">
-              <label class="block text-xs font-semibold text-gray-400 uppercase tracking-wide mb-0.5">Qty</label>
-              <input v-model.number="item.qty" type="number" placeholder="0" min="0"
-                class="w-full border border-gray-300 rounded-lg px-2.5 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent" />
-            </div>
-            <div class="w-24">
-              <label class="block text-xs font-semibold text-gray-400 uppercase tracking-wide mb-0.5">Unit Price</label>
-              <input v-model.number="item.unitPrice" type="number" placeholder="0.00" min="0"
-                class="w-full border border-gray-300 rounded-lg px-2.5 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent" />
-            </div>
-            <div class="w-20">
-              <label class="block text-xs font-semibold text-gray-400 uppercase tracking-wide mb-0.5 text-right">Total</label>
-              <p class="text-sm font-semibold text-gray-700 text-right py-2">${{ fmt(lineTotal(item)) }}</p>
-            </div>
+
             <button
               @click="removeItem(index)"
               type="button"
               title="Remove item"
-              class="w-8 h-8 flex items-center justify-center rounded-lg bg-red-50 text-red-500 hover:bg-red-100 transition-colors shrink-0"
+              class="hidden sm:flex w-8 h-8 items-center justify-center rounded-lg bg-red-50 text-red-500 hover:bg-red-100 transition-colors shrink-0"
             >
               ✕
             </button>
@@ -221,14 +237,14 @@
           <input v-model.number="discountValue" type="number" min="0"
             :placeholder="discountType === 'percent' ? 'e.g. 10' : 'e.g. 50'"
             class="flex-1 min-w-0 border border-gray-300 rounded-xl px-3 py-2.5 text-base focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent" />
-          <div class="flex bg-gray-100 rounded-xl p-1 shrink-0">
+          <div class="flex items-center bg-gray-100 rounded-full p-0.5 shrink-0 self-center">
             <button
               v-for="t in [{ value: 'amount', label: '$' }, { value: 'percent', label: '%' }]"
               :key="t.value"
               type="button"
               @click="discountType = t.value"
               :class="[
-                'px-4 rounded-lg text-sm font-semibold transition-colors duration-150',
+                'px-4 py-1.5 rounded-full text-sm font-semibold transition-colors duration-150',
                 discountType === t.value ? 'bg-blue-600 text-white shadow-sm' : 'text-gray-500 hover:text-gray-700',
               ]"
             >
