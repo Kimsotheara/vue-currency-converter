@@ -19,17 +19,18 @@
     <div class="flex-1 overflow-y-auto pt-5 pb-8 px-4">
       <div :class="[containerWidth, 'mx-auto bg-white rounded-2xl shadow-sm p-5 sm:p-8']">
         <keep-alive>
-          <CurrencyConverter  v-if="activeTab.key === 'currency'" />
-          <VehicleLoanCalculator     v-else-if="activeTab.key === 'vehicleloan'" />
-          <WiFiQRGenerator    v-else-if="activeTab.key === 'wifi'" />
-          <UnitConverter      v-else-if="activeTab.key === 'unit'" />
+          <CurrencyConverter v-if="activeTab.key === 'currency'" />
+          <VehicleLoanCalculator v-else-if="activeTab.key === 'vehicleloan'" />
+          <WiFiQRGenerator v-else-if="activeTab.key === 'wifi'" />
+          <UnitConverter v-else-if="activeTab.key === 'unit'" />
           <DiscountCalculator v-else-if="activeTab.key === 'discount'" />
-          <BMICalculator      v-else-if="activeTab.key === 'bmi'" />
-          <WheelSpinner       v-else-if="activeTab.key === 'wheel'" />
-          <LinkQRGenerator    v-else-if="activeTab.key === 'linkqr'" />
+          <BMICalculator v-else-if="activeTab.key === 'bmi'" />
+          <WheelSpinner v-else-if="activeTab.key === 'wheel'" />
+          <LinkQRGenerator v-else-if="activeTab.key === 'linkqr'" />
           <SavingGoalCalculator v-else-if="activeTab.key === 'savinggoal'" />
-          <InvoiceGenerator   v-else-if="activeTab.key === 'invoice'" />
+          <InvoiceGenerator v-else-if="activeTab.key === 'invoice'" />
           <InvitationCardGenerator v-else-if="activeTab.key === 'invitation'" />
+          <CambodiaWeather v-else-if="activeTab.key === 'weather'" />
         </keep-alive>
       </div>
     </div>
@@ -60,6 +61,7 @@ import LinkQRGenerator   from './components/linkqr/LinkQRGenerator.vue'
 import SavingGoalCalculator from './components/savinggoal/SavingGoalCalculator.vue'
 const InvoiceGenerator = defineAsyncComponent(() => import('./components/invoice/InvoiceGenerator.vue'))
 const InvitationCardGenerator = defineAsyncComponent(() => import('./components/invitation/InvitationCardGenerator.vue'))
+const CambodiaWeather = defineAsyncComponent(() => import('./components/weather/CambodiaWeather.vue'))
 
 const tabs = [
   { key: 'currency', label: 'Currency Exchange',   icon: '💱' },
@@ -73,6 +75,7 @@ const tabs = [
   { key: 'savinggoal', label: 'Saving Goal Calculate',       icon: '🎯' },
   { key: 'invoice',  label: 'Quotation / Invoice Generate',  icon: '🧾' },
   { key: 'invitation', label: 'Invitation Card Generate', icon: '💌' },
+  { key: 'weather', label: 'Cambodia Weather', icon: '⛅' },
 ]
 
 const activeKey = ref('currency')
@@ -80,7 +83,7 @@ const drawerOpen = ref(false)
 const activeTab = computed(() => tabs.find(t => t.key === activeKey.value))
 
 // Form-heavy tools get a wider canvas on tablet / desktop
-const wideTabs = ['invoice', 'invitation']
+const wideTabs = ['invoice', 'invitation', 'weather']
 const containerWidth = computed(() =>
   wideTabs.includes(activeKey.value)
     ? 'w-full max-w-lg md:max-w-3xl lg:max-w-4xl'
