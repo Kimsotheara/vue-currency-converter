@@ -77,6 +77,7 @@ const mapPlayer = (p) => ({
   name: p.athlete?.displayName || '',
   pos: p.position?.abbreviation || '',
   group: groupOf(p.position?.abbreviation),
+  shirt: p.athlete?.jerseyImages?.[0]?.href || '', // ESPN kit image (number on shirt)
 })
 
 const normalizeLineup = (t) => {

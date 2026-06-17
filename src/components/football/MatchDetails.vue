@@ -63,7 +63,12 @@
                   <div class="relative flex flex-col gap-4 px-2">
                     <div v-for="line in ['GK','DEF','MID','FWD']" :key="line" class="flex justify-center gap-3 sm:gap-5">
                       <div v-for="(p, i) in activeXI.lines[line]" :key="line+i" class="flex flex-col items-center w-16">
-                        <div class="w-9 h-9 rounded-full bg-white text-slate-900 font-bold text-sm flex items-center justify-center shadow-md">{{ p.num }}</div>
+                        <div class="relative">
+                          <img v-if="photoFor(p.name)" :src="photoFor(p.name)" class="w-11 h-11 rounded-full object-cover object-top bg-white/15 ring-2 ring-white/50 shadow-md" loading="lazy" />
+                          <img v-else-if="p.shirt" :src="p.shirt" class="w-10 h-10 object-contain drop-shadow" loading="lazy" />
+                          <div v-else class="w-9 h-9 rounded-full bg-white text-slate-900 font-bold text-sm flex items-center justify-center shadow-md">{{ p.num }}</div>
+                          <span class="absolute -bottom-1 -right-1 bg-slate-900/85 text-white text-[9px] font-bold rounded px-1 leading-4">{{ p.num }}</span>
+                        </div>
                         <span class="mt-1 text-[10px] leading-tight text-white text-center font-medium truncate w-full">{{ lastName(p.name) }}</span>
                       </div>
                     </div>
@@ -73,6 +78,8 @@
                   <p class="text-slate-500 text-xs font-semibold uppercase tracking-wider mb-2">Substitutes</p>
                   <div class="grid grid-cols-2 gap-x-4 gap-y-1.5">
                     <div v-for="(p, i) in activeXI.subs" :key="'s'+i" class="flex items-center gap-2 text-xs">
+                      <img v-if="photoFor(p.name)" :src="photoFor(p.name)" class="w-6 h-6 rounded-full object-cover object-top bg-white/15 shrink-0" loading="lazy" />
+                      <img v-else-if="p.shirt" :src="p.shirt" class="w-5 h-5 object-contain shrink-0" loading="lazy" />
                       <span class="w-5 text-right text-slate-500 tabular-nums shrink-0">{{ p.num }}</span>
                       <span class="text-slate-300 truncate">{{ p.name }}</span>
                       <span class="ml-auto text-[10px] text-slate-600 shrink-0">{{ p.pos }}</span>
@@ -134,7 +141,8 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, watch } from 'vue'
+import { usePlayerPhotos } from './playerPhotos'
 
 const props = defineProps({
   event: { type: Object, required: true },
@@ -154,6 +162,18 @@ const tabs = [
 const tab = ref('lineup')
 const xi = ref(0)
 const activeXI = computed(() => props.teams?.[xi.value])
+
+// Fetch face photos for everyone in the line-up (starters first, then subs).
+const { photoFor, ensurePhotos } = usePlayerPhotos()
+watch(
+  () => props.teams,
+  (teams) => {
+    if (!teams) return
+    const names = teams.flatMap((t) => [...t.starters, ...t.subs]).map((p) => p.name)
+    ensurePhotos(names)
+  },
+  { immediate: true },
+)
 const hasForm = computed(() => (props.form?.home?.length || props.form?.away?.length))
 
 const resultBg = (r) => (r === 'W' ? 'bg-emerald-500' : r === 'L' ? 'bg-red-500' : 'bg-slate-500')
