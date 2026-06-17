@@ -28,9 +28,9 @@
       <label class="block text-sm font-semibold text-gray-700 mb-1">Amount</label>
       <input
         type="number"
+        inputmode="decimal"
         :value="amount"
         @input="$emit('update:amount', toNum($event))"
-        @keyup.enter="$emit('convert')"
         class="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-base focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
       />
     </div>
@@ -41,12 +41,6 @@
         class="flex-1 min-w-24 bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white font-semibold py-2.5 rounded-lg transition-colors text-sm sm:text-base"
       >
         ⇄ Switch
-      </button>
-      <button
-        @click="$emit('convert')"
-        class="flex-1 min-w-24 bg-green-600 hover:bg-green-700 active:bg-green-800 text-white font-semibold py-2.5 rounded-lg transition-colors text-sm sm:text-base"
-      >
-        Convert
       </button>
       <button
         @click="$emit('clear')"
@@ -68,7 +62,7 @@ defineProps({
   amount: Number,
   currencyOptions: Array,
 })
-defineEmits(['update:fromCurrency', 'update:toCurrency', 'update:amount', 'convert', 'switch', 'clear'])
+defineEmits(['update:fromCurrency', 'update:toCurrency', 'update:amount', 'switch', 'clear'])
 
 const toNum = (e) => (e.target.value === '' ? null : Number(e.target.value))
 </script>

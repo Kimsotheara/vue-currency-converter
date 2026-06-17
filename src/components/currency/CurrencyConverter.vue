@@ -5,7 +5,6 @@
       v-model:toCurrency="toCurrency"
       v-model:amount="amount"
       :currencyOptions="currencyOptions"
-      @convert="convertCurrency"
       @switch="switchCurrencies"
       @clear="clear"
     />
@@ -31,8 +30,19 @@ const rates = ref({})
 const fromCurrency = ref(null)
 const toCurrency = ref(null)
 const amount = ref(1)
-const result = ref(null)
 const error = ref(null)
+
+// Result updates live as the amount or selected currencies change.
+const result = computed(() => {
+  if (
+    amount.value === null || amount.value === '' ||
+    !rates.value || !fromCurrency.value || !toCurrency.value
+  ) return null
+  const rateFrom = 1 / rates.value[fromCurrency.value.code]
+  const rateTo = rates.value[toCurrency.value.code]
+  if (!isFinite(rateFrom) || rateTo === undefined) return null
+  return amount.value * rateFrom * rateTo
+})
 
 const currencyOptions = computed(() =>
   Object.entries(currencies.value)
@@ -54,13 +64,6 @@ onMounted(async () => {
   }
 })
 
-const convertCurrency = () => {
-  if (!rates.value || !fromCurrency.value || !toCurrency.value) return
-  const rateFrom = 1 / rates.value[fromCurrency.value.code]
-  const rateTo = rates.value[toCurrency.value.code]
-  result.value = amount.value * rateFrom * rateTo
-}
-
 const switchCurrencies = () => {
   const temp = fromCurrency.value
   fromCurrency.value = toCurrency.value
@@ -69,7 +72,6 @@ const switchCurrencies = () => {
 
 const clear = () => {
   amount.value = 1
-  result.value = null
   setDefaultCurrencies()
 }
 
