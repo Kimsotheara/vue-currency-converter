@@ -131,12 +131,18 @@
             v-if="featured.homeScorers.length || featured.awayScorers.length"
             class="mt-5 pt-4 border-t border-white/5 grid grid-cols-[1fr_auto_1fr] gap-3 items-start text-xs"
           >
-            <ul class="space-y-1 text-left text-slate-300">
-              <li v-for="(s, i) in featured.homeScorers" :key="'h'+i">{{ scorerText(s) }}</li>
+            <ul class="space-y-1.5 text-left text-slate-300">
+              <li v-for="(s, i) in featured.homeScorers" :key="'h'+i">
+                ⚽ {{ scorerText(s) }}
+                <span v-if="assistFor(s)" class="block text-[10px] text-slate-500">↳ assist {{ assistFor(s) }}</span>
+              </li>
             </ul>
             <span class="text-slate-500 pt-0.5">⚽</span>
-            <ul class="space-y-1 text-right text-slate-300">
-              <li v-for="(s, i) in featured.awayScorers" :key="'a'+i">{{ scorerText(s) }}</li>
+            <ul class="space-y-1.5 text-right text-slate-300">
+              <li v-for="(s, i) in featured.awayScorers" :key="'a'+i">
+                {{ scorerText(s) }} ⚽
+                <span v-if="assistFor(s)" class="block text-[10px] text-slate-500">{{ assistFor(s) }} assist ↳</span>
+              </li>
             </ul>
           </div>
 
@@ -238,7 +244,7 @@ const {
   fetchScores, selectLeague, shiftDay, goToday,
   lineupEvent, openLineup, closeLineup, retryLineup,
   lineupFor, detailsStateFor,
-  ensurePrediction, predictionFor,
+  ensurePrediction, predictionFor, assistsFor,
   h2hFor, formFor,
 } = useFootballScores()
 
@@ -247,6 +253,8 @@ onMounted(fetchScores)
 // Pull the match prediction for whichever game is featured.
 watch(featured, (m) => { if (m) ensurePrediction(m) }, { immediate: true })
 const prediction = computed(() => (featured.value ? predictionFor(featured.value.id) : null))
+const assists = computed(() => (featured.value ? assistsFor(featured.value.id) : null))
+const assistFor = (s) => assists.value?.[s.name?.toLowerCase()] || ''
 
 const statusText = (m) => {
   if (m.live) return m.detail || 'LIVE'

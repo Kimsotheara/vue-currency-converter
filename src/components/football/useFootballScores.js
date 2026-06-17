@@ -144,6 +144,20 @@ const mapForm = (data, teamId) => {
   })
 }
 
+// Pull "scorer -> assist" pairs out of the natural-language key-event texts,
+// e.g. "Goal! … Patrick Dorgu (Manchester United) header … Assisted by Bruno Fernandes …"
+const parseAssists = (data) => {
+  const out = {}
+  for (const k of data.keyEvents || []) {
+    const text = k.text || ''
+    if (!/Goal!/i.test(text)) continue
+    const scorer = text.match(/Goal!.*?\.\s*([^(]+?)\s*\(/)
+    const assist = text.match(/Assisted by ([^.,]+?)(?:\s+(?:with|following|after)\b|[.,]|$)/i)
+    if (scorer && assist) out[scorer[1].trim().toLowerCase()] = assist[1].trim()
+  }
+  return out
+}
+
 // Recent head-to-head meetings (from the home team's perspective).
 const mapH2H = (data) => {
   const block = (data.headToHeadGames || [])[0]
@@ -241,6 +255,7 @@ export function useFootballScores() {
         [id]: {
           lineup,
           prediction: computePrediction(data),
+          assists: parseAssists(data),
           h2h: mapH2H(data),
           form: {
             home: homeSched ? mapForm(homeSched, event.home?.id) : [],
@@ -257,6 +272,7 @@ export function useFootballScores() {
 
   const ensurePrediction = (event) => { if (event) ensureSummary(event) }
   const predictionFor = (id) => summaryCache.value[id]?.prediction || null
+  const assistsFor = (id) => summaryCache.value[id]?.assists || null
   const h2hFor = (id) => summaryCache.value[id]?.h2h || null
   const formFor = (id) => summaryCache.value[id]?.form || null
 
@@ -338,7 +354,7 @@ export function useFootballScores() {
     fetchScores, selectLeague, shiftDay, goToday,
     lineupEvent, openLineup, closeLineup, retryLineup,
     lineupFor, detailsStateFor,
-    ensurePrediction, predictionFor,
+    ensurePrediction, predictionFor, assistsFor,
     h2hFor, formFor,
   }
 }
