@@ -31,6 +31,7 @@
           <InvoiceGenerator v-else-if="activeTab.key === 'invoice'" />
           <InvitationCardGenerator v-else-if="activeTab.key === 'invitation'" />
           <CambodiaWeather v-else-if="activeTab.key === 'weather'" />
+          <FootballScores v-else-if="activeTab.key === 'football'" />
         </keep-alive>
       </div>
     </div>
@@ -62,6 +63,7 @@ import SavingGoalCalculator from './components/savinggoal/SavingGoalCalculator.v
 const InvoiceGenerator = defineAsyncComponent(() => import('./components/invoice/InvoiceGenerator.vue'))
 const InvitationCardGenerator = defineAsyncComponent(() => import('./components/invitation/InvitationCardGenerator.vue'))
 const CambodiaWeather = defineAsyncComponent(() => import('./components/weather/CambodiaWeather.vue'))
+const FootballScores = defineAsyncComponent(() => import('./components/football/FootballScores.vue'))
 
 const tabs = [
   { key: 'currency', label: 'Currency Exchange',   icon: '💱' },
@@ -76,6 +78,7 @@ const tabs = [
   { key: 'invoice',  label: 'Quotation / Invoice Generate',  icon: '🧾' },
   { key: 'invitation', label: 'Invitation Card Generate', icon: '💌' },
   { key: 'weather', label: 'Cambodia Weather', icon: '⛅' },
+  { key: 'football', label: 'Football Live Scores', icon: '⚽' },
 ]
 
 const activeKey = ref('currency')
@@ -83,7 +86,7 @@ const drawerOpen = ref(false)
 const activeTab = computed(() => tabs.find(t => t.key === activeKey.value))
 
 // Form-heavy tools get a wider canvas on tablet / desktop
-const wideTabs = ['invoice', 'invitation', 'weather']
+const wideTabs = ['invoice', 'invitation', 'weather', 'football']
 const containerWidth = computed(() =>
   wideTabs.includes(activeKey.value)
     ? 'w-full max-w-lg md:max-w-3xl lg:max-w-4xl'
