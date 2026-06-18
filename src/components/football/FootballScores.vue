@@ -225,6 +225,8 @@
       :teams="lineupFor(lineupEvent.id)"
       :form="formFor(lineupEvent.id)"
       :h2h="h2hFor(lineupEvent.id)"
+      :assists="assistsFor(lineupEvent.id)"
+      :ratingSource="ratingSourceFor(lineupEvent.id)"
       @close="closeLineup"
       @retry="retryLineup"
     />
@@ -245,7 +247,7 @@ const {
   lineupEvent, openLineup, closeLineup, retryLineup,
   lineupFor, detailsStateFor,
   ensurePrediction, predictionFor, assistsFor,
-  h2hFor, formFor,
+  h2hFor, formFor, ratingSourceFor,
 } = useFootballScores()
 
 onMounted(fetchScores)

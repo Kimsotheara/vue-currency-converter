@@ -72,31 +72,109 @@ const groupOf = (abbr = '') => {
   return 'MID'
 }
 
-const mapPlayer = (p) => ({
-  num: p.jersey || '',
-  name: p.athlete?.displayName || '',
-  pos: p.position?.abbreviation || '',
-  group: groupOf(p.position?.abbreviation),
-  shirt: p.athlete?.jerseyImages?.[0]?.href || '', // ESPN kit image (number on shirt)
+const parseStats = (stats) => Object.fromEntries((stats || []).map((x) => [x.name, x.value || 0]))
+
+// ESPN gives no official rating, so derive an estimate from per-player match stats.
+// `played` (starter, or a sub who came on) decides whether to show a rating at all —
+// so every participant gets one even when ESPN's per-player stats are sparse.
+const computeRating = (s, played) => {
+  if (!played) return null
+  const v = (k) => s[k] || 0 // missing stats default to 0 (never NaN)
+  let r = 6.5
+  r += v('totalGoals') * 1.2
+  r += v('goalAssists') * 0.8
+  r += v('shotsOnTarget') * 0.12
+  r += v('saves') * 0.18
+  r += v('foulsSuffered') * 0.03
+  r -= v('goalsConceded') * 0.25
+  r -= v('foulsCommitted') * 0.05
+  r -= v('yellowCards') * 0.4
+  r -= v('redCards') * 1.5
+  r -= v('ownGoals') * 1.2
+  return Math.round(Math.max(4, Math.min(10, r)) * 10) / 10
+}
+
+const mapPlayer = (p, played) => {
+  const s = parseStats(p.stats)
+  return {
+    num: p.jersey || '',
+    name: p.athlete?.displayName || '',
+    shortName: p.athlete?.shortName || '', // e.g. "R. Schmid"
+    pos: p.position?.abbreviation || '',
+    posName: p.position?.displayName || p.position?.name || '',
+    group: groupOf(p.position?.abbreviation),
+    shirt: p.athlete?.jerseyImages?.[0]?.href || '', // ESPN kit image (number on shirt)
+    rating: computeRating(s, played),
+    events: {
+      goals: s.totalGoals || 0,
+      assists: s.goalAssists || 0,
+      yellow: s.yellowCards || 0,
+      red: s.redCards || 0,
+      ownGoals: s.ownGoals || 0,
+      subIn: p.subbedIn === true,
+      subOut: p.subbedOut === true,
+    },
+  }
+}
+
+const buildLines = (starters) => ({
+  GK: starters.filter((p) => p.group === 'GK'),
+  DEF: starters.filter((p) => p.group === 'DEF'),
+  MID: starters.filter((p) => p.group === 'MID'),
+  FWD: starters.filter((p) => p.group === 'FWD'),
 })
 
 const normalizeLineup = (t) => {
   const roster = t.roster || []
-  const starters = roster.filter((p) => p.starter).map(mapPlayer)
+  const starters = roster.filter((p) => p.starter).map((p) => mapPlayer(p, true))
   return {
     name: t.team?.displayName || '',
     logo: t.team?.logo || '',
     homeAway: t.homeAway,
     formation: t.formation || '',
     starters,
-    subs: roster.filter((p) => !p.starter).map(mapPlayer),
-    lines: {
-      GK: starters.filter((p) => p.group === 'GK'),
-      DEF: starters.filter((p) => p.group === 'DEF'),
-      MID: starters.filter((p) => p.group === 'MID'),
-      FWD: starters.filter((p) => p.group === 'FWD'),
-    },
+    // subs are rated only if they actually came on
+    subs: roster.filter((p) => !p.starter).map((p) => mapPlayer(p, p.subbedIn === true)),
+    lines: buildLines(starters),
   }
+}
+
+// Normalize a name for cross-source matching (accent-insensitive, lowercased).
+const normName = (s = '') =>
+  s.normalize('NFD').replace(/\p{Diacritic}/gu, '').toLowerCase().trim()
+
+// Real player ratings from API-Football (via the proxy). Maps the ESPN match to
+// an API-Football fixture by date + team names, then reads each player's rating.
+// Returns { normalizedName: rating } or null (no key / no match / unavailable).
+let afDown = false
+const fetchAfRatings = async (event) => {
+  if (afDown) return null
+  const d = new Date(event.date)
+  const date = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+  const get = async (path) => {
+    let res
+    try { res = await fetch(`/api/football${path}`, { signal: AbortSignal.timeout(9000) }) }
+    catch { return null }
+    if ([401, 403, 404, 499].includes(res.status)) { afDown = true; return null }
+    return res.ok ? res.json() : null
+  }
+  const fixturesData = await get(`/fixtures?date=${date}`)
+  if (!fixturesData) return null
+  const h = normName(event.home.name), a = normName(event.away.name)
+  const hit = (af, espn) => { const x = normName(af); return !!x && (x === espn || x.includes(espn) || espn.includes(x)) }
+  const fx = (fixturesData.response || []).find(
+    (f) => hit(f.teams?.home?.name, h) && hit(f.teams?.away?.name, a),
+  )
+  if (!fx) return null
+  const playersData = await get(`/fixtures/players?fixture=${fx.fixture.id}`)
+  if (!playersData) return null
+  const map = {}
+  for (const t of playersData.response || [])
+    for (const p of t.players || []) {
+      const r = p.statistics?.[0]?.games?.rating
+      if (r) map[normName(p.player?.name)] = Math.round(Number(r) * 10) / 10
+    }
+  return Object.keys(map).length ? map : null
 }
 
 // Turn bookmaker money-lines into normalized win/draw/win percentages.
@@ -266,10 +344,33 @@ export function useFootballScores() {
       }
       const { [id]: _, ...rest } = summaryStatus.value
       summaryStatus.value = rest
+      if (event.completed) enrichRatings(event) // fire-and-forget; updates when ready
     } catch {
       summaryStatus.value = { ...summaryStatus.value, [id]: 'error' }
     }
   }
+
+  // Overlay real API-Football ratings onto the line-up once they arrive.
+  const enrichRatings = async (event) => {
+    const map = await fetchAfRatings(event)
+    if (!map) return
+    const entry = summaryCache.value[event.id]
+    if (!entry?.lineup) return
+    const apply = (p) => {
+      const r = map[normName(p.name)]
+      return r != null ? { ...p, rating: r, realRating: true } : p
+    }
+    const lineup = entry.lineup.map((team) => {
+      const starters = team.starters.map(apply)
+      return { ...team, starters, subs: team.subs.map(apply), lines: buildLines(starters) }
+    })
+    summaryCache.value = {
+      ...summaryCache.value,
+      [event.id]: { ...entry, lineup, ratingSource: 'API-Football' },
+    }
+  }
+
+  const ratingSourceFor = (id) => summaryCache.value[id]?.ratingSource || null
 
   const ensurePrediction = (event) => { if (event) ensureSummary(event) }
   const predictionFor = (id) => summaryCache.value[id]?.prediction || null
@@ -356,6 +457,6 @@ export function useFootballScores() {
     lineupEvent, openLineup, closeLineup, retryLineup,
     lineupFor, detailsStateFor,
     ensurePrediction, predictionFor, assistsFor,
-    h2hFor, formFor,
+    h2hFor, formFor, ratingSourceFor,
   }
 }

@@ -1,3 +1,4 @@
+
 import { ref } from 'vue'
 
 // Player face photos. Tries API-Football first (real headshots, via the dev proxy
