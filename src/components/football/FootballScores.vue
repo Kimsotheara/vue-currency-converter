@@ -38,7 +38,7 @@
           :class="[
             'shrink-0 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold transition whitespace-nowrap',
             l.slug === leagueSlug
-              ? 'bg-white text-slate-900'
+              ? 'bg-emerald-500 text-white'
               : 'bg-white/10 text-slate-300 hover:bg-white/20',
           ]"
         >
