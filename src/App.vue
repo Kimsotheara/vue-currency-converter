@@ -11,7 +11,7 @@
     />
   </Transition>
 
-  <div class="min-h-screen flex flex-col" :class="activeKey ? 'bg-gray-100 dark:bg-slate-900' : 'bg-gradient-to-b from-indigo-50 via-purple-50 to-white dark:from-slate-900 dark:via-slate-900 dark:to-slate-800'">
+  <div class="h-dvh flex flex-col" :class="activeKey ? 'bg-gray-100 dark:bg-slate-900' : 'bg-gradient-to-b from-indigo-50 via-purple-50 to-white dark:from-slate-900 dark:via-slate-900 dark:to-slate-800'">
 
     <!-- Header -->
     <div class="bg-white/90 dark:bg-slate-900/90 backdrop-blur border-b border-gray-200 dark:border-slate-700 sticky top-0 z-40">
@@ -55,16 +55,21 @@
       </div>
     </div>
 
-    <!-- Body -->
-    <div class="flex-1 overflow-y-auto pt-6 pb-10 px-4">
-      <!-- Home: app grid -->
-      <div v-if="!activeKey" class="w-full max-w-lg md:max-w-2xl mx-auto">
-        <HomeGrid :tabs="tabs" @select="openFeature" />
-        <p class="mt-10 text-center text-xs text-gray-400">@theara.dev</p>
+    <!-- Home: scrollable app grid with a pinned footer -->
+    <template v-if="!activeKey">
+      <div class="flex-1 overflow-y-auto px-4 pt-6 pb-4">
+        <div class="w-full max-w-lg md:max-w-2xl mx-auto">
+          <HomeGrid :tabs="tabs" @select="openFeature" />
+        </div>
       </div>
+      <footer class="shrink-0 py-3 text-center text-xs text-gray-400 border-t border-gray-200 dark:border-slate-700 bg-white/70 dark:bg-slate-900/70 backdrop-blur">
+        @theara.dev
+      </footer>
+    </template>
 
-      <!-- Feature -->
-      <div v-else :class="[containerWidth, 'mx-auto bg-white rounded-2xl shadow-sm p-5 sm:p-8']">
+    <!-- Feature -->
+    <div v-else class="flex-1 overflow-y-auto pt-6 pb-10 px-4">
+      <div :class="[containerWidth, 'mx-auto bg-white rounded-2xl shadow-sm p-5 sm:p-8']">
         <keep-alive>
           <InternetSpeedTest v-if="activeTab.key === 'speedtest'" />
           <CurrencyConverter v-else-if="activeTab.key === 'currency'" />
