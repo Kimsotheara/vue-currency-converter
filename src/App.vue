@@ -19,7 +19,8 @@
     <div class="flex-1 overflow-y-auto pt-5 pb-8 px-4">
       <div :class="[containerWidth, 'mx-auto bg-white rounded-2xl shadow-sm p-5 sm:p-8']">
         <keep-alive>
-          <CurrencyConverter v-if="activeTab.key === 'currency'" />
+          <InternetSpeedTest v-if="activeTab.key === 'speedtest'" />
+          <CurrencyConverter v-else-if="activeTab.key === 'currency'" />
           <VehicleLoanCalculator v-else-if="activeTab.key === 'vehicleloan'" />
           <WiFiQRGenerator v-else-if="activeTab.key === 'wifi'" />
           <UnitConverter v-else-if="activeTab.key === 'unit'" />
@@ -64,8 +65,10 @@ const InvoiceGenerator = defineAsyncComponent(() => import('./components/invoice
 const InvitationCardGenerator = defineAsyncComponent(() => import('./components/invitation/InvitationCardGenerator.vue'))
 const CambodiaWeather = defineAsyncComponent(() => import('./components/weather/CambodiaWeather.vue'))
 const FootballScores = defineAsyncComponent(() => import('./components/football/FootballScores.vue'))
+const InternetSpeedTest = defineAsyncComponent(() => import('./components/internetspeed/InternetSpeedTest.vue'))
 
 const tabs = [
+  { key: 'speedtest', label: 'Internet Speed Test', icon: '🚀' },
   { key: 'currency', label: 'Currency Exchange',   icon: '💱' },
   { key: 'vehicleloan',     label: 'Loan Calculate',       icon: '🏦' },
   { key: 'wifi',     label: 'Wi-Fi QR Generate',   icon: '📶' },
