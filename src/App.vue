@@ -29,15 +29,15 @@
             class="flex-1 min-w-0 flex items-center gap-3 group text-left"
             title="Refresh app"
           >
-            <span class="relative w-10 h-10 rounded-2xl shrink-0 flex items-center justify-center bg-gradient-to-br from-violet-500 via-purple-500 to-fuchsia-500 text-white shadow-lg shadow-purple-500/30 group-active:scale-90 transition-transform">
-              <House class="w-5 h-5" :stroke-width="2.2" />
-              <span class="absolute inset-0 rounded-2xl ring-1 ring-inset ring-white/25" />
+            <span class="w-12 h-12 rounded-2xl shrink-0 flex items-center justify-center bg-gradient-to-br from-violet-500 to-purple-600 text-white shadow-lg shadow-violet-500/30 group-active:scale-90 transition-transform">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-6 h-6">
+                <path d="M3 10.5 12 3l9 7.5" />
+                <path d="M5 9.5V20a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V9.5" />
+              </svg>
             </span>
             <span class="min-w-0 leading-tight">
-              <span class="block text-[11px] text-gray-400 dark:text-slate-500 font-semibold uppercase tracking-wider">Welcome back</span>
-              <span class="block text-xl font-extrabold truncate tracking-tight bg-gradient-to-r from-violet-600 to-fuchsia-500 dark:from-violet-400 dark:to-fuchsia-400 bg-clip-text text-transparent">
-                Toolkit
-              </span>
+              <span class="block text-sm text-gray-400 dark:text-slate-500 font-medium">Welcome back</span>
+              <span class="block text-2xl font-extrabold tracking-tight text-gray-900 dark:text-white truncate">Toolkit</span>
             </span>
           </button>
         </template>
@@ -45,11 +45,11 @@
         <!-- Theme toggle (consistent on both views) -->
         <button
           @click="toggleTheme"
-          class="shrink-0 w-10 h-10 flex items-center justify-center rounded-full text-gray-700 dark:text-amber-300 bg-gray-100/70 dark:bg-white/5 ring-1 ring-black/5 dark:ring-white/10 hover:bg-gray-200/80 dark:hover:bg-white/10 active:scale-90 transition group"
+          class="shrink-0 w-11 h-11 flex items-center justify-center rounded-2xl bg-white dark:bg-slate-800 shadow-sm ring-1 ring-black/5 dark:ring-white/10 hover:shadow-md active:scale-90 transition group"
           :aria-label="dark ? 'Switch to light mode' : 'Switch to dark mode'"
         >
-          <Moon v-if="!dark" class="w-5 h-5 transition-transform duration-300 group-hover:-rotate-12" :stroke-width="2" />
-          <Sun v-else class="w-5 h-5 transition-transform duration-300 group-hover:rotate-90" :stroke-width="2" />
+          <Moon v-if="!dark" class="w-5 h-5 text-amber-400 fill-amber-300 transition-transform duration-300 group-hover:-rotate-12" />
+          <Sun v-else class="w-5 h-5 text-amber-400 fill-amber-300 transition-transform duration-300 group-hover:rotate-90" />
         </button>
       </div>
     </header>
@@ -92,7 +92,7 @@
 
 <script setup>
 import { ref, computed, defineAsyncComponent, onMounted } from 'vue'
-import { ChevronLeft, House, Moon, Sun } from 'lucide-vue-next'
+import { ChevronLeft, Moon, Sun } from 'lucide-vue-next'
 import HomeGrid         from './components/HomeGrid.vue'
 import CurrencyConverter from './components/currency/CurrencyConverter.vue'
 import VehicleLoanCalculator from './components/vehicleloan/VehicleLoanCalculator.vue'
@@ -110,20 +110,20 @@ const FootballScores = defineAsyncComponent(() => import('./components/football/
 const InternetSpeedTest = defineAsyncComponent(() => import('./components/internetspeed/InternetSpeedTest.vue'))
 
 const tabs = [
-  { key: 'speedtest',   label: 'Internet Speed Test',          short: 'Speed Test',  icon: '🚀', bg: 'from-sky-400 to-blue-500' },
-  { key: 'currency',    label: 'Currency Exchange',            short: 'Currency',    icon: '💱', bg: 'from-emerald-400 to-green-500' },
-  { key: 'vehicleloan', label: 'Loan Calculate',               short: 'Loan',        icon: '🏦', bg: 'from-amber-400 to-orange-500' },
-  { key: 'wifi',        label: 'Wi-Fi QR Generate',            short: 'Wi-Fi QR',    icon: '📶', bg: 'from-indigo-400 to-blue-500' },
-  { key: 'unit',        label: 'Unit Exchange',                short: 'Units',       icon: '📏', bg: 'from-teal-400 to-cyan-500' },
-  { key: 'discount',    label: 'Discount Calculate',           short: 'Discount',    icon: '🏷️', bg: 'from-pink-400 to-rose-500' },
-  { key: 'bmi',         label: 'BMI Calculate',                short: 'BMI',         icon: '❤️', bg: 'from-red-400 to-rose-500' },
-  { key: 'wheel',       label: 'Spin Wheel',                   short: 'Spin Wheel',  icon: '🎡', bg: 'from-fuchsia-400 to-purple-500' },
-  { key: 'linkqr',      label: 'Link QR Generate',             short: 'Link QR',     icon: '🔗', bg: 'from-cyan-400 to-sky-500' },
-  { key: 'savinggoal',  label: 'Saving Goal Calculate',        short: 'Saving Goal', icon: '🎯', bg: 'from-lime-400 to-green-500' },
-  { key: 'invoice',     label: 'Quotation / Invoice Generate', short: 'Invoice',     icon: '🧾', bg: 'from-slate-400 to-gray-500' },
-  { key: 'invitation',  label: 'Invitation Card Generate',     short: 'Invitation',  icon: '💌', bg: 'from-rose-400 to-pink-500' },
-  { key: 'weather',     label: 'Cambodia Weather',             short: 'Weather',     icon: '⛅', bg: 'from-sky-400 to-indigo-400' },
-  { key: 'football',    label: 'Football Live Scores',         short: 'Live Scores', icon: '⚽', bg: 'from-green-500 to-emerald-600' },
+  { key: 'speedtest',   label: 'Internet Speed Test',          short: 'Speed Test',  icon: '🚀', bg: 'from-sky-400 to-blue-500',      glow: 'shadow-blue-500/40' },
+  { key: 'currency',    label: 'Currency Exchange',            short: 'Currency',    icon: '💱', bg: 'from-emerald-400 to-green-500',  glow: 'shadow-emerald-500/40' },
+  { key: 'vehicleloan', label: 'Loan Calculate',               short: 'Loan',        icon: '🏦', bg: 'from-amber-400 to-orange-500',   glow: 'shadow-orange-500/40' },
+  { key: 'wifi',        label: 'Wi-Fi QR Generate',            short: 'Wi-Fi QR',    icon: '📶', bg: 'from-indigo-400 to-blue-500',    glow: 'shadow-indigo-500/40' },
+  { key: 'unit',        label: 'Unit Exchange',                short: 'Units',       icon: '📏', bg: 'from-teal-400 to-cyan-500',      glow: 'shadow-teal-500/40' },
+  { key: 'discount',    label: 'Discount Calculate',           short: 'Discount',    icon: '🏷️', bg: 'from-pink-400 to-rose-500',      glow: 'shadow-pink-500/40' },
+  { key: 'bmi',         label: 'BMI Calculate',                short: 'BMI',         icon: '❤️', bg: 'from-red-400 to-rose-500',       glow: 'shadow-red-500/40' },
+  { key: 'wheel',       label: 'Spin Wheel',                   short: 'Spin Wheel',  icon: '🎡', bg: 'from-fuchsia-400 to-purple-500', glow: 'shadow-purple-500/40' },
+  { key: 'linkqr',      label: 'Link QR Generate',             short: 'Link QR',     icon: '🔗', bg: 'from-cyan-400 to-sky-500',       glow: 'shadow-sky-500/40' },
+  { key: 'savinggoal',  label: 'Saving Goal Calculate',        short: 'Saving Goal', icon: '🎯', bg: 'from-lime-400 to-green-500',     glow: 'shadow-green-500/40' },
+  { key: 'invoice',     label: 'Quotation / Invoice Generate', short: 'Invoice',     icon: '🧾', bg: 'from-slate-400 to-gray-500',     glow: 'shadow-gray-500/40' },
+  { key: 'invitation',  label: 'Invitation Card Generate',     short: 'Invitation',  icon: '💌', bg: 'from-rose-400 to-pink-500',      glow: 'shadow-pink-500/40' },
+  { key: 'weather',     label: 'Cambodia Weather',             short: 'Weather',     icon: '⛅', bg: 'from-sky-400 to-indigo-400',     glow: 'shadow-sky-500/40' },
+  { key: 'football',    label: 'Football Live Scores',         short: 'Live Scores', icon: '⚽', bg: 'from-green-500 to-emerald-600',   glow: 'shadow-emerald-500/40' },
 ]
 
 const activeKey = ref(null) // null = home grid

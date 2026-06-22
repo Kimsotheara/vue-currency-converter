@@ -2,14 +2,24 @@
   <Transition name="fade">
     <div class="fixed inset-0 z-50 bg-black/70 flex items-end sm:items-center justify-center p-0 sm:p-4" @click.self="$emit('close')">
       <div class="modal-panel bg-slate-900 w-full sm:max-w-2xl lg:max-w-3xl sm:rounded-2xl rounded-t-2xl max-h-[92vh] flex flex-col shadow-2xl" :class="{ 'ft-light': !dark }">
+        <!-- Mobile drag handle / dismiss affordance -->
+        <button class="sm:hidden w-full pt-2.5 pb-1 flex justify-center shrink-0" aria-label="Close" @click="$emit('close')">
+          <span class="w-10 h-1.5 rounded-full bg-white/25" />
+        </button>
         <!-- Result header (always shown) -->
-        <div class="px-5 py-4 border-b border-white/10">
+        <div class="px-5 pt-3 pb-4 border-b border-white/10">
           <div class="flex items-center">
             <p class="flex-1 text-xs font-semibold inline-flex items-center gap-1.5"
                :class="event.live ? 'text-red-400' : 'text-slate-400'">
               <span v-if="event.live" class="w-1.5 h-1.5 rounded-full bg-red-400" />{{ statusText }}
             </p>
-            <button @click="$emit('close')" class="w-8 h-8 rounded-lg bg-white/10 hover:bg-white/20 text-white text-lg flex items-center justify-center transition">✕</button>
+            <button
+              @click="$emit('close')"
+              class="shrink-0 w-9 h-9 rounded-full bg-white/10 hover:bg-white/20 text-white flex items-center justify-center transition active:scale-90"
+              aria-label="Close match details"
+            >
+              <X class="w-5 h-5" :stroke-width="2.4" />
+            </button>
           </div>
 
           <div class="mt-2 grid grid-cols-[1fr_auto_1fr] items-center gap-3">
@@ -229,7 +239,8 @@
 </template>
 
 <script setup>
-import { ref, computed, watch } from 'vue'
+import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
+import { X } from 'lucide-vue-next'
 import { usePlayerPhotos } from './playerPhotos'
 
 const props = defineProps({
@@ -242,7 +253,13 @@ const props = defineProps({
   assists: { type: Object, default: null },   // { scorerNameLower: assistName }
   ratingSource: { type: String, default: null }, // 'API-Football' when real ratings loaded
 })
-defineEmits(['close', 'retry'])
+const emit = defineEmits(['close', 'retry'])
+
+// Close on Escape (desktop) — pairs with the back-button/back-gesture handling
+// and the on-screen close button.
+const onKeydown = (e) => { if (e.key === 'Escape') emit('close') }
+onMounted(() => document.addEventListener('keydown', onKeydown))
+onUnmounted(() => document.removeEventListener('keydown', onKeydown))
 
 const tabs = [
   { key: 'lineup', label: 'Line-up' },

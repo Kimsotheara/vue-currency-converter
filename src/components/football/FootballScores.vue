@@ -234,7 +234,7 @@
 </template>
 
 <script setup>
-import { onMounted, watch, computed } from 'vue'
+import { onMounted, onUnmounted, watch, computed } from 'vue'
 import { useFootballScores } from './useFootballScores'
 import MatchDetails from './MatchDetails.vue'
 
@@ -251,6 +251,17 @@ const {
 } = useFootballScores()
 
 onMounted(fetchScores)
+
+// Make the device/browser Back button (and back-swipe) close the lineup modal
+// instead of leaving the app. We push a history entry when the modal opens and
+// pop it when it closes, keeping the back stack clean.
+const onPopState = () => { if (lineupEvent.value) closeLineup() }
+watch(lineupEvent, (open, wasOpen) => {
+  if (open && !wasOpen) history.pushState({ ftLineup: true }, '')
+  else if (!open && wasOpen && history.state?.ftLineup) history.back()
+})
+onMounted(() => window.addEventListener('popstate', onPopState))
+onUnmounted(() => window.removeEventListener('popstate', onPopState))
 
 // Pull the match prediction for whichever game is featured.
 watch(featured, (m) => { if (m) ensurePrediction(m) }, { immediate: true })
