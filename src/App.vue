@@ -3,23 +3,21 @@
 
     <!-- App bar -->
     <header
-      class="sticky top-0 z-40 bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl border-b border-gray-200/70 dark:border-slate-800 shadow-sm shadow-black/[0.03]"
+      class="sticky top-0 z-40 bg-white/70 dark:bg-slate-900/70 backdrop-blur-xl border-b border-gray-200/60 dark:border-white/5 shadow-[0_1px_12px_-4px_rgba(0,0,0,0.08)]"
       style="padding-top: env(safe-area-inset-top)"
     >
-      <div :class="[containerWidth, 'mx-auto h-14 flex items-center gap-2 px-2 sm:px-3 select-none']">
+      <div :class="[containerWidth, 'mx-auto h-16 flex items-center gap-2 px-3 sm:px-4 select-none']">
 
         <!-- Feature view: back button · centered title · action -->
         <template v-if="activeTab">
           <button
             @click="activeKey = null"
-            class="shrink-0 w-10 h-10 flex items-center justify-center rounded-full text-gray-600 dark:text-slate-300 hover:bg-gray-100 dark:hover:bg-slate-800 active:scale-90 transition"
+            class="shrink-0 w-10 h-10 flex items-center justify-center rounded-full text-gray-700 dark:text-slate-200 bg-gray-100/70 dark:bg-white/5 ring-1 ring-black/5 dark:ring-white/10 hover:bg-gray-200/80 dark:hover:bg-white/10 active:scale-90 transition"
             aria-label="Back to home"
           >
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" class="w-6 h-6">
-              <polyline points="15 18 9 12 15 6" />
-            </svg>
+            <ChevronLeft class="w-5 h-5" :stroke-width="2.4" />
           </button>
-          <h1 class="flex-1 min-w-0 text-center text-base font-semibold text-gray-800 dark:text-slate-100 truncate px-1">
+          <h1 class="flex-1 min-w-0 text-center text-[17px] font-bold text-gray-800 dark:text-slate-100 truncate px-1 tracking-tight">
             {{ activeTab.label }}
           </h1>
         </template>
@@ -31,15 +29,15 @@
             class="flex-1 min-w-0 flex items-center gap-3 group text-left"
             title="Refresh app"
           >
-            <span class="w-9 h-9 rounded-xl shrink-0 flex items-center justify-center bg-gradient-to-br from-violet-500 to-purple-600 text-white shadow-md shadow-purple-500/20 group-active:scale-90 transition-transform">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-5 h-5">
-                <path d="M3 10.5 12 3l9 7.5" />
-                <path d="M5 9.5V20a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V9.5" />
-              </svg>
+            <span class="relative w-10 h-10 rounded-2xl shrink-0 flex items-center justify-center bg-gradient-to-br from-violet-500 via-purple-500 to-fuchsia-500 text-white shadow-lg shadow-purple-500/30 group-active:scale-90 transition-transform">
+              <House class="w-5 h-5" :stroke-width="2.2" />
+              <span class="absolute inset-0 rounded-2xl ring-1 ring-inset ring-white/25" />
             </span>
             <span class="min-w-0 leading-tight">
-              <span class="block text-[11px] text-gray-400 dark:text-slate-500 font-medium">Welcome back</span>
-              <span class="block text-lg font-bold text-gray-800 dark:text-slate-100 truncate group-hover:text-purple-600 transition-colors">Toolkit</span>
+              <span class="block text-[11px] text-gray-400 dark:text-slate-500 font-semibold uppercase tracking-wider">Welcome back</span>
+              <span class="block text-xl font-extrabold truncate tracking-tight bg-gradient-to-r from-violet-600 to-fuchsia-500 dark:from-violet-400 dark:to-fuchsia-400 bg-clip-text text-transparent">
+                Toolkit
+              </span>
             </span>
           </button>
         </template>
@@ -47,19 +45,11 @@
         <!-- Theme toggle (consistent on both views) -->
         <button
           @click="toggleTheme"
-          class="shrink-0 w-10 h-10 flex items-center justify-center rounded-full text-gray-600 dark:text-slate-300 hover:bg-gray-100 dark:hover:bg-slate-800 active:scale-90 transition"
+          class="shrink-0 w-10 h-10 flex items-center justify-center rounded-full text-gray-700 dark:text-amber-300 bg-gray-100/70 dark:bg-white/5 ring-1 ring-black/5 dark:ring-white/10 hover:bg-gray-200/80 dark:hover:bg-white/10 active:scale-90 transition group"
           :aria-label="dark ? 'Switch to light mode' : 'Switch to dark mode'"
         >
-          <svg v-if="!dark" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-5 h-5">
-            <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
-          </svg>
-          <svg v-else viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-5 h-5">
-            <circle cx="12" cy="12" r="4.5" />
-            <line x1="12" y1="2" x2="12" y2="4" /><line x1="12" y1="20" x2="12" y2="22" />
-            <line x1="4.22" y1="4.22" x2="5.64" y2="5.64" /><line x1="18.36" y1="18.36" x2="19.78" y2="19.78" />
-            <line x1="2" y1="12" x2="4" y2="12" /><line x1="20" y1="12" x2="22" y2="12" />
-            <line x1="4.22" y1="19.78" x2="5.64" y2="18.36" /><line x1="18.36" y1="5.64" x2="19.78" y2="4.22" />
-          </svg>
+          <Moon v-if="!dark" class="w-5 h-5 transition-transform duration-300 group-hover:-rotate-12" :stroke-width="2" />
+          <Sun v-else class="w-5 h-5 transition-transform duration-300 group-hover:rotate-90" :stroke-width="2" />
         </button>
       </div>
     </header>
@@ -102,6 +92,7 @@
 
 <script setup>
 import { ref, computed, defineAsyncComponent, onMounted } from 'vue'
+import { ChevronLeft, House, Moon, Sun } from 'lucide-vue-next'
 import HomeGrid         from './components/HomeGrid.vue'
 import CurrencyConverter from './components/currency/CurrencyConverter.vue'
 import VehicleLoanCalculator from './components/vehicleloan/VehicleLoanCalculator.vue'
