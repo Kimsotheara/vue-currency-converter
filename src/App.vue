@@ -1,59 +1,68 @@
 <template>
-  <!-- Splash on first load, and a short one when opening a feature -->
-  <Transition name="splash">
-    <SplashScreen v-if="showSplash" />
-    <SplashScreen
-      v-else-if="opening"
-      :title="opening.label"
-      subtitle=""
-      :icon="opening.icon"
-      :gradient="opening.bg"
-    />
-  </Transition>
-
   <div class="h-dvh flex flex-col" :class="activeKey ? 'bg-gray-100 dark:bg-slate-900' : 'bg-gradient-to-b from-indigo-50 via-purple-50 to-white dark:from-slate-900 dark:via-slate-900 dark:to-slate-800'">
 
-    <!-- Header -->
-    <div class="bg-white/90 dark:bg-slate-900/90 backdrop-blur border-b border-gray-200 dark:border-slate-700 sticky top-0 z-40">
-      <div :class="[containerWidth, 'mx-auto flex items-center gap-3 px-4 py-4']">
-        <button
-          v-if="activeKey"
-          @click="activeKey = null"
-          class="shrink-0 active:scale-90 transition-transform"
-          aria-label="Back to home"
-          title="Home"
-        >
-          <img :src="logo" alt="Home" class="w-9 h-9 rounded-xl" />
-        </button>
+    <!-- App bar -->
+    <header
+      class="sticky top-0 z-40 bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl border-b border-gray-200/70 dark:border-slate-800 shadow-sm shadow-black/[0.03]"
+      style="padding-top: env(safe-area-inset-top)"
+    >
+      <div :class="[containerWidth, 'mx-auto h-14 flex items-center gap-2 px-2 sm:px-3 select-none']">
+
+        <!-- Feature view: back button · centered title · action -->
         <template v-if="activeTab">
           <button
             @click="activeKey = null"
-            class="text-lg font-bold text-gray-800 truncate min-w-0 text-left hover:text-purple-600 transition-colors"
-            title="Back to home"
+            class="shrink-0 w-10 h-10 flex items-center justify-center rounded-full text-gray-600 dark:text-slate-300 hover:bg-gray-100 dark:hover:bg-slate-800 active:scale-90 transition"
+            aria-label="Back to home"
           >
-            {{ activeTab.label }}
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" class="w-6 h-6">
+              <polyline points="15 18 9 12 15 6" />
+            </svg>
           </button>
+          <h1 class="flex-1 min-w-0 text-center text-base font-semibold text-gray-800 dark:text-slate-100 truncate px-1">
+            {{ activeTab.label }}
+          </h1>
         </template>
+
+        <!-- Home view: brand -->
         <template v-else>
           <button
             @click="refreshApp"
-            class="flex items-center gap-3 min-w-0 group"
+            class="flex-1 min-w-0 flex items-center gap-3 group text-left"
             title="Refresh app"
           >
-            <img :src="logo" alt="" class="w-9 h-9 rounded-xl shrink-0 group-active:scale-90 transition-transform" />
-            <h1 class="text-lg font-bold text-gray-800 truncate min-w-0 group-hover:text-purple-600 transition-colors">Multiple Toolkit</h1>
+            <span class="w-9 h-9 rounded-xl shrink-0 flex items-center justify-center bg-gradient-to-br from-violet-500 to-purple-600 text-white shadow-md shadow-purple-500/20 group-active:scale-90 transition-transform">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-5 h-5">
+                <path d="M3 10.5 12 3l9 7.5" />
+                <path d="M5 9.5V20a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V9.5" />
+              </svg>
+            </span>
+            <span class="min-w-0 leading-tight">
+              <span class="block text-[11px] text-gray-400 dark:text-slate-500 font-medium">Welcome back</span>
+              <span class="block text-lg font-bold text-gray-800 dark:text-slate-100 truncate group-hover:text-purple-600 transition-colors">Toolkit</span>
+            </span>
           </button>
         </template>
 
+        <!-- Theme toggle (consistent on both views) -->
         <button
           @click="toggleTheme"
-          class="ml-auto shrink-0 w-10 h-10 flex items-center justify-center rounded-xl hover:bg-gray-100 dark:hover:bg-slate-800 transition-colors text-xl"
-          :title="dark ? 'Switch to light' : 'Switch to dark'"
+          class="shrink-0 w-10 h-10 flex items-center justify-center rounded-full text-gray-600 dark:text-slate-300 hover:bg-gray-100 dark:hover:bg-slate-800 active:scale-90 transition"
+          :aria-label="dark ? 'Switch to light mode' : 'Switch to dark mode'"
         >
-          {{ dark ? '☀️' : '🌙' }}
+          <svg v-if="!dark" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-5 h-5">
+            <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
+          </svg>
+          <svg v-else viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-5 h-5">
+            <circle cx="12" cy="12" r="4.5" />
+            <line x1="12" y1="2" x2="12" y2="4" /><line x1="12" y1="20" x2="12" y2="22" />
+            <line x1="4.22" y1="4.22" x2="5.64" y2="5.64" /><line x1="18.36" y1="18.36" x2="19.78" y2="19.78" />
+            <line x1="2" y1="12" x2="4" y2="12" /><line x1="20" y1="12" x2="22" y2="12" />
+            <line x1="4.22" y1="19.78" x2="5.64" y2="18.36" /><line x1="18.36" y1="5.64" x2="19.78" y2="4.22" />
+          </svg>
         </button>
       </div>
-    </div>
+    </header>
 
     <!-- Home: scrollable app grid with a pinned footer -->
     <template v-if="!activeKey">
@@ -93,8 +102,6 @@
 
 <script setup>
 import { ref, computed, defineAsyncComponent, onMounted } from 'vue'
-import logo from './assets/template-icon-vector.jpg'
-import SplashScreen     from './components/SplashScreen.vue'
 import HomeGrid         from './components/HomeGrid.vue'
 import CurrencyConverter from './components/currency/CurrencyConverter.vue'
 import VehicleLoanCalculator from './components/vehicleloan/VehicleLoanCalculator.vue'
@@ -128,8 +135,6 @@ const tabs = [
   { key: 'football',    label: 'Football Live Scores',         short: 'Live Scores', icon: '⚽', bg: 'from-green-500 to-emerald-600' },
 ]
 
-const showSplash = ref(true)
-const opening = ref(null)   // tab being opened (shows its splash briefly)
 const activeKey = ref(null) // null = home grid
 const activeTab = computed(() => tabs.find(t => t.key === activeKey.value) || null)
 
@@ -145,19 +150,11 @@ const toggleTheme = () => {
 onMounted(() => {
   try { dark.value = localStorage.getItem('app-theme') === 'dark' } catch {}
   applyTheme()
-  setTimeout(() => { showSplash.value = false }, 1000)
 })
 
 const refreshApp = () => window.location.reload()
 
-// Flash a short splash for the chosen feature, then reveal it.
-const openFeature = (key) => {
-  opening.value = tabs.find(t => t.key === key) || null
-  setTimeout(() => {
-    activeKey.value = key
-    opening.value = null
-  }, 600)
-}
+const openFeature = (key) => { activeKey.value = key }
 
 // Form-heavy tools get a wider canvas on tablet / desktop
 const wideTabs = ['invoice', 'invitation', 'weather', 'football']
@@ -167,8 +164,3 @@ const containerWidth = computed(() =>
     : 'w-full max-w-lg md:max-w-xl',
 )
 </script>
-
-<style scoped>
-.splash-enter-active, .splash-leave-active { transition: opacity 0.4s ease; }
-.splash-enter-from, .splash-leave-to { opacity: 0; }
-</style>
