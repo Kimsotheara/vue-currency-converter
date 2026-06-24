@@ -84,6 +84,7 @@
           <InvitationCardGenerator v-else-if="activeTab.key === 'invitation'" />
           <CambodiaWeather v-else-if="activeTab.key === 'weather'" />
           <FootballScores v-else-if="activeTab.key === 'football'" />
+          <FuelCostCalculator v-else-if="activeTab.key === 'fuelcost'" />
         </keep-alive>
       </div>
     </div>
@@ -103,6 +104,7 @@ import BMICalculator     from './components/bmi/BMICalculator.vue'
 import WheelSpinner      from './components/wheel/WheelSpinner.vue'
 import LinkQRGenerator   from './components/linkqr/LinkQRGenerator.vue'
 import SavingGoalCalculator from './components/savinggoal/SavingGoalCalculator.vue'
+import FuelCostCalculator from './components/fuelcost/FuelCostCalculator.vue'
 const InvoiceGenerator = defineAsyncComponent(() => import('./components/invoice/InvoiceGenerator.vue'))
 const InvitationCardGenerator = defineAsyncComponent(() => import('./components/invitation/InvitationCardGenerator.vue'))
 const CambodiaWeather = defineAsyncComponent(() => import('./components/weather/CambodiaWeather.vue'))
@@ -116,7 +118,7 @@ const tabs = [
   { key: 'wifi',        label: 'Wi-Fi QR Generate',            short: 'Wi-Fi QR',    icon: '📶', bg: 'from-indigo-400 to-blue-500',    glow: 'shadow-indigo-500/40' },
   { key: 'unit',        label: 'Unit Exchange',                short: 'Units',       icon: '📏', bg: 'from-teal-400 to-cyan-500',      glow: 'shadow-teal-500/40' },
   { key: 'discount',    label: 'Discount Calculate',           short: 'Discount',    icon: '🏷️', bg: 'from-pink-400 to-rose-500',      glow: 'shadow-pink-500/40' },
-  { key: 'bmi',         label: 'BMI Calculate',                short: 'BMI',         icon: '❤️', bg: 'from-red-400 to-rose-500',       glow: 'shadow-red-500/40' },
+  { key: 'bmi',         label: 'Health & Body',                short: 'Health',      icon: '❤️', bg: 'from-red-400 to-rose-500',       glow: 'shadow-red-500/40' },
   { key: 'wheel',       label: 'Spin Wheel',                   short: 'Spin Wheel',  icon: '🎡', bg: 'from-fuchsia-400 to-purple-500', glow: 'shadow-purple-500/40' },
   { key: 'linkqr',      label: 'Link QR Generate',             short: 'Link QR',     icon: '🔗', bg: 'from-cyan-400 to-sky-500',       glow: 'shadow-sky-500/40' },
   { key: 'savinggoal',  label: 'Saving Goal Calculate',        short: 'Saving Goal', icon: '🎯', bg: 'from-lime-400 to-green-500',     glow: 'shadow-green-500/40' },
@@ -124,6 +126,7 @@ const tabs = [
   { key: 'invitation',  label: 'Invitation Card Generate',     short: 'Invitation',  icon: '💌', bg: 'from-rose-400 to-pink-500',      glow: 'shadow-pink-500/40' },
   { key: 'weather',     label: 'Cambodia Weather',             short: 'Weather',     icon: '⛅', bg: 'from-sky-400 to-indigo-400',     glow: 'shadow-sky-500/40' },
   { key: 'football',    label: 'Football Live Scores',         short: 'Live Scores', icon: '⚽', bg: 'from-green-500 to-emerald-600',   glow: 'shadow-emerald-500/40' },
+  { key: 'fuelcost',    label: 'Fuel / Trip Cost',             short: 'Fuel Cost',   icon: '⛽', bg: 'from-amber-400 to-orange-500',   glow: 'shadow-amber-500/40' },
 ]
 
 const activeKey = ref(null) // null = home grid

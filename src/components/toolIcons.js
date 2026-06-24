@@ -22,6 +22,7 @@ import {
   Mail,
   CloudSun,
   Goal,
+  Fuel,
 } from 'lucide-vue-next'
 
 export const toolIcons = {
@@ -39,6 +40,7 @@ export const toolIcons = {
   invitation: Mail,
   weather: CloudSun,
   football: Goal,
+  fuelcost: Fuel,
 }
 
 /**
