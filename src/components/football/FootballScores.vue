@@ -146,6 +146,16 @@
             </ul>
           </div>
 
+          <!-- Match stats (possession / shots on target) -->
+          <div v-if="matchStats" class="mt-5 pt-4 border-t border-white/5 space-y-2">
+            <div class="text-[11px] text-slate-400 font-semibold uppercase tracking-wider mb-1">📊 Stats</div>
+            <div v-for="row in statRows" :key="row.label" class="flex items-center text-[11px]">
+              <span class="w-10 text-left font-semibold text-emerald-400">{{ row.home }}</span>
+              <span class="flex-1 text-center text-slate-400">{{ row.label }}</span>
+              <span class="w-10 text-right font-semibold text-sky-400">{{ row.away }}</span>
+            </div>
+          </div>
+
           <!-- Prediction -->
           <div v-if="prediction" class="mt-5 pt-4 border-t border-white/5">
             <div class="flex items-center justify-between text-[11px] mb-2">
@@ -225,6 +235,7 @@
       :teams="lineupFor(lineupEvent.id)"
       :form="formFor(lineupEvent.id)"
       :h2h="h2hFor(lineupEvent.id)"
+      :stats="statsFor(lineupEvent.id)"
       :assists="assistsFor(lineupEvent.id)"
       :ratingSource="ratingSourceFor(lineupEvent.id)"
       @close="closeLineup"
@@ -246,7 +257,7 @@ const {
   fetchScores, selectLeague, shiftDay, goToday,
   lineupEvent, openLineup, closeLineup, retryLineup,
   lineupFor, detailsStateFor,
-  ensurePrediction, predictionFor, assistsFor,
+  ensurePrediction, predictionFor, statsFor, assistsFor,
   h2hFor, formFor, ratingSourceFor,
 } = useFootballScores()
 
@@ -266,6 +277,21 @@ onUnmounted(() => window.removeEventListener('popstate', onPopState))
 // Pull the match prediction for whichever game is featured.
 watch(featured, (m) => { if (m) ensurePrediction(m) }, { immediate: true })
 const prediction = computed(() => (featured.value ? predictionFor(featured.value.id) : null))
+// Possession / shots exist only once a match is live or finished.
+const matchStats = computed(() => {
+  const m = featured.value
+  if (!m || (!m.live && !m.completed)) return null
+  return statsFor(m.id)
+})
+const statRows = computed(() => {
+  const s = matchStats.value
+  if (!s) return []
+  const dash = (v) => (v == null || v === '' ? '–' : v)
+  return [
+    { label: 'Possession', home: dash(s.home?.possession), away: dash(s.away?.possession) },
+    { label: 'Shots on target', home: dash(s.home?.shotsOnTarget), away: dash(s.away?.shotsOnTarget) },
+  ]
+})
 const assists = computed(() => (featured.value ? assistsFor(featured.value.id) : null))
 const assistFor = (s) => assists.value?.[s.name?.toLowerCase()] || ''
 
@@ -278,7 +304,9 @@ const statusClass = (m) =>
   m.live ? 'text-red-400' : m.completed ? 'text-slate-400' : 'text-emerald-400'
 
 const kickoff = (m) =>
-  new Date(m.date).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })
+  new Date(m.date).toLocaleTimeString('en-GB', {
+    hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Ho_Chi_Minh',
+  })
 
 const scoreCell = (m, side) => (m.state === 'pre' ? '–' : m[side].score)
 

@@ -10,11 +10,16 @@ const fetchJson = async (url, ms = 9000) => {
   return res.json()
 }
 
+const TZ = 'Asia/Ho_Chi_Minh' // Hanoi (UTC+7) — group/display matches in this zone
+
 const ymd = (d) => {
   const m = String(d.getMonth() + 1).padStart(2, '0')
   const day = String(d.getDate()).padStart(2, '0')
   return `${d.getFullYear()}${m}${day}`
 }
+
+// YYYYMMDD for the calendar day a date falls on in Hanoi time.
+const hanoiYmd = (d) => new Date(d).toLocaleDateString('en-CA', { timeZone: TZ }).replace(/-/g, '')
 
 const sameDay = (a, b) =>
   a.getFullYear() === b.getFullYear() &&
@@ -255,6 +260,32 @@ const mapH2H = (data) => {
   }
 }
 
+// Team-level match stats (possession %, shots on target) from the boxscore.
+// Only present once a match is live/finished; returns null otherwise.
+const mapMatchStats = (data, homeId, awayId) => {
+  const teams = data.boxscore?.teams || []
+  if (!teams.length) return null
+  const pick = (id) => teams.find((t) => t.team?.id === id) || null
+  const stat = (t, names) => {
+    const s = (t?.statistics || []).find((x) => names.includes(x.name))
+    return s?.displayValue ?? null
+  }
+  const read = (id) => {
+    const t = pick(id)
+    if (!t) return null
+    return {
+      possession: stat(t, ['possessionPct']),
+      shotsOnTarget: stat(t, ['shotsOnTarget', 'onTargetScoringAtt']),
+    }
+  }
+  const home = read(homeId), away = read(awayId)
+  if (!home && !away) return null
+  // Hide if neither stat has any data on either side.
+  const has = (s) => s && (s.possession != null || s.shotsOnTarget != null)
+  if (!has(home) && !has(away)) return null
+  return { home, away }
+}
+
 export function useFootballScores() {
   const dark = ref((() => {
     try { return localStorage.getItem('ft-theme') !== 'light' } catch { return true }
@@ -288,11 +319,19 @@ export function useFootballScores() {
       error.value = ''
     }
     try {
-      const url = `${API}/${leagueSlug.value}/scoreboard?dates=${ymd(date.value)}`
+      // ESPN groups games by its own (US) timezone, so a single date can miss
+      // matches that fall on the selected day in Hanoi. Fetch a ±1-day window
+      // and keep only the games whose Hanoi calendar day matches the selection.
+      const prev = new Date(date.value); prev.setDate(prev.getDate() - 1)
+      const next = new Date(date.value); next.setDate(next.getDate() + 1)
+      const url = `${API}/${leagueSlug.value}/scoreboard?dates=${ymd(prev)}-${ymd(next)}`
       const data = await fetchJson(url)
       if (mine !== reqId) return // a newer request superseded this one
       leagueName.value = data.leagues?.[0]?.name || activeLeague.value?.name || ''
-      events.value = (data.events || []).map(normalize)
+      const wanted = hanoiYmd(date.value)
+      events.value = (data.events || [])
+        .filter((e) => hanoiYmd(e.date) === wanted)
+        .map(normalize)
       updatedAt.value = new Date()
       schedulePoll()
     } catch {
@@ -334,6 +373,7 @@ export function useFootballScores() {
         [id]: {
           lineup,
           prediction: computePrediction(data),
+          stats: mapMatchStats(data, event.home?.id, event.away?.id),
           assists: parseAssists(data),
           h2h: mapH2H(data),
           form: {
@@ -374,6 +414,7 @@ export function useFootballScores() {
 
   const ensurePrediction = (event) => { if (event) ensureSummary(event) }
   const predictionFor = (id) => summaryCache.value[id]?.prediction || null
+  const statsFor = (id) => summaryCache.value[id]?.stats || null
   const assistsFor = (id) => summaryCache.value[id]?.assists || null
   const h2hFor = (id) => summaryCache.value[id]?.h2h || null
   const formFor = (id) => summaryCache.value[id]?.form || null
@@ -456,7 +497,7 @@ export function useFootballScores() {
     fetchScores, selectLeague, shiftDay, goToday,
     lineupEvent, openLineup, closeLineup, retryLineup,
     lineupFor, detailsStateFor,
-    ensurePrediction, predictionFor, assistsFor,
+    ensurePrediction, predictionFor, statsFor, assistsFor,
     h2hFor, formFor, ratingSourceFor,
   }
 }

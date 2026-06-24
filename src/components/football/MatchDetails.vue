@@ -53,6 +53,15 @@
               </li>
             </ul>
           </div>
+
+          <!-- Match stats: possession / shots on target -->
+          <div v-if="statRows.length" class="mt-3 pt-3 border-t border-white/5 space-y-1.5">
+            <div v-for="row in statRows" :key="row.label" class="flex items-center text-[11px]">
+              <span class="w-12 text-left font-semibold text-white tabular-nums">{{ row.home }}</span>
+              <span class="flex-1 text-center text-slate-400">{{ row.label }}</span>
+              <span class="w-12 text-right font-semibold text-white tabular-nums">{{ row.away }}</span>
+            </div>
+          </div>
         </div>
 
         <!-- Tabs -->
@@ -250,6 +259,7 @@ const props = defineProps({
   teams:   { type: Array, default: null },    // lineup [home, away] or null
   form:    { type: Object, default: null },   // { home:[], away:[] }
   h2h:     { type: Object, default: null },
+  stats:   { type: Object, default: null },   // { home:{possession,shotsOnTarget}, away:{...} }
   assists: { type: Object, default: null },   // { scorerNameLower: assistName }
   ratingSource: { type: String, default: null }, // 'API-Football' when real ratings loaded
 })
@@ -269,6 +279,18 @@ const tabs = [
 const tab = ref('lineup')
 const home = computed(() => props.teams?.[0] || null)
 const away = computed(() => props.teams?.[1] || null)
+
+// Match stats (possession / shots on target) — only available once a match is
+// live or finished. Shown in the header across every tab.
+const statRows = computed(() => {
+  const s = props.stats
+  if (!s || (!props.event.live && !props.event.completed)) return []
+  const dash = (v) => (v == null || v === '' ? '–' : v)
+  return [
+    { label: 'Possession', home: dash(s.home?.possession), away: dash(s.away?.possession) },
+    { label: 'Shots on target', home: dash(s.home?.shotsOnTarget), away: dash(s.away?.shotsOnTarget) },
+  ]
+})
 
 // Both teams on one pitch (Google-style): away attacks down from the top,
 // home attacks up from the bottom, so the two front lines meet in the middle.
@@ -303,6 +325,7 @@ const statusText = computed(() => {
 const kickoff = computed(() =>
   new Date(props.event.date).toLocaleString('en-GB', {
     weekday: 'short', day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit',
+    timeZone: 'Asia/Ho_Chi_Minh',
   }),
 )
 const scorerText = (s) => {
