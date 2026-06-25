@@ -396,7 +396,11 @@ export default {
     noStandings: 'Không có bảng xếp hạng cho giải này.',
     noScorers: 'Không có dữ liệu vua phá lưới cho giải này.',
     assistsShort: 'KT',
+    goalsShort: 'BT',
     appsShort: 'trận',
+    topAssists: 'Vua kiến tạo',
+    mGoals: 'Bàn thắng',
+    mAssists: 'Kiến tạo',
   },
 
   weather: {

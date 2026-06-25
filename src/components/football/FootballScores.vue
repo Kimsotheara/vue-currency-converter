@@ -324,12 +324,30 @@
         </div>
         <div v-else-if="scorers">
           <div class="flex items-center justify-between mb-3 px-1">
-            <h3 class="text-white text-sm font-bold">👟 {{ t('football.topScorers') }}</h3>
+            <h3 class="text-white text-sm font-bold">
+              {{ scorerMetric === 'goals' ? '👟 ' + t('football.topScorers') : '🅰️ ' + t('football.topAssists') }}
+            </h3>
             <span class="text-slate-500 text-[11px] font-semibold">{{ seasonText(table?.season) }}</span>
           </div>
-          <div class="space-y-1.5">
+
+          <!-- Goals / Assists toggle -->
+          <div class="flex bg-slate-800 rounded-full p-0.5 mb-3 text-xs font-semibold">
+            <button
+              v-for="m in [{ id: 'goals', emoji: '⚽', label: t('football.mGoals') }, { id: 'assists', emoji: '🅰️', label: t('football.mAssists') }]"
+              :key="m.id"
+              @click="scorerMetric = m.id"
+              :class="[
+                'flex-1 py-1.5 rounded-full transition',
+                scorerMetric === m.id ? 'bg-emerald-500 text-white' : 'text-slate-400 hover:text-slate-200',
+              ]"
+            >
+              {{ m.emoji }} {{ m.label }}
+            </button>
+          </div>
+
+          <div v-if="scorerList.length" class="space-y-1.5">
             <div
-              v-for="p in scorers"
+              v-for="p in scorerList"
               :key="p.rank"
               class="flex items-center gap-3 rounded-xl bg-slate-800/60 ring-1 ring-white/5 px-3 py-2"
             >
@@ -345,15 +363,21 @@
                 </p>
               </div>
               <div class="text-right shrink-0 leading-tight">
-                <div class="text-emerald-400 font-bold text-lg tabular-nums">{{ p.goals }}</div>
+                <div class="font-bold text-lg tabular-nums" :class="scorerMetric === 'goals' ? 'text-emerald-400' : 'text-sky-400'">
+                  {{ scorerMetric === 'goals' ? p.goals : p.assists }}
+                </div>
                 <div class="text-slate-500 text-[10px]">
-                  <span v-if="p.assists">{{ p.assists }} {{ t('football.assistsShort') }}</span>
-                  <span v-if="p.assists && p.matches"> · </span>
+                  <span v-if="scorerMetric === 'goals' ? p.assists : p.goals">
+                    {{ scorerMetric === 'goals' ? p.assists : p.goals }}
+                    {{ scorerMetric === 'goals' ? t('football.assistsShort') : t('football.goalsShort') }}
+                  </span>
+                  <span v-if="(scorerMetric === 'goals' ? p.assists : p.goals) && p.matches"> · </span>
                   <span v-if="p.matches">{{ p.matches }} {{ t('football.appsShort') }}</span>
                 </div>
               </div>
             </div>
           </div>
+          <p v-else class="text-slate-500 text-sm text-center py-10">{{ t('football.noScorers') }}</p>
         </div>
       </template>
     </div>
@@ -377,7 +401,7 @@
 </template>
 
 <script setup>
-import { onMounted, onUnmounted, watch, computed } from 'vue'
+import { onMounted, onUnmounted, watch, computed, ref } from 'vue'
 import { useFootballScores } from './useFootballScores'
 import MatchDetails from './MatchDetails.vue'
 import { useI18n } from '@/i18n'
@@ -405,6 +429,12 @@ const tabs = computed(() => [
   { id: 'table', emoji: '📊', label: t('football.tabTable') },
   { id: 'scorers', emoji: '👟', label: t('football.tabScorers') },
 ])
+
+// Goals / Assists toggle within the Scorers view.
+const scorerMetric = ref('goals')
+const scorerList = computed(() =>
+  scorerMetric.value === 'goals' ? scorers.value?.goals || [] : scorers.value?.assists || [],
+)
 
 // Spin/disable the header refresh button while the active view is loading.
 const busy = computed(() =>

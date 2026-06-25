@@ -396,7 +396,11 @@ export default {
     noStandings: 'ไม่มีตารางคะแนนสำหรับลีกนี้',
     noScorers: 'ไม่มีข้อมูลดาวซัลโวสำหรับลีกนี้',
     assistsShort: 'แอส',
+    goalsShort: 'ปต',
     appsShort: 'นัด',
+    topAssists: 'ผู้จ่ายบอลสูงสุด',
+    mGoals: 'ประตู',
+    mAssists: 'แอสซิสต์',
   },
 
   weather: {

@@ -346,41 +346,51 @@ const fetchStandings = async (slug) => {
   }
 }
 
-// Top scorers (and assists/appearances) for a season. The leaders feed gives goals
-// plus `$ref`s for each athlete/team; resolve athlete names in parallel and reuse the
-// standings team map for crests so no per-team request is needed.
-const fetchScorers = async (slug, season, teamMap = {}) => {
+// Top scorers AND top assisters for a season. One leaders feed carries both
+// categories; each entry's shortDisplayValue (e.g. "M: 38, G: 22: A: 1") holds
+// goals/assists/matches. Athlete names are resolved once across both lists (deduped),
+// and team crests come from the standings map so no per-team request is needed.
+// Returns { goals: rows[], assists: rows[] }.
+const fetchLeaders = async (slug, season, teamMap = {}) => {
   const data = await fetchJson(`${CORE_API}/${slug}/seasons/${season}/types/1/leaders`)
-  const cat = (data.categories || []).find((c) => c.name === 'goalsLeaders')
-  if (!cat?.leaders?.length) return []
-  const top = cat.leaders.slice(0, 20)
-  const athletes = await Promise.all(
-    top.map((l) =>
-      l.athlete?.$ref
-        ? fetchJson(l.athlete.$ref.replace(/^http:/, 'https:')).catch(() => null)
-        : null,
-    ),
+  const cats = data.categories || []
+  const goalsTop = (cats.find((c) => c.name === 'goalsLeaders')?.leaders || []).slice(0, 20)
+  const assistsTop = (cats.find((c) => c.name === 'assistsLeaders')?.leaders || []).slice(0, 20)
+  if (!goalsTop.length && !assistsTop.length) return { goals: [], assists: [] }
+
+  // Resolve every distinct athlete ref across both lists exactly once.
+  const refs = [...new Set([...goalsTop, ...assistsTop].map((l) => l.athlete?.$ref).filter(Boolean))]
+  const resolved = {}
+  await Promise.all(
+    refs.map(async (ref) => {
+      resolved[ref] = await fetchJson(ref.replace(/^http:/, 'https:')).catch(() => null)
+    }),
   )
-  return top.map((l, i) => {
-    const a = athletes[i] || {}
-    const tid = l.team?.$ref?.match(/teams\/(\d+)/)?.[1]
-    const tm = teamMap[tid]
-    const short = l.shortDisplayValue || '' // e.g. "M: 38, G: 22: A: 1"
-    return {
-      rank: i + 1,
-      goals: l.value || 0,
-      assists: Number(short.match(/A:\s*(\d+)/)?.[1] ?? 0),
-      matches: Number(short.match(/M:\s*(\d+)/)?.[1] ?? 0),
-      name: a.displayName || a.fullName || '—',
-      pos: a.position?.abbreviation || '',
-      flag: a.flag?.href || '',
-      team: {
-        name: tm?.name || '',
-        abbr: tm?.abbr || '',
-        logo: tm?.logo || (tid ? `https://a.espncdn.com/i/teamlogos/soccer/500/${tid}.png` : ''),
-      },
-    }
-  })
+
+  const num = (short, k) => Number(short.match(new RegExp(`${k}:\\s*(\\d+)`))?.[1] ?? 0)
+  const build = (list) =>
+    list.map((l, i) => {
+      const a = resolved[l.athlete?.$ref] || {}
+      const tid = l.team?.$ref?.match(/teams\/(\d+)/)?.[1]
+      const tm = teamMap[tid]
+      const short = l.shortDisplayValue || ''
+      return {
+        rank: i + 1,
+        goals: num(short, 'G'),
+        assists: num(short, 'A'),
+        matches: num(short, 'M'),
+        name: a.displayName || a.fullName || '—',
+        pos: a.position?.abbreviation || '',
+        flag: a.flag?.href || '',
+        team: {
+          name: tm?.name || '',
+          abbr: tm?.abbr || '',
+          logo: tm?.logo || (tid ? `https://a.espncdn.com/i/teamlogos/soccer/500/${tid}.png` : ''),
+        },
+      }
+    })
+
+  return { goals: build(goalsTop), assists: build(assistsTop) }
 }
 
 export function useFootballScores() {
@@ -408,7 +418,7 @@ export function useFootballScores() {
   // ----- Table / Top-scorers views (per-league, fetched on demand & cached) -----
   const view = ref('scores') // 'scores' | 'table' | 'scorers'
   const tableCache = {}       // slug -> { season, groups, teamMap }
-  const scorerCache = {}      // slug -> rows[]
+  const scorerCache = {}      // slug -> { goals, assists }
   const table = ref(null)
   const scorers = ref(null)
   const tableLoading = ref(false)
@@ -573,10 +583,10 @@ export function useFootballScores() {
     try {
       const tbl = await ensureTable(slug)          // reuse season + team crests
       if (!tbl?.season) throw new Error('no season')
-      const rows = await fetchScorers(slug, tbl.season, tbl.teamMap)
-      if (!rows.length) throw new Error('no scorers')
-      scorerCache[slug] = rows
-      if (slug === leagueSlug.value) scorers.value = rows
+      const data = await fetchLeaders(slug, tbl.season, tbl.teamMap)
+      if (!data.goals.length && !data.assists.length) throw new Error('no leaders')
+      scorerCache[slug] = data
+      if (slug === leagueSlug.value) scorers.value = data
     } catch {
       if (slug === leagueSlug.value) scorersError.value = t('football.noScorers')
     } finally {

@@ -396,7 +396,11 @@ export default {
     noStandings: 'No table available for this league.',
     noScorers: 'Top scorers unavailable for this league.',
     assistsShort: 'A',
+    goalsShort: 'G',
     appsShort: 'apps',
+    topAssists: 'Top Assists',
+    mGoals: 'Goals',
+    mAssists: 'Assists',
   },
 
   weather: {

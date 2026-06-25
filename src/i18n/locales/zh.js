@@ -396,7 +396,11 @@ export default {
     noStandings: '该联赛暂无积分榜。',
     noScorers: '该联赛暂无射手数据。',
     assistsShort: '助攻',
+    goalsShort: '球',
     appsShort: '场',
+    topAssists: '助攻榜',
+    mGoals: '进球',
+    mAssists: '助攻',
   },
 
   weather: {
