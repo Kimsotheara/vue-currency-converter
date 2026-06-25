@@ -1,5 +1,6 @@
 import { ref, computed, onUnmounted } from 'vue'
 import { leagues } from './leagues'
+import { useI18n } from '@/i18n'
 
 const API = 'https://site.api.espn.com/apis/site/v2/sports/soccer'
 const POLL_MS = 30_000 // refresh cadence while a match is live
@@ -287,6 +288,7 @@ const mapMatchStats = (data, homeId, awayId) => {
 }
 
 export function useFootballScores() {
+  const { t } = useI18n()
   const dark = ref((() => {
     try { return localStorage.getItem('ft-theme') !== 'light' } catch { return true }
   })())
@@ -336,7 +338,7 @@ export function useFootballScores() {
       schedulePoll()
     } catch {
       if (mine === reqId && !silent)
-        error.value = 'Score service is slow or unreachable — tap Retry'
+        error.value = t('football.errorSlow')
     } finally {
       if (mine === reqId && !silent) loading.value = false
     }
@@ -474,9 +476,9 @@ export function useFootballScores() {
     const today = new Date()
     const tomorrow = new Date(today); tomorrow.setDate(today.getDate() + 1)
     const yesterday = new Date(today); yesterday.setDate(today.getDate() - 1)
-    if (sameDay(d, today)) return 'Today'
-    if (sameDay(d, tomorrow)) return 'Tomorrow'
-    if (sameDay(d, yesterday)) return 'Yesterday'
+    if (sameDay(d, today)) return t('football.today')
+    if (sameDay(d, tomorrow)) return t('football.tomorrow')
+    if (sameDay(d, yesterday)) return t('football.yesterday')
     return d.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' })
   })
 

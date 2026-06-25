@@ -31,13 +31,13 @@
         <div v-else class="w-52 h-52 rounded-xl bg-gray-100 animate-pulse" />
       </div>
 
-      <p class="text-xs text-gray-400">Scan to connect instantly</p>
+      <p class="text-xs text-gray-400">{{ t('wifi.scanToConnect') }}</p>
     </div>
 
     <div class="px-4 pt-3 pb-4 space-y-3">
       <div class="flex items-center justify-between bg-gray-50 rounded-xl px-4 py-3">
         <div class="min-w-0">
-          <p class="text-xs text-gray-400 font-semibold uppercase tracking-wide mb-0.5">Password</p>
+          <p class="text-xs text-gray-400 font-semibold uppercase tracking-wide mb-0.5">{{ t('wifi.password') }}</p>
           <p class="font-mono text-gray-700 text-sm truncate">
             {{ showPassword ? network.password : '••••••••••' }}
           </p>
@@ -60,7 +60,7 @@
         <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
         </svg>
-        Download QR
+        {{ t('wifi.download') }}
       </button>
     </div>
 
@@ -71,6 +71,9 @@
 import { ref, onMounted } from 'vue'
 import QRCode from 'qrcode'
 import { downloadDataUrl } from '@/utils/download'
+import { useI18n } from '@/i18n'
+
+const { t } = useI18n()
 
 const props = defineProps({ network: Object })
 defineEmits(['remove'])

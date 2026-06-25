@@ -1,31 +1,31 @@
 <template>
   <div class="space-y-4">
     <div>
-      <label class="block text-sm font-semibold text-gray-700 mb-1">From Currency</label>
+      <label class="block text-sm font-semibold text-gray-700 mb-1">{{ t('currency.fromCurrency') }}</label>
       <Multiselect
         :modelValue="fromCurrency"
         @update:modelValue="$emit('update:fromCurrency', $event)"
         :options="currencyOptions"
         label="label"
         track-by="code"
-        placeholder="Select currency"
+        :placeholder="t('currency.selectCurrency')"
       />
     </div>
 
     <div>
-      <label class="block text-sm font-semibold text-gray-700 mb-1">To Currency</label>
+      <label class="block text-sm font-semibold text-gray-700 mb-1">{{ t('currency.toCurrency') }}</label>
       <Multiselect
         :modelValue="toCurrency"
         @update:modelValue="$emit('update:toCurrency', $event)"
         :options="currencyOptions"
         label="label"
         track-by="code"
-        placeholder="Select currency"
+        :placeholder="t('currency.selectCurrency')"
       />
     </div>
 
     <div>
-      <label class="block text-sm font-semibold text-gray-700 mb-1">Amount</label>
+      <label class="block text-sm font-semibold text-gray-700 mb-1">{{ t('currency.amount') }}</label>
       <input
         type="number"
         inputmode="decimal"
@@ -40,13 +40,13 @@
         @click="$emit('switch')"
         class="flex-1 min-w-24 bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white font-semibold py-2.5 rounded-lg transition-colors text-sm sm:text-base"
       >
-        ⇄ Switch
+        ⇄ {{ t('currency.switch') }}
       </button>
       <button
         @click="$emit('clear')"
         class="flex-1 min-w-24 bg-red-500 hover:bg-red-600 active:bg-red-700 text-white font-semibold py-2.5 rounded-lg transition-colors text-sm sm:text-base"
       >
-        Clear
+        {{ t('currency.clear') }}
       </button>
     </div>
   </div>
@@ -55,6 +55,9 @@
 <script setup>
 import Multiselect from 'vue-multiselect'
 import 'vue-multiselect/dist/vue-multiselect.min.css'
+import { useI18n } from '@/i18n'
+
+const { t } = useI18n()
 
 defineProps({
   fromCurrency: Object,

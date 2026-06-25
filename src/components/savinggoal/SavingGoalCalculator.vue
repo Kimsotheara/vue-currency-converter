@@ -2,7 +2,7 @@
   <div class="space-y-4">
 
     <div>
-      <label class="block text-sm font-semibold text-gray-700 mb-1">Goal Amount ($)</label>
+      <label class="block text-sm font-semibold text-gray-700 mb-1">{{ t('savingGoal.goalAmount') }} ($)</label>
       <input
         :value="goalAmount ?? ''"
         @input="goalAmount = $event.target.value === '' ? null : Number($event.target.value)"
@@ -14,7 +14,7 @@
     </div>
 
     <div>
-      <label class="block text-sm font-semibold text-gray-700 mb-1">Current Savings ($)</label>
+      <label class="block text-sm font-semibold text-gray-700 mb-1">{{ t('savingGoal.currentSavings') }} ($)</label>
       <input
         :value="currentSavings ?? ''"
         @input="currentSavings = $event.target.value === '' ? null : Number($event.target.value)"
@@ -26,7 +26,7 @@
     </div>
 
     <div>
-      <label class="block text-sm font-semibold text-gray-700 mb-1">Target (Months)</label>
+      <label class="block text-sm font-semibold text-gray-700 mb-1">{{ t('savingGoal.targetMonths') }}</label>
       <input
         :value="months ?? ''"
         @input="months = $event.target.value === '' ? null : Number($event.target.value)"
@@ -53,21 +53,21 @@
       @click="clear"
       class="w-full bg-red-500 hover:bg-red-600 active:bg-red-700 text-white font-semibold py-2.5 rounded-xl transition-colors"
     >
-      Clear
+      {{ t('savingGoal.clear') }}
     </button>
 
     <div v-if="result" class="rounded-2xl overflow-hidden shadow-md">
 
       <div class="bg-gradient-to-r from-blue-600 to-cyan-500 px-5 py-4 text-white">
-        <p class="text-xs opacity-75 uppercase tracking-widest font-semibold mb-1">Monthly Savings Required</p>
+        <p class="text-xs opacity-75 uppercase tracking-widest font-semibold mb-1">{{ t('savingGoal.monthlyRequired') }}</p>
         <p class="text-4xl font-bold">${{ fmt(result.monthly) }}</p>
       </div>
 
       <!-- Progress bar -->
       <div class="bg-white px-5 py-4">
         <div class="flex justify-between text-xs text-gray-500 font-semibold mb-1">
-          <span>Saved: ${{ fmt(currentSavings || 0) }}</span>
-          <span>Goal: ${{ fmt(goalAmount) }}</span>
+          <span>{{ t('savingGoal.saved') }}: ${{ fmt(currentSavings || 0) }}</span>
+          <span>{{ t('savingGoal.goal') }}: ${{ fmt(goalAmount) }}</span>
         </div>
         <div class="relative h-3 rounded-full overflow-hidden bg-gray-100">
           <div
@@ -75,20 +75,20 @@
             :style="{ width: result.progress + '%' }"
           />
         </div>
-        <p class="text-xs text-gray-400 mt-1 text-right">{{ result.progress.toFixed(1) }}% complete</p>
+        <p class="text-xs text-gray-400 mt-1 text-right">{{ t('savingGoal.complete', { pct: result.progress.toFixed(1) }) }}</p>
       </div>
 
       <div class="bg-white divide-y divide-gray-100">
         <div class="flex justify-between items-center px-5 py-3">
-          <span class="text-sm text-gray-500">Remaining Goal</span>
+          <span class="text-sm text-gray-500">{{ t('savingGoal.remainingGoal') }}</span>
           <span class="text-sm font-semibold text-gray-700">${{ fmt(result.remaining) }}</span>
         </div>
         <div class="flex justify-between items-center px-5 py-3">
-          <span class="text-sm text-gray-500">Weekly Savings Required</span>
+          <span class="text-sm text-gray-500">{{ t('savingGoal.weeklyRequired') }}</span>
           <span class="text-sm font-semibold text-gray-700">${{ fmt(result.weekly) }}</span>
         </div>
         <div class="flex justify-between items-center px-5 py-3">
-          <span class="text-sm text-gray-500">Daily Savings Required</span>
+          <span class="text-sm text-gray-500">{{ t('savingGoal.dailyRequired') }}</span>
           <span class="text-sm font-semibold text-gray-700">${{ fmt(result.daily) }}</span>
         </div>
       </div>
@@ -102,6 +102,9 @@
 
 <script setup>
 import { ref, computed } from 'vue'
+import { useI18n } from '@/i18n'
+
+const { t } = useI18n()
 
 const goalAmount = ref(null)
 const currentSavings = ref(null)
@@ -116,9 +119,9 @@ const clear = () => {
 
 const error = computed(() => {
   if (!goalAmount.value && !months.value) return null
-  if (goalAmount.value <= 0) return 'Goal amount must be greater than 0.'
-  if (months.value <= 0) return 'Months must be greater than 0.'
-  if (currentSavings.value < 0) return 'Current savings cannot be negative.'
+  if (goalAmount.value <= 0) return t('savingGoal.errGoal')
+  if (months.value <= 0) return t('savingGoal.errMonths')
+  if (currentSavings.value < 0) return t('savingGoal.errSavings')
   // if (interestRate.value < 0) return 'Interest rate cannot be negative.'
   return null
 })

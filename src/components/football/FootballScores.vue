@@ -10,12 +10,12 @@
           <h2 class="text-white text-lg font-bold leading-tight truncate">
             {{ leagueName || activeLeague?.name }}
           </h2>
-          <p class="text-slate-400 text-xs font-medium">Live Scores & Results</p>
+          <p class="text-slate-400 text-xs font-medium">{{ t('football.liveScores') }}</p>
         </div>
         <button
           @click="toggleTheme"
           class="ml-auto shrink-0 w-9 h-9 rounded-lg bg-white/10 hover:bg-white/20 active:scale-95 transition flex items-center justify-center text-white text-base"
-          :title="dark ? 'Switch to light' : 'Switch to dark'"
+          :title="dark ? t('football.switchLight') : t('football.switchDark')"
         >
           {{ dark ? '☀️' : '🌙' }}
         </button>
@@ -23,7 +23,7 @@
           @click="fetchScores()"
           :disabled="loading"
           class="shrink-0 w-9 h-9 rounded-lg bg-white/10 hover:bg-white/20 active:scale-95 transition flex items-center justify-center text-white disabled:opacity-50"
-          title="Refresh"
+          :title="t('football.refresh')"
         >
           <span class="text-base" :class="{ 'animate-spin': loading }">↻</span>
         </button>
@@ -49,17 +49,17 @@
 
     <!-- ===== Date bar ===== -->
     <div class="bg-slate-800 px-5 py-2.5 flex items-center justify-between border-t border-white/5">
-      <button :class="navBtn" @click="shiftDay(-1)" title="Previous day">‹</button>
+      <button :class="navBtn" @click="shiftDay(-1)" :title="t('football.prevDay')">‹</button>
       <button
         @click="goToday"
         class="flex items-center gap-2 text-sm font-semibold text-white px-3 py-1 rounded-lg hover:bg-white/10 transition"
       >
         <span>📅</span>{{ dateLabel }}
         <span v-if="liveCount" class="inline-flex items-center gap-1 text-red-400 text-xs">
-          <span class="live-dot" />{{ liveCount }} live
+          <span class="live-dot" />{{ t('football.liveCount', { n: liveCount }) }}
         </span>
       </button>
-      <button :class="navBtn" @click="shiftDay(1)" title="Next day">›</button>
+      <button :class="navBtn" @click="shiftDay(1)" :title="t('football.nextDay')">›</button>
     </div>
 
     <!-- ===== Body ===== -->
@@ -81,15 +81,15 @@
           @click="fetchScores()"
           class="px-5 py-2 rounded-lg bg-emerald-500 hover:bg-emerald-400 text-white text-sm font-semibold transition"
         >
-          Retry
+          {{ t('football.retry') }}
         </button>
       </div>
 
       <!-- Empty -->
       <div v-else-if="!events.length" class="text-center py-12">
         <p class="text-5xl mb-3">⚽</p>
-        <p class="text-slate-400 text-sm">No matches for {{ dateLabel.toLowerCase() }} in this league.</p>
-        <p class="text-slate-600 text-xs mt-1">Try another day or league above.</p>
+        <p class="text-slate-400 text-sm">{{ t('football.noMatches', { day: dateLabel.toLowerCase() }) }}</p>
+        <p class="text-slate-600 text-xs mt-1">{{ t('football.tryAnother') }}</p>
       </div>
 
       <template v-else>
@@ -134,21 +134,21 @@
             <ul class="space-y-1.5 text-left text-slate-300">
               <li v-for="(s, i) in featured.homeScorers" :key="'h'+i">
                 ⚽ {{ scorerText(s) }}
-                <span v-if="assistFor(s)" class="block text-[10px] text-slate-500">↳ assist {{ assistFor(s) }}</span>
+                <span v-if="assistFor(s)" class="block text-[10px] text-slate-500">↳ {{ t('football.assist') }} {{ assistFor(s) }}</span>
               </li>
             </ul>
             <span class="text-slate-500 pt-0.5">⚽</span>
             <ul class="space-y-1.5 text-right text-slate-300">
               <li v-for="(s, i) in featured.awayScorers" :key="'a'+i">
                 {{ scorerText(s) }} ⚽
-                <span v-if="assistFor(s)" class="block text-[10px] text-slate-500">{{ assistFor(s) }} assist ↳</span>
+                <span v-if="assistFor(s)" class="block text-[10px] text-slate-500">{{ assistFor(s) }} {{ t('football.assist') }} ↳</span>
               </li>
             </ul>
           </div>
 
           <!-- Match stats (possession / shots on target) -->
           <div v-if="matchStats" class="mt-5 pt-4 border-t border-white/5 space-y-2">
-            <div class="text-[11px] text-slate-400 font-semibold uppercase tracking-wider mb-1">📊 Stats</div>
+            <div class="text-[11px] text-slate-400 font-semibold uppercase tracking-wider mb-1">📊 {{ t('football.stats') }}</div>
             <div v-for="row in statRows" :key="row.label" class="flex items-center text-[11px]">
               <span class="w-10 text-left font-semibold text-emerald-400">{{ row.home }}</span>
               <span class="flex-1 text-center text-slate-400">{{ row.label }}</span>
@@ -159,8 +159,8 @@
           <!-- Prediction -->
           <div v-if="prediction" class="mt-5 pt-4 border-t border-white/5">
             <div class="flex items-center justify-between text-[11px] mb-2">
-              <span class="text-slate-400 font-semibold uppercase tracking-wider">🔮 Prediction</span>
-              <span v-if="prediction.provider" class="text-slate-600">via {{ prediction.provider }}</span>
+              <span class="text-slate-400 font-semibold uppercase tracking-wider">🔮 {{ t('football.prediction') }}</span>
+              <span v-if="prediction.provider" class="text-slate-600">{{ t('football.via', { provider: prediction.provider }) }}</span>
             </div>
             <div class="flex h-2.5 rounded-full overflow-hidden bg-slate-700">
               <div class="bg-emerald-500" :style="{ width: prediction.home + '%' }" />
@@ -168,9 +168,9 @@
               <div class="bg-sky-500" :style="{ width: prediction.away + '%' }" />
             </div>
             <div class="flex justify-between mt-1.5 text-[11px] font-semibold">
-              <span class="text-emerald-400">{{ featured.home.short || 'Home' }} {{ prediction.home }}%</span>
-              <span class="text-slate-300">Draw {{ prediction.draw }}%</span>
-              <span class="text-sky-400">{{ featured.away.short || 'Away' }} {{ prediction.away }}%</span>
+              <span class="text-emerald-400">{{ featured.home.short || t('football.home') }} {{ prediction.home }}%</span>
+              <span class="text-slate-300">{{ t('football.draw') }} {{ prediction.draw }}%</span>
+              <span class="text-sky-400">{{ featured.away.short || t('football.away') }} {{ prediction.away }}%</span>
             </div>
           </div>
 
@@ -180,13 +180,13 @@
             @click="openLineup(featured)"
             class="mt-4 w-full py-2.5 rounded-xl bg-white/10 hover:bg-white/20 active:scale-[0.99] text-white text-sm font-semibold transition flex items-center justify-center gap-2"
           >
-            📋 Line-up · Form · H2H
+            📋 {{ t('football.lineupFormH2h') }}
           </button>
         </div>
 
         <!-- ===== Other matches ===== -->
         <div v-if="others.length" class="mt-4">
-          <p class="text-slate-500 text-xs font-semibold uppercase tracking-wider mb-2 px-1">Other matches</p>
+          <p class="text-slate-500 text-xs font-semibold uppercase tracking-wider mb-2 px-1">{{ t('football.otherMatches') }}</p>
           <div class="grid sm:grid-cols-2 gap-2.5">
             <div
               v-for="m in others"
@@ -214,14 +214,14 @@
                 @click="openLineup(m)"
                 class="mt-2.5 w-full py-1.5 rounded-lg bg-white/5 hover:bg-white/15 text-slate-300 hover:text-white text-[11px] font-semibold transition"
               >
-                📋 Details
+                📋 {{ t('football.details') }}
               </button>
             </div>
           </div>
         </div>
 
         <p v-if="updatedText" class="mt-4 text-center text-[11px] text-slate-600">
-          Updated {{ updatedText }}<span v-if="liveCount"> · auto-refreshing</span>
+          {{ t('football.updated', { time: updatedText }) }}<span v-if="liveCount"> · {{ t('football.autoRefreshing') }}</span>
         </p>
       </template>
     </div>
@@ -248,6 +248,9 @@
 import { onMounted, onUnmounted, watch, computed } from 'vue'
 import { useFootballScores } from './useFootballScores'
 import MatchDetails from './MatchDetails.vue'
+import { useI18n } from '@/i18n'
+
+const { t } = useI18n()
 
 const {
   dark, toggleTheme,
@@ -288,17 +291,17 @@ const statRows = computed(() => {
   if (!s) return []
   const dash = (v) => (v == null || v === '' ? '–' : v)
   return [
-    { label: 'Possession', home: dash(s.home?.possession), away: dash(s.away?.possession) },
-    { label: 'Shots on target', home: dash(s.home?.shotsOnTarget), away: dash(s.away?.shotsOnTarget) },
+    { label: t('football.possession'), home: dash(s.home?.possession), away: dash(s.away?.possession) },
+    { label: t('football.shotsOnTarget'), home: dash(s.home?.shotsOnTarget), away: dash(s.away?.shotsOnTarget) },
   ]
 })
 const assists = computed(() => (featured.value ? assistsFor(featured.value.id) : null))
 const assistFor = (s) => assists.value?.[s.name?.toLowerCase()] || ''
 
 const statusText = (m) => {
-  if (m.live) return m.detail || 'LIVE'
-  if (m.completed) return m.detail || 'FT'
-  return 'Scheduled'
+  if (m.live) return m.detail || t('football.statusLive')
+  if (m.completed) return m.detail || t('football.statusFt')
+  return t('football.statusScheduled')
 }
 const statusClass = (m) =>
   m.live ? 'text-red-400' : m.completed ? 'text-slate-400' : 'text-emerald-400'

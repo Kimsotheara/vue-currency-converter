@@ -16,7 +16,7 @@
 
     <!-- Distance -->
     <div>
-      <label class="block text-sm font-semibold text-gray-700 mb-1">Distance (km)</label>
+      <label class="block text-sm font-semibold text-gray-700 mb-1">{{ t('fuelCost.distance') }}</label>
       <input
         :value="distance ?? ''"
         @input="distance = $event.target.value === '' ? null : Number($event.target.value)"
@@ -27,7 +27,7 @@
 
     <!-- Fuel efficiency -->
     <div>
-      <label class="block text-sm font-semibold text-gray-700 mb-1">Fuel Efficiency (km per litre)</label>
+      <label class="block text-sm font-semibold text-gray-700 mb-1">{{ t('fuelCost.efficiency') }}</label>
       <input
         :value="efficiency ?? ''"
         @input="efficiency = $event.target.value === '' ? null : Number($event.target.value)"
@@ -38,7 +38,7 @@
 
     <!-- Fuel price -->
     <div>
-      <label class="block text-sm font-semibold text-gray-700 mb-1">Fuel Price ({{ symbol }} / litre)</label>
+      <label class="block text-sm font-semibold text-gray-700 mb-1">{{ t('fuelCost.fuelPrice', { symbol }) }}</label>
       <input
         :value="price ?? ''"
         @input="price = $event.target.value === '' ? null : Number($event.target.value)"
@@ -50,7 +50,7 @@
 
     <!-- People -->
     <div>
-      <label class="block text-sm font-semibold text-gray-700 mb-1">Split Between</label>
+      <label class="block text-sm font-semibold text-gray-700 mb-1">{{ t('fuelCost.splitBetween') }}</label>
       <div class="flex items-center gap-3">
         <button @click="people = Math.max(1, people - 1)" class="w-11 h-11 shrink-0 rounded-xl bg-gray-100 hover:bg-gray-200 text-2xl font-bold text-gray-700 active:scale-90 transition">−</button>
         <input
@@ -65,7 +65,7 @@
 
     <!-- Round trip -->
     <label class="flex items-center justify-between cursor-pointer select-none">
-      <span class="text-sm font-semibold text-gray-700">Round trip (return journey)</span>
+      <span class="text-sm font-semibold text-gray-700">{{ t('fuelCost.roundTrip') }}</span>
       <input type="checkbox" v-model="roundTrip" class="w-5 h-5 accent-blue-600" />
     </label>
 
@@ -73,32 +73,32 @@
       @click="clear"
       class="w-full bg-red-500 hover:bg-red-600 active:bg-red-700 text-white font-semibold py-2.5 rounded-xl transition-colors"
     >
-      Clear
+      {{ t('fuelCost.clear') }}
     </button>
 
     <!-- Result -->
     <div v-if="result" class="rounded-2xl overflow-hidden shadow-md">
       <div class="bg-gradient-to-r from-amber-500 to-orange-500 px-5 py-4 text-white">
-        <p class="text-xs opacity-75 uppercase tracking-widest font-semibold mb-1">Total Fuel Cost</p>
+        <p class="text-xs opacity-75 uppercase tracking-widest font-semibold mb-1">{{ t('fuelCost.totalCost') }}</p>
         <p class="text-4xl font-bold">{{ symbol }}{{ fmt(result.cost) }}</p>
         <p class="text-xs opacity-80 mt-1">{{ fmtKm(result.km) }} km · {{ fmtL(result.litres) }} L</p>
       </div>
       <div class="bg-white divide-y divide-gray-100">
         <div class="flex justify-between items-center px-5 py-3">
-          <span class="text-sm text-gray-500">Fuel needed</span>
-          <span class="text-sm font-semibold text-gray-700">{{ fmtL(result.litres) }} litres</span>
+          <span class="text-sm text-gray-500">{{ t('fuelCost.fuelNeeded') }}</span>
+          <span class="text-sm font-semibold text-gray-700">{{ fmtL(result.litres) }} {{ t('fuelCost.litres') }}</span>
         </div>
         <div class="flex justify-between items-center px-5 py-3">
-          <span class="text-sm text-gray-500">Cost per km</span>
+          <span class="text-sm text-gray-500">{{ t('fuelCost.costPerKm') }}</span>
           <span class="text-sm font-semibold text-gray-700">{{ symbol }}{{ fmt(result.perKm) }}</span>
         </div>
         <div v-if="people > 1" class="flex justify-between items-center px-5 py-3 bg-amber-50">
-          <span class="text-sm font-bold text-amber-700">Per person ({{ people }})</span>
+          <span class="text-sm font-bold text-amber-700">{{ t('fuelCost.perPerson', { n: people }) }}</span>
           <span class="text-base font-bold text-amber-600">{{ symbol }}{{ fmt(result.perPerson) }}</span>
         </div>
         <div class="flex justify-between items-center px-5 py-3">
-          <span class="text-sm text-gray-500">≈ in {{ currency === 'USD' ? 'KHR' : 'USD' }}</span>
-          <span class="text-sm font-semibold text-gray-500">{{ altSymbol }}{{ fmtAlt(result.cost) }} total</span>
+          <span class="text-sm text-gray-500">{{ t('fuelCost.approxIn', { cur: currency === 'USD' ? 'KHR' : 'USD' }) }}</span>
+          <span class="text-sm font-semibold text-gray-500">{{ altSymbol }}{{ fmtAlt(result.cost) }} {{ t('fuelCost.totalSuffix') }}</span>
         </div>
       </div>
     </div>
@@ -109,7 +109,9 @@
 <script setup>
 import { ref, computed } from 'vue'
 import { useExchangeRate } from '../common/useExchangeRate'
+import { useI18n } from '@/i18n'
 
+const { t } = useI18n()
 const { exchangeRate } = useExchangeRate()
 
 const distance = ref(null)

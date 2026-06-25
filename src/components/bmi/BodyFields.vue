@@ -3,19 +3,19 @@
     <!-- Unit toggle -->
     <div class="flex rounded-xl bg-gray-100 p-1">
       <button
-        v-for="u in [['metric', 'Metric (kg/cm)'], ['imperial', 'Imperial (lbs/ft)']]"
+        v-for="u in [['metric', 'bmi.unitMetric'], ['imperial', 'bmi.unitImperial']]"
         :key="u[0]"
         @click="unit = u[0]"
         :class="[
           'flex-1 py-2 rounded-lg text-sm font-semibold transition-colors',
           unit === u[0] ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500',
         ]"
-      >{{ u[1] }}</button>
+      >{{ t(u[1]) }}</button>
     </div>
 
     <!-- Weight -->
     <div v-if="showWeight">
-      <label class="block text-sm font-semibold text-gray-700 mb-1">Weight ({{ unit === 'metric' ? 'kg' : 'lbs' }})</label>
+      <label class="block text-sm font-semibold text-gray-700 mb-1">{{ t('bmi.weight') }} ({{ unit === 'metric' ? 'kg' : 'lbs' }})</label>
       <input
         :value="weight ?? ''"
         @input="weight = $event.target.value === '' ? null : Number($event.target.value)"
@@ -27,12 +27,12 @@
 
     <!-- Height -->
     <div>
-      <label class="block text-sm font-semibold text-gray-700 mb-1">Height</label>
+      <label class="block text-sm font-semibold text-gray-700 mb-1">{{ t('bmi.height') }}</label>
       <input
         v-if="unit === 'metric'"
         :value="heightCm ?? ''"
         @input="heightCm = $event.target.value === '' ? null : Number($event.target.value)"
-        type="number" inputmode="decimal" min="0" placeholder="e.g. 175 (cm)"
+        type="number" inputmode="decimal" min="0" :placeholder="t('bmi.heightCmPh')"
         class="w-full border border-gray-300 rounded-xl px-3 py-2.5 text-base focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
       />
       <div v-else class="flex gap-2">
@@ -43,7 +43,7 @@
             type="number" inputmode="numeric" min="0" placeholder="ft"
             class="w-full border border-gray-300 rounded-xl px-3 py-2.5 text-base focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
           />
-          <p class="text-xs text-gray-400 mt-1 text-center">Feet</p>
+          <p class="text-xs text-gray-400 mt-1 text-center">{{ t('bmi.feet') }}</p>
         </div>
         <div class="flex-1">
           <input
@@ -52,7 +52,7 @@
             type="number" inputmode="numeric" min="0" max="11" placeholder="in"
             class="w-full border border-gray-300 rounded-xl px-3 py-2.5 text-base focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
           />
-          <p class="text-xs text-gray-400 mt-1 text-center">Inches</p>
+          <p class="text-xs text-gray-400 mt-1 text-center">{{ t('bmi.inches') }}</p>
         </div>
       </div>
     </div>
@@ -60,6 +60,10 @@
 </template>
 
 <script setup>
+import { useI18n } from '@/i18n'
+
+const { t } = useI18n()
+
 const unit = defineModel('unit')
 const weight = defineModel('weight')
 const heightCm = defineModel('heightCm')

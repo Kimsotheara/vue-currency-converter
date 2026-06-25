@@ -1,5 +1,5 @@
 <template>
-  <div class="h-dvh flex flex-col" :class="activeKey ? 'bg-gray-100 dark:bg-slate-900' : 'bg-gradient-to-b from-indigo-50 via-purple-50 to-white dark:from-slate-900 dark:via-slate-900 dark:to-slate-800'">
+  <div class="h-dvh flex flex-col" :class="activeKey ? 'bg-gray-100 dark:bg-slate-900' : 'bg-gradient-to-b from-indigo-50 via-purple-50 to-white dark:bg-slate-900 dark:bg-none'">
 
     <!-- App bar -->
     <header
@@ -18,7 +18,7 @@
             <ChevronLeft class="w-5 h-5" :stroke-width="2.4" />
           </button>
           <h1 class="flex-1 min-w-0 text-center text-[17px] font-bold text-gray-800 dark:text-slate-100 truncate px-1 tracking-tight">
-            {{ activeTab.label }}
+            {{ t(`tools.${activeTab.key}.name`) }}
           </h1>
         </template>
 
@@ -27,7 +27,7 @@
           <button
             @click="refreshApp"
             class="flex-1 min-w-0 flex items-center gap-3 group text-left"
-            title="Refresh app"
+            :title="t('home.refresh')"
           >
             <span class="w-12 h-12 rounded-2xl shrink-0 flex items-center justify-center bg-gradient-to-br from-violet-500 to-purple-600 text-white shadow-lg shadow-violet-500/30 group-active:scale-90 transition-transform">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-6 h-6">
@@ -36,20 +36,19 @@
               </svg>
             </span>
             <span class="min-w-0 leading-tight">
-              <span class="block text-sm text-gray-400 dark:text-slate-500 font-medium">Welcome back</span>
-              <span class="block text-2xl font-extrabold tracking-tight text-gray-900 dark:text-white truncate">Toolkit</span>
+              <span class="block text-sm text-gray-400 dark:text-slate-500 font-medium">{{ t('home.welcome') }}</span>
+              <span class="block text-2xl font-extrabold tracking-tight text-gray-900 dark:text-white truncate">{{ t('home.brand') }}</span>
             </span>
           </button>
         </template>
 
-        <!-- Theme toggle (consistent on both views) -->
+        <!-- Settings: theme + language (consistent on both views) -->
         <button
-          @click="toggleTheme"
+          @click="settingsOpen = true"
           class="shrink-0 w-11 h-11 flex items-center justify-center rounded-2xl bg-white dark:bg-slate-800 shadow-sm ring-1 ring-black/5 dark:ring-white/10 hover:shadow-md active:scale-90 transition group"
-          :aria-label="dark ? 'Switch to light mode' : 'Switch to dark mode'"
+          :aria-label="t('settings.title')"
         >
-          <Moon v-if="!dark" class="w-5 h-5 text-amber-400 fill-amber-300 transition-transform duration-300 group-hover:-rotate-12" />
-          <Sun v-else class="w-5 h-5 text-amber-400 fill-amber-300 transition-transform duration-300 group-hover:rotate-90" />
+          <Settings class="w-5 h-5 text-gray-500 dark:text-slate-300 transition-transform duration-300 group-hover:rotate-45" />
         </button>
       </div>
     </header>
@@ -88,12 +87,16 @@
         </keep-alive>
       </div>
     </div>
+
+    <SettingsSheet :open="settingsOpen" @close="settingsOpen = false" />
   </div>
 </template>
 
 <script setup>
-import { ref, computed, defineAsyncComponent, onMounted } from 'vue'
-import { ChevronLeft, Moon, Sun } from 'lucide-vue-next'
+import { ref, computed, defineAsyncComponent } from 'vue'
+import { ChevronLeft, Settings } from 'lucide-vue-next'
+import { useI18n } from './i18n'
+import SettingsSheet from './components/common/SettingsSheet.vue'
 import HomeGrid         from './components/HomeGrid.vue'
 import CurrencyConverter from './components/currency/CurrencyConverter.vue'
 import VehicleLoanCalculator from './components/vehicleloan/VehicleLoanCalculator.vue'
@@ -129,22 +132,12 @@ const tabs = [
   { key: 'fuelcost',    label: 'Fuel / Trip Cost',             short: 'Fuel Cost',   icon: '⛽', bg: 'from-amber-400 to-orange-500',   glow: 'shadow-amber-500/40' },
 ]
 
+const { t } = useI18n()
+
 const activeKey = ref(null) // null = home grid
 const activeTab = computed(() => tabs.find(t => t.key === activeKey.value) || null)
 
-// Dark / light theme (class-based, persisted)
-const dark = ref(false)
-const applyTheme = () => document.documentElement.classList.toggle('dark', dark.value)
-const toggleTheme = () => {
-  dark.value = !dark.value
-  try { localStorage.setItem('app-theme', dark.value ? 'dark' : 'light') } catch {}
-  applyTheme()
-}
-
-onMounted(() => {
-  try { dark.value = localStorage.getItem('app-theme') === 'dark' } catch {}
-  applyTheme()
-})
+const settingsOpen = ref(false)
 
 const refreshApp = () => window.location.reload()
 

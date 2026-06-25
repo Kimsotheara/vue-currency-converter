@@ -1,4 +1,5 @@
 import { ref, computed } from 'vue'
+import { useI18n } from '@/i18n'
 
 // Cloudflare exposes public, CORS-enabled speed-test endpoints:
 //   GET  https://speed.cloudflare.com/__down?bytes=N  -> returns N bytes
@@ -12,6 +13,7 @@ const UP_URL = 'https://speed.cloudflare.com/__up'
 export const PHASES = ['idle', 'ping', 'download', 'upload', 'done']
 
 export function useSpeedTest() {
+  const { t } = useI18n()
   const phase = ref('idle')
   const error = ref('')
 
@@ -112,7 +114,7 @@ export function useSpeedTest() {
 
       phase.value = 'done'
     } catch (e) {
-      error.value = 'Speed test failed. Check your connection and try again.'
+      error.value = t('speedtest.error')
       phase.value = 'idle'
     }
   }

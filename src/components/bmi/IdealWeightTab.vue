@@ -3,8 +3,8 @@
 
     <!-- Sex -->
     <div class="flex rounded-xl bg-gray-100 p-1">
-      <button v-for="s in [['male','Male'],['female','Female']]" :key="s[0]" @click="sex = s[0]"
-        :class="['flex-1 py-2 rounded-lg text-sm font-semibold transition-colors', sex === s[0] ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500']">{{ s[1] }}</button>
+      <button v-for="s in [['male','bmi.male'],['female','bmi.female']]" :key="s[0]" @click="sex = s[0]"
+        :class="['flex-1 py-2 rounded-lg text-sm font-semibold transition-colors', sex === s[0] ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500']">{{ t(s[1]) }}</button>
     </div>
 
     <!-- Shared height (weight not needed here) -->
@@ -13,34 +13,34 @@
 
     <!-- Frame -->
     <div>
-      <label class="block text-sm font-semibold text-gray-700 mb-1">Body frame</label>
+      <label class="block text-sm font-semibold text-gray-700 mb-1">{{ t('bmi.bodyFrame') }}</label>
       <div class="flex rounded-xl bg-gray-100 p-1">
         <button v-for="f in frames" :key="f.key" @click="frame = f.key"
-          :class="['flex-1 py-2 rounded-lg text-sm font-semibold transition-colors', frame === f.key ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500']">{{ f.label }}</button>
+          :class="['flex-1 py-2 rounded-lg text-sm font-semibold transition-colors', frame === f.key ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500']">{{ t(`bmi.frames.${f.key}`) }}</button>
       </div>
     </div>
 
-    <button @click="clear" class="w-full bg-red-500 hover:bg-red-600 active:bg-red-700 text-white font-semibold py-2.5 rounded-xl transition-colors">Clear</button>
+    <button @click="clear" class="w-full bg-red-500 hover:bg-red-600 active:bg-red-700 text-white font-semibold py-2.5 rounded-xl transition-colors">{{ t('bmi.clear') }}</button>
 
     <div v-if="result" class="rounded-2xl overflow-hidden shadow-md">
       <div class="bg-gradient-to-r from-teal-600 to-emerald-500 px-5 py-4 text-white">
-        <p class="text-xs opacity-75 uppercase tracking-widest font-semibold mb-1">Healthy Weight Range</p>
+        <p class="text-xs opacity-75 uppercase tracking-widest font-semibold mb-1">{{ t('bmi.healthyRange') }}</p>
         <p class="text-4xl font-bold">{{ result.low }}–{{ result.high }} <span class="text-lg font-semibold opacity-90">kg</span></p>
-        <p class="text-xs opacity-80 mt-1">{{ result.lowLb }}–{{ result.highLb }} lbs · based on BMI 18.5–24.9</p>
+        <p class="text-xs opacity-80 mt-1">{{ t('bmi.rangeLbNote', { lowLb: result.lowLb, highLb: result.highLb }) }}</p>
       </div>
       <div class="bg-white divide-y divide-gray-100">
         <div class="flex justify-between items-center px-5 py-3">
-          <span class="text-sm text-gray-500">Target ({{ frameLabel }} frame)</span>
+          <span class="text-sm text-gray-500">{{ t('bmi.targetFrame', { frame: frameLabel }) }}</span>
           <span class="text-sm font-bold text-emerald-600">{{ result.target }} kg</span>
         </div>
         <div class="flex justify-between items-center px-5 py-3">
-          <span class="text-sm text-gray-500">Devine formula</span>
+          <span class="text-sm text-gray-500">{{ t('bmi.devineFormula') }}</span>
           <span class="text-sm font-semibold text-gray-700">{{ result.devine }} kg</span>
         </div>
       </div>
     </div>
 
-    <p class="text-xs text-gray-400 leading-relaxed">Range from a healthy BMI (18.5–24.9). Target adjusts the Devine ideal weight by frame (small −10%, large +10%). General guidance only.</p>
+    <p class="text-xs text-gray-400 leading-relaxed">{{ t('bmi.idealNote') }}</p>
   </div>
 </template>
 
@@ -48,15 +48,18 @@
 import { computed } from 'vue'
 import BodyFields from './BodyFields.vue'
 import { useBodyMetrics } from './useBodyMetrics'
+import { useI18n } from '@/i18n'
+
+const { t } = useI18n()
 
 const { unit, heightCm, heightFt, heightIn, sex, frame, heightCmVal, resetBody } = useBodyMetrics()
 
 const frames = [
-  { key: 'small', label: 'Small' },
-  { key: 'medium', label: 'Medium' },
-  { key: 'large', label: 'Large' },
+  { key: 'small' },
+  { key: 'medium' },
+  { key: 'large' },
 ]
-const frameLabel = computed(() => frames.find((f) => f.key === frame.value).label.toLowerCase())
+const frameLabel = computed(() => t(`bmi.frames.${frame.value}`))
 
 const clear = resetBody
 

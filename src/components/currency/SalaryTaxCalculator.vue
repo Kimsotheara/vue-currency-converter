@@ -16,7 +16,7 @@
 
     <!-- Gross monthly salary -->
     <div>
-      <label class="block text-sm font-semibold text-gray-700 mb-1">Gross Monthly Salary ({{ symbol }})</label>
+      <label class="block text-sm font-semibold text-gray-700 mb-1">{{ t('salaryTax.gross') }} ({{ symbol }})</label>
       <input
         :value="gross ?? ''"
         @input="gross = $event.target.value === '' ? null : Number($event.target.value)"
@@ -36,12 +36,12 @@
           'flex-1 py-2 rounded-lg text-sm font-semibold transition-colors',
           residency === r.key ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500',
         ]"
-      >{{ r.label }}</button>
+      >{{ t(r.labelKey) }}</button>
     </div>
 
     <!-- Dependents (residents only) -->
     <div v-if="residency === 'resident'">
-      <label class="block text-sm font-semibold text-gray-700 mb-1">Dependents (spouse + minor children)</label>
+      <label class="block text-sm font-semibold text-gray-700 mb-1">{{ t('salaryTax.dependents') }}</label>
       <div class="flex items-center gap-3">
         <button @click="dependents = Math.max(0, dependents - 1)" class="w-11 h-11 shrink-0 rounded-xl bg-gray-100 hover:bg-gray-200 text-2xl font-bold text-gray-700 active:scale-90 transition">−</button>
         <input
@@ -52,12 +52,12 @@
         />
         <button @click="dependents = dependents + 1" class="w-11 h-11 shrink-0 rounded-xl bg-gray-100 hover:bg-gray-200 text-2xl font-bold text-gray-700 active:scale-90 transition">+</button>
       </div>
-      <p class="text-xs text-gray-400 mt-1">{{ fmtKHR(RELIEF_PER_DEPENDENT) }} ៛ relief each, per month</p>
+      <p class="text-xs text-gray-400 mt-1">{{ t('salaryTax.reliefEach', { amount: fmtKHR(RELIEF_PER_DEPENDENT) }) }}</p>
     </div>
 
     <!-- NSSF -->
     <label class="flex items-center justify-between cursor-pointer select-none">
-      <span class="text-sm font-semibold text-gray-700">Deduct NSSF (employee {{ (NSSF_RATE * 100).toFixed(0) }}%)</span>
+      <span class="text-sm font-semibold text-gray-700">{{ t('salaryTax.deductNssf', { rate: (NSSF_RATE * 100).toFixed(0) }) }}</span>
       <input type="checkbox" v-model="nssf" class="w-5 h-5 accent-emerald-600" />
     </label>
 
@@ -65,42 +65,42 @@
       @click="clear"
       class="w-full bg-red-500 hover:bg-red-600 active:bg-red-700 text-white font-semibold py-2.5 rounded-xl transition-colors"
     >
-      Clear
+      {{ t('salaryTax.clear') }}
     </button>
 
     <!-- Result -->
     <div v-if="result" class="rounded-2xl overflow-hidden shadow-md">
       <div class="bg-gradient-to-r from-emerald-600 to-green-500 px-5 py-4 text-white">
-        <p class="text-xs opacity-75 uppercase tracking-widest font-semibold mb-1">Net Monthly Salary</p>
+        <p class="text-xs opacity-75 uppercase tracking-widest font-semibold mb-1">{{ t('salaryTax.netMonthly') }}</p>
         <p class="text-4xl font-bold">{{ symbol }}{{ fmt(disp(result.netKHR)) }}</p>
-        <p class="text-xs opacity-80 mt-1">Tax {{ symbol }}{{ fmt(disp(result.taxKHR)) }}<span v-if="result.nssfKHR"> · NSSF {{ symbol }}{{ fmt(disp(result.nssfKHR)) }}</span> · effective {{ result.effective.toFixed(1) }}%</p>
+        <p class="text-xs opacity-80 mt-1">{{ t('salaryTax.tax') }} {{ symbol }}{{ fmt(disp(result.taxKHR)) }}<span v-if="result.nssfKHR"> · {{ t('salaryTax.nssf') }} {{ symbol }}{{ fmt(disp(result.nssfKHR)) }}</span> · {{ t('salaryTax.effective') }} {{ result.effective.toFixed(1) }}%</p>
       </div>
       <div class="bg-white divide-y divide-gray-100">
         <div class="flex justify-between items-center px-5 py-3">
-          <span class="text-sm text-gray-500">Gross salary</span>
+          <span class="text-sm text-gray-500">{{ t('salaryTax.grossSalary') }}</span>
           <span class="text-sm font-semibold text-gray-700">{{ symbol }}{{ fmt(disp(result.grossKHR)) }}</span>
         </div>
         <div v-if="dependents > 0" class="flex justify-between items-center px-5 py-3">
-          <span class="text-sm text-gray-500">Dependent relief ({{ dependents }})</span>
+          <span class="text-sm text-gray-500">{{ t('salaryTax.dependentRelief') }} ({{ dependents }})</span>
           <span class="text-sm font-semibold text-gray-500">− {{ symbol }}{{ fmt(disp(result.reliefKHR)) }}</span>
         </div>
         <div class="flex justify-between items-center px-5 py-3">
-          <span class="text-sm text-gray-500">Taxable income</span>
+          <span class="text-sm text-gray-500">{{ t('salaryTax.taxableIncome') }}</span>
           <span class="text-sm font-semibold text-gray-700">{{ symbol }}{{ fmt(disp(result.taxableKHR)) }}</span>
         </div>
         <div class="flex justify-between items-center px-5 py-3 bg-rose-50">
-          <span class="text-sm font-bold text-rose-700">Tax on salary</span>
+          <span class="text-sm font-bold text-rose-700">{{ t('salaryTax.taxOnSalary') }}</span>
           <span class="text-base font-bold text-rose-600">{{ symbol }}{{ fmt(disp(result.taxKHR)) }}</span>
         </div>
         <div v-if="result.nssfKHR" class="flex justify-between items-center px-5 py-3">
-          <span class="text-sm text-gray-500">NSSF (employee)</span>
+          <span class="text-sm text-gray-500">{{ t('salaryTax.nssfEmployee') }}</span>
           <span class="text-sm font-semibold text-rose-500">− {{ symbol }}{{ fmt(disp(result.nssfKHR)) }}</span>
         </div>
       </div>
 
       <!-- Bracket breakdown (KHR, as defined by law) -->
       <div class="bg-white border-t border-gray-100 px-5 py-3">
-        <p class="text-[11px] font-semibold uppercase tracking-wider text-gray-400 mb-2">Bracket breakdown (KHR/month)</p>
+        <p class="text-[11px] font-semibold uppercase tracking-wider text-gray-400 mb-2">{{ t('salaryTax.bracketBreakdown') }}</p>
         <div class="space-y-1.5">
           <div v-for="(b, i) in result.breakdown" :key="i" class="flex justify-between items-center text-xs">
             <span class="text-gray-500">{{ b.label }} · {{ (b.rate * 100).toFixed(0) }}%</span>
@@ -111,7 +111,11 @@
     </div>
 
     <p class="text-xs text-gray-400 leading-relaxed">
-      Estimate based on Cambodia GDT monthly Tax on Salary. Residents use progressive brackets with dependent relief; non-residents pay a flat {{ (NONRESIDENT_RATE * 100).toFixed(0) }}% final withholding (no relief). Optional NSSF is the employee pension share ({{ (NSSF_RATE * 100).toFixed(0) }}% of wage, capped at {{ fmtKHR(NSSF_CEILING) }} ៛); it doesn't reduce the taxable base. USD figures use the live exchange rate; tax and NSSF are computed in KHR.
+      {{ t('salaryTax.disclaimer', {
+        nr: (NONRESIDENT_RATE * 100).toFixed(0),
+        nssf: (NSSF_RATE * 100).toFixed(0),
+        ceiling: fmtKHR(NSSF_CEILING),
+      }) }}
     </p>
 
   </div>
@@ -120,7 +124,9 @@
 <script setup>
 import { ref, computed } from 'vue'
 import { useExchangeRate } from '../common/useExchangeRate'
+import { useI18n } from '@/i18n'
 
+const { t } = useI18n()
 const { exchangeRate } = useExchangeRate()
 
 // Cambodia monthly Tax on Salary brackets (KHR), GDT Sub-Decree (resident).
@@ -138,8 +144,8 @@ const NSSF_RATE = 0.02
 const NSSF_CEILING = 1_200_000 // KHR — max assessed monthly wage
 
 const residencyOptions = [
-  { key: 'resident', label: 'Resident' },
-  { key: 'nonresident', label: 'Non-resident' },
+  { key: 'resident', labelKey: 'salaryTax.resident' },
+  { key: 'nonresident', labelKey: 'salaryTax.nonResident' },
 ]
 
 const gross = ref(null)
@@ -177,7 +183,7 @@ const computeTax = (taxable) => {
     tax += part
     breakdown.push({
       label: b.upTo === Infinity
-        ? `Over ${fmtKHR(lower)}`
+        ? t('salaryTax.over', { x: fmtKHR(lower) })
         : `${fmtKHR(lower)}–${fmtKHR(b.upTo)}`,
       rate: b.rate,
       tax: Math.round(part),
@@ -200,7 +206,7 @@ const result = computed(() => {
     ({ tax: taxKHR, breakdown } = computeTax(taxableKHR))
   } else {
     taxKHR = Math.round(taxableKHR * NONRESIDENT_RATE)
-    breakdown = [{ label: 'Flat — non-resident', rate: NONRESIDENT_RATE, tax: taxKHR }]
+    breakdown = [{ label: t('salaryTax.flatNonResident'), rate: NONRESIDENT_RATE, tax: taxKHR }]
   }
   const nssfKHR = nssf.value ? Math.round(NSSF_RATE * Math.min(grossKHR, NSSF_CEILING)) : 0
   const netKHR = grossKHR - taxKHR - nssfKHR

@@ -2,7 +2,7 @@
   <div class="space-y-4">
 
     <div>
-      <label class="block text-sm font-semibold text-gray-700 mb-1">Original Price ($)</label>
+      <label class="block text-sm font-semibold text-gray-700 mb-1">{{ t('discount.originalPrice') }} ($)</label>
       <input
         :value="price ?? ''"
         @input="price = $event.target.value === '' ? null : Number($event.target.value)"
@@ -14,7 +14,7 @@
     </div>
 
     <div>
-      <label class="block text-sm font-semibold text-gray-700 mb-1">Discount (%)</label>
+      <label class="block text-sm font-semibold text-gray-700 mb-1">{{ t('discount.discount') }} (%)</label>
       <input
         :value="discount ?? ''"
         @input="discount = $event.target.value === '' ? null : Number($event.target.value)"
@@ -30,27 +30,27 @@
       @click="clear"
       class="w-full bg-red-500 hover:bg-red-600 active:bg-red-700 text-white font-semibold py-2.5 rounded-xl transition-colors"
     >
-      Clear
+      {{ t('discount.clear') }}
     </button>
 
     <div v-if="result" class="rounded-2xl overflow-hidden shadow-md">
 
       <div class="bg-gradient-to-r from-blue-600 to-cyan-500 px-5 py-4 text-white">
-        <p class="text-xs opacity-75 uppercase tracking-widest font-semibold mb-1">Final Price</p>
+        <p class="text-xs opacity-75 uppercase tracking-widest font-semibold mb-1">{{ t('discount.finalPrice') }}</p>
         <p class="text-4xl font-bold">${{ fmt(result.finalPrice) }}</p>
       </div>
 
       <div class="bg-white divide-y divide-gray-100">
         <div class="flex justify-between items-center px-5 py-3">
-          <span class="text-sm text-gray-500">Original Price</span>
+          <span class="text-sm text-gray-500">{{ t('discount.originalPrice') }}</span>
           <span class="text-sm font-semibold text-gray-700">${{ fmt(price) }}</span>
         </div>
         <div class="flex justify-between items-center px-5 py-3">
-          <span class="text-sm text-gray-500">Discount ({{ discount }}%)</span>
+          <span class="text-sm text-gray-500">{{ t('discount.discount') }} ({{ discount }}%)</span>
           <span class="text-sm font-semibold text-red-500">− ${{ fmt(result.saved) }}</span>
         </div>
         <div class="flex justify-between items-center px-5 py-3 bg-green-50">
-          <span class="text-sm font-bold text-green-700">You Save</span>
+          <span class="text-sm font-bold text-green-700">{{ t('discount.youSave') }}</span>
           <span class="text-base font-bold text-green-600">${{ fmt(result.saved) }}</span>
         </div>
       </div>
@@ -64,6 +64,9 @@
 
 <script setup>
 import { ref, computed } from 'vue'
+import { useI18n } from '@/i18n'
+
+const { t } = useI18n()
 
 const price = ref(null)
 const discount = ref(null)
@@ -75,8 +78,8 @@ const clear = () => {
 
 const error = computed(() => {
   if (!price.value && !discount.value) return null
-  if (price.value <= 0) return 'Price must be greater than 0.'
-  if (discount.value < 0 || discount.value > 100) return 'Discount must be between 0 and 100.'
+  if (price.value <= 0) return t('discount.errPrice')
+  if (discount.value < 0 || discount.value > 100) return t('discount.errRange')
   return null
 })
 

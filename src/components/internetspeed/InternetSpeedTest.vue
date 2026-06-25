@@ -51,7 +51,7 @@
           : 'bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white',
       ]"
     >
-      {{ running ? 'Testing…' : (phase === 'done' ? 'Test Again' : 'Start Test') }}
+      {{ running ? t('speedtest.testing') : (phase === 'done' ? t('speedtest.testAgain') : t('speedtest.startTest')) }}
     </button>
 
     <!-- Results grid -->
@@ -80,8 +80,7 @@
     <p v-if="error" class="text-sm text-red-500 font-medium text-center">{{ error }}</p>
 
     <p class="text-xs text-gray-400 text-center leading-relaxed">
-      Measured via Cloudflare's public speed endpoints. Results are an estimate and
-      depend on your device, browser and current network load.
+      {{ t('speedtest.disclaimer') }}
     </p>
 
   </div>
@@ -90,6 +89,9 @@
 <script setup>
 import { computed } from 'vue'
 import { useSpeedTest } from './useSpeedTest.js'
+import { useI18n } from '@/i18n'
+
+const { t } = useI18n()
 
 const {
   phase, error, liveSpeed, running,
@@ -98,10 +100,10 @@ const {
 } = useSpeedTest()
 
 const metrics = computed(() => [
-  { key: 'ping',     label: 'Ping',     icon: '📡', unit: 'ms',   value: ping.value,     activePhase: 'ping' },
-  { key: 'jitter',   label: 'Jitter',   icon: '〰️', unit: 'ms',   value: jitter.value,   activePhase: 'ping' },
-  { key: 'download', label: 'Download', icon: '⬇️', unit: 'Mbps', value: download.value, activePhase: 'download' },
-  { key: 'upload',   label: 'Upload',   icon: '⬆️', unit: 'Mbps', value: upload.value,   activePhase: 'upload' },
+  { key: 'ping',     label: t('speedtest.ping'),     icon: '📡', unit: 'ms',   value: ping.value,     activePhase: 'ping' },
+  { key: 'jitter',   label: t('speedtest.jitter'),   icon: '〰️', unit: 'ms',   value: jitter.value,   activePhase: 'ping' },
+  { key: 'download', label: t('speedtest.download'), icon: '⬇️', unit: 'Mbps', value: download.value, activePhase: 'download' },
+  { key: 'upload',   label: t('speedtest.upload'),   icon: '⬆️', unit: 'Mbps', value: upload.value,   activePhase: 'upload' },
 ])
 
 const isPingPhase = computed(() => phase.value === 'ping')
@@ -115,11 +117,11 @@ const displayValue = computed(() => {
 const displayUnit = computed(() => (isPingPhase.value ? 'ms' : 'Mbps'))
 
 const phaseLabel = computed(() => ({
-  idle: 'Ready to test',
-  ping: 'Measuring latency…',
-  download: 'Testing download…',
-  upload: 'Testing upload…',
-  done: 'Test complete',
+  idle: t('speedtest.phaseIdle'),
+  ping: t('speedtest.phasePing'),
+  download: t('speedtest.phaseDownload'),
+  upload: t('speedtest.phaseUpload'),
+  done: t('speedtest.phaseDone'),
 }[phase.value]))
 
 const phaseColor = computed(() => ({

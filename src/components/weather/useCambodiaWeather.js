@@ -1,6 +1,7 @@
 import { ref, computed } from 'vue'
 import { provinces } from './provinces'
 import { districts } from './districts'
+import { useI18n } from '@/i18n'
 
 const API = 'https://api.open-meteo.com/v1/forecast'
 const MET_API = 'https://api.met.no/weatherapi/locationforecast/2.0/compact'
@@ -95,6 +96,7 @@ const metDaily = (ts) => {
 const keyOf = (p) => `${p.lat},${p.lon}`
 
 export function useCambodiaWeather() {
+  const { t } = useI18n()
   const weather = ref([])
   const districtWeather = ref({})
   const dailyCache = ref({})
@@ -141,7 +143,7 @@ export function useCambodiaWeather() {
       await loadCurrent(provinces, (arr) => { weather.value = arr })
       updatedAt.value = new Date()
     } catch {
-      error.value = 'Weather service is slow or unreachable right now — tap Retry'
+      error.value = t('weather.error')
     } finally {
       inFlight.delete('provinces')
       loading.value = false
@@ -162,7 +164,7 @@ export function useCambodiaWeather() {
       })
       updatedAt.value = new Date()
     } catch {
-      if (!silent) error.value = 'Weather service is slow or unreachable right now — tap Retry'
+      if (!silent) error.value = t('weather.error')
     } finally {
       inFlight.delete(province.id)
       if (!silent) loading.value = false

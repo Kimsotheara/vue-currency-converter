@@ -6,7 +6,7 @@
         v-model="inputName"
         @keyup.enter="addItem"
         type="text"
-        placeholder="Enter a name..."
+        :placeholder="t('wheel.enterName')"
         maxlength="30"
         class="flex-1 border border-gray-300 rounded-xl px-3 py-2.5 text-base focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
       />
@@ -14,7 +14,7 @@
         @click="addItem"
         class="bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white font-semibold px-5 rounded-xl transition-colors"
       >
-        Add
+        {{ t('wheel.add') }}
       </button>
     </div>
 
@@ -25,7 +25,7 @@
 
     <div v-else class="flex flex-col items-center py-10 gap-2">
       <span class="text-6xl">🎡</span>
-      <p class="text-sm text-gray-400">Add at least 2 names to spin.</p>
+      <p class="text-sm text-gray-400">{{ t('wheel.needTwo') }}</p>
     </div>
 
     <button
@@ -39,7 +39,7 @@
           : 'bg-gradient-to-r from-blue-600 to-cyan-500 hover:from-blue-700 hover:to-cyan-600 text-white shadow-sm',
       ]"
     >
-      {{ spinning ? 'Spinning...' : '🎰 SPIN!' }}
+      {{ spinning ? t('wheel.spinning') : t('wheel.spin') }}
     </button>
 
     <Transition name="pop">
@@ -47,7 +47,7 @@
         v-if="winner"
         class="rounded-2xl bg-gradient-to-r from-yellow-400 to-orange-400 px-5 py-4 text-white shadow-lg text-center"
       >
-        <p class="text-xs font-bold uppercase tracking-widest opacity-80 mb-1">🎉 Winner</p>
+        <p class="text-xs font-bold uppercase tracking-widest opacity-80 mb-1">🎉 {{ t('wheel.winner') }}</p>
         <p class="text-2xl font-bold">{{ winner }}</p>
       </div>
     </Transition>
@@ -55,10 +55,10 @@
     <div v-if="items.length > 0" class="space-y-2">
       <div class="flex items-center justify-between">
         <p class="text-sm font-semibold text-gray-500">
-          {{ items.length }} participant{{ items.length !== 1 ? 's' : '' }}
+          {{ t('wheel.participants', { n: items.length }) }}
         </p>
         <button @click="clearAll" class="text-xs text-red-400 hover:text-red-600 font-semibold transition-colors">
-          Clear all
+          {{ t('wheel.clearAll') }}
         </button>
       </div>
       <div
@@ -82,6 +82,9 @@
 <script setup>
 import { useWheelSpinner } from './useWheelSpinner.js'
 import { CANVAS_SIZE, segmentColor } from './wheelDraw.js'
+import { useI18n } from '@/i18n'
+
+const { t } = useI18n()
 
 const { canvasRef, items, inputName, spinning, winner, spin, addItem, removeItem, clearAll } = useWheelSpinner()
 </script>

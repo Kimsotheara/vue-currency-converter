@@ -7,7 +7,7 @@
         type="button"
         class="flex items-center gap-1 text-sm font-semibold text-blue-600 hover:text-blue-800 transition-colors shrink-0"
       >
-        ← Provinces
+        ← {{ t('weather.provinces') }}
       </button>
       <p class="text-sm font-bold text-gray-800 truncate">
         🏘️ {{ viewProvince.name }} <span class="text-gray-400 font-normal">{{ viewProvince.km }}</span>
@@ -18,12 +18,12 @@
       <input
         v-model="search"
         type="text"
-        :placeholder="viewProvince ? 'Search district…' : 'Search province… (e.g. Siem Reap / សៀមរាប)'"
+        :placeholder="viewProvince ? t('weather.searchDistrict') : t('weather.searchProvince')"
         class="flex-1 min-w-0 border border-gray-300 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
       />
       <div class="flex bg-gray-100 rounded-full p-0.5 shrink-0">
         <button
-          v-for="opt in [{ value: 'name', label: 'A-Z' }, { value: 'temp', label: '🌡️ Hot' }]"
+          v-for="opt in [{ value: 'name', labelKey: 'weather.sortAZ' }, { value: 'temp', labelKey: 'weather.sortHot' }]"
           :key="opt.value"
           type="button"
           @click="sortBy = opt.value"
@@ -32,27 +32,27 @@
             sortBy === opt.value ? 'bg-blue-600 text-white shadow-sm' : 'text-gray-500 hover:text-gray-700',
           ]"
         >
-          {{ opt.label }}
+          {{ t(opt.labelKey) }}
         </button>
       </div>
     </div>
 
     <div class="flex items-center justify-between gap-2">
       <p class="text-xs text-gray-400">
-        <template v-if="updatedText">Updated {{ updatedText }} · Asia/Phnom_Penh</template>
+        <template v-if="updatedText">{{ t('weather.updated', { time: updatedText }) }}</template>
       </p>
       <button
         @click="refresh"
         :disabled="loading"
         class="text-xs font-semibold text-blue-600 hover:text-blue-800 disabled:text-gray-300 transition-colors"
       >
-        {{ loading ? 'Refreshing…' : '↻ Refresh' }}
+        {{ loading ? t('weather.refreshing') : t('weather.refresh') }}
       </button>
     </div>
 
     <div v-if="error" class="rounded-xl bg-red-50 border border-red-100 px-4 py-3 flex items-center justify-between gap-3">
       <p class="text-sm text-red-600">{{ error }}</p>
-      <button @click="refresh" class="text-sm font-bold text-red-600 underline shrink-0">Retry</button>
+      <button @click="refresh" class="text-sm font-bold text-red-600 underline shrink-0">{{ t('weather.retry') }}</button>
     </div>
 
     <div v-if="loading && !hasData" class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
@@ -90,7 +90,7 @@
     </div>
 
     <p v-if="!loading && !rows.length" class="text-sm text-gray-400 text-center py-6">
-      Nothing matches "{{ search }}"
+      {{ t('weather.nothingMatches', { q: search }) }}
     </p>
 
     <div
@@ -117,26 +117,26 @@
         <div v-if="selected.w" class="p-5 space-y-4">
           <div class="grid grid-cols-3 gap-2 text-center">
             <div class="bg-gray-50 rounded-xl py-2.5">
-              <p class="text-[10px] uppercase tracking-wide text-gray-400 font-bold">Feels like</p>
+              <p class="text-[10px] uppercase tracking-wide text-gray-400 font-bold">{{ t('weather.feelsLike') }}</p>
               <p class="text-sm font-bold text-gray-700">{{ Math.round(selected.w.current.apparent_temperature) }}°C</p>
             </div>
             <div class="bg-gray-50 rounded-xl py-2.5">
-              <p class="text-[10px] uppercase tracking-wide text-gray-400 font-bold">Humidity</p>
+              <p class="text-[10px] uppercase tracking-wide text-gray-400 font-bold">{{ t('weather.humidity') }}</p>
               <p class="text-sm font-bold text-gray-700">{{ selected.w.current.relative_humidity_2m }}%</p>
             </div>
             <div class="bg-gray-50 rounded-xl py-2.5">
-              <p class="text-[10px] uppercase tracking-wide text-gray-400 font-bold">Wind</p>
+              <p class="text-[10px] uppercase tracking-wide text-gray-400 font-bold">{{ t('weather.wind') }}</p>
               <p class="text-sm font-bold text-gray-700">{{ Math.round(selected.w.current.wind_speed_10m) }} km/h</p>
             </div>
           </div>
 
           <div class="grid grid-cols-2 gap-2 text-center">
             <div class="bg-amber-50 border border-amber-100 rounded-xl py-2.5">
-              <p class="text-[10px] uppercase tracking-wide text-amber-500 font-bold">🌅 Sunrise</p>
+              <p class="text-[10px] uppercase tracking-wide text-amber-500 font-bold">🌅 {{ t('weather.sunrise') }}</p>
               <p class="text-sm font-bold text-gray-700">{{ sunFor(selected).sunrise }}</p>
             </div>
             <div class="bg-orange-50 border border-orange-100 rounded-xl py-2.5">
-              <p class="text-[10px] uppercase tracking-wide text-orange-500 font-bold">🌇 Sunset</p>
+              <p class="text-[10px] uppercase tracking-wide text-orange-500 font-bold">🌇 {{ t('weather.sunset') }}</p>
               <p class="text-sm font-bold text-gray-700">{{ sunFor(selected).sunset }}</p>
             </div>
           </div>
@@ -148,13 +148,13 @@
             class="w-full flex items-center justify-between gap-2 bg-blue-50 hover:bg-blue-100 border border-blue-100 rounded-xl px-4 py-2.5 transition-colors"
           >
             <span class="text-sm font-semibold text-blue-700">
-              🏘️ View Districts <span class="text-blue-400 font-normal">({{ districtCount(selected) }})</span>
+              🏘️ {{ t('weather.viewDistricts') }} <span class="text-blue-400 font-normal">({{ districtCount(selected) }})</span>
             </span>
             <span class="text-blue-400 text-sm">→</span>
           </button>
 
           <div>
-            <p class="text-xs font-bold uppercase tracking-widest text-gray-400 mb-2">7-Day Forecast</p>
+            <p class="text-xs font-bold uppercase tracking-widest text-gray-400 mb-2">{{ t('weather.forecast7') }}</p>
             <div v-if="daily" class="divide-y divide-gray-100">
               <div
                 v-for="(day, d) in daily.time"
@@ -171,17 +171,17 @@
               </div>
             </div>
             <div v-else-if="dailyStateFor(selected) === 'error'" class="flex items-center justify-between gap-2 py-3">
-              <span class="text-xs text-red-500">Could not load the forecast</span>
+              <span class="text-xs text-red-500">{{ t('weather.forecastError') }}</span>
               <button
                 @click="ensureDaily(selected)"
                 class="text-xs font-bold text-blue-600 hover:text-blue-800 underline"
               >
-                Retry
+                {{ t('weather.retry') }}
               </button>
             </div>
             <div v-else class="flex items-center gap-2 text-gray-400 py-3">
               <span class="w-4 h-4 border-2 border-blue-400 border-t-transparent rounded-full animate-spin" />
-              <span class="text-xs font-semibold">Loading forecast…</span>
+              <span class="text-xs font-semibold">{{ t('weather.loadingForecast') }}</span>
             </div>
           </div>
         </div>
@@ -191,7 +191,7 @@
             @click="selected = null"
             class="w-full bg-gray-100 hover:bg-gray-200 text-gray-700 font-semibold py-2.5 rounded-xl transition-colors"
           >
-            Close
+            {{ t('weather.close') }}
           </button>
         </div>
       </div>
@@ -206,6 +206,9 @@ import { weatherInfo } from './provinces'
 import { districts } from './districts'
 import { sunFor } from './sun'
 import { useCambodiaWeather } from './useCambodiaWeather'
+import { useI18n } from '@/i18n'
+
+const { t } = useI18n()
 
 const {
   loading, error, updatedText, hasData,
@@ -232,10 +235,10 @@ const onViewDistricts = () => {
 }
 
 const icon = (p) => (p.w ? weatherInfo(p.w.current.weather_code).emoji : '⏳')
-const label = (p) => (p.w ? weatherInfo(p.w.current.weather_code).label : 'Loading…')
+const label = (p) => (p.w ? t(`weather.codes.${weatherInfo(p.w.current.weather_code).key}`) : t('weather.loading'))
 
 const dayName = (dateStr, index) => {
-  if (index === 0) return 'Today'
+  if (index === 0) return t('weather.today')
   return new Date(`${dateStr}T00:00:00`).toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric' })
 }
 

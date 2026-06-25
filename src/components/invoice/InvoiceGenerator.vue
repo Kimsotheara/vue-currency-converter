@@ -13,14 +13,14 @@
           docType === opt.value ? 'bg-blue-600 text-white shadow-sm' : 'text-gray-500 hover:text-gray-700',
         ]"
       >
-        {{ opt.label }}
+        {{ t(opt.labelKey) }}
       </button>
     </div>
 
     <div class="grid gap-4 md:grid-cols-2">
     <!-- Company info -->
     <div class="space-y-3">
-      <p class="text-xs font-bold uppercase tracking-widest text-gray-400">From</p>
+      <p class="text-xs font-bold uppercase tracking-widest text-gray-400">{{ t('invoice.from') }}</p>
 
       <div class="flex items-center gap-3">
         <div v-if="logo" class="relative shrink-0">
@@ -29,7 +29,7 @@
           <button
             @click="removeLogo"
             type="button"
-            title="Remove logo"
+            :title="t('invoice.removeLogo')"
             class="absolute -top-2 -right-2 w-5 h-5 flex items-center justify-center rounded-full bg-red-500 text-white text-xs shadow"
           >
             ✕
@@ -38,7 +38,7 @@
         <label
           class="cursor-pointer border-2 border-dashed border-gray-300 text-gray-500 hover:border-blue-400 hover:text-blue-600 rounded-xl px-4 py-2.5 text-sm font-semibold transition-colors"
         >
-          {{ logo ? 'Change Logo' : '+ Upload Logo' }}
+          {{ logo ? t('invoice.changeLogo') : t('invoice.uploadLogo') }}
           <input
             type="file"
             accept="image/png,image/jpeg,image/webp,image/svg+xml"
@@ -48,17 +48,17 @@
         </label>
       </div>
 
-      <input v-model="companyName" type="text" placeholder="Company Name"
+      <input v-model="companyName" type="text" :placeholder="t('invoice.companyName')"
         class="w-full border border-gray-300 rounded-xl px-3 py-2.5 text-base focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent" />
-      <input v-model="companyAddress" type="text" placeholder="Company Address"
+      <input v-model="companyAddress" type="text" :placeholder="t('invoice.companyAddress')"
         class="w-full border border-gray-300 rounded-xl px-3 py-2.5 text-base focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent" />
-      <input v-model="companyPhone" type="text" placeholder="Phone Number"
+      <input v-model="companyPhone" type="text" :placeholder="t('invoice.phone')"
         class="w-full border border-gray-300 rounded-xl px-3 py-2.5 text-base focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent" />
     </div>
 
     <!-- Customer info -->
     <div class="space-y-3">
-      <p class="text-xs font-bold uppercase tracking-widest text-gray-400">Bill To</p>
+      <p class="text-xs font-bold uppercase tracking-widest text-gray-400">{{ t('invoice.billTo') }}</p>
 
       <div class="flex items-center gap-3">
         <div v-if="customerLogo" class="relative shrink-0">
@@ -67,7 +67,7 @@
           <button
             @click="removeCustomerLogo"
             type="button"
-            title="Remove logo"
+            :title="t('invoice.removeLogo')"
             class="absolute -top-2 -right-2 w-5 h-5 flex items-center justify-center rounded-full bg-red-500 text-white text-xs shadow"
           >
             ✕
@@ -76,7 +76,7 @@
         <label
           class="cursor-pointer border-2 border-dashed border-gray-300 text-gray-500 hover:border-blue-400 hover:text-blue-600 rounded-xl px-4 py-2.5 text-sm font-semibold transition-colors"
         >
-          {{ customerLogo ? 'Change Logo' : '+ Upload Logo' }}
+          {{ customerLogo ? t('invoice.changeLogo') : t('invoice.uploadLogo') }}
           <input
             type="file"
             accept="image/png,image/jpeg,image/webp,image/svg+xml"
@@ -86,11 +86,11 @@
         </label>
       </div>
 
-      <input v-model="customerName" type="text" placeholder="Customer Name"
+      <input v-model="customerName" type="text" :placeholder="t('invoice.customerName')"
         class="w-full border border-gray-300 rounded-xl px-3 py-2.5 text-base focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent" />
-      <input v-model="customerAddress" type="text" placeholder="Customer Address"
+      <input v-model="customerAddress" type="text" :placeholder="t('invoice.customerAddress')"
         class="w-full border border-gray-300 rounded-xl px-3 py-2.5 text-base focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent" />
-      <input v-model="customerPhone" type="text" placeholder="Customer Phone Number"
+      <input v-model="customerPhone" type="text" :placeholder="t('invoice.customerPhone')"
         class="w-full border border-gray-300 rounded-xl px-3 py-2.5 text-base focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent" />
     </div>
     </div>
@@ -99,7 +99,7 @@
     <div class="space-y-3 md:grid md:grid-cols-2 md:gap-4 md:space-y-0 md:items-start">
       <div>
         <label class="block text-sm font-semibold text-gray-700 mb-1">
-          {{ docType === 'invoice' ? 'Invoice Number' : 'Quotation Number' }}
+          {{ docType === 'invoice' ? t('invoice.invoiceNumber') : t('invoice.quotationNumber') }}
         </label>
         <input v-model="docNumber" type="text"
           class="w-full border border-gray-300 rounded-xl px-3 py-2.5 text-base focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent" />
@@ -108,20 +108,20 @@
       <div class="flex gap-2">
         <div class="flex-1 min-w-0">
           <label class="block text-sm font-semibold text-gray-700 mb-1">
-            {{ docType === 'invoice' ? 'Issue Date' : 'Quotation Date' }}
+            {{ docType === 'invoice' ? t('invoice.issueDate') : t('invoice.quotationDate') }}
           </label>
           <input v-model="docDate" type="date"
             class="w-full min-w-0 appearance-none border border-gray-300 rounded-xl px-3 py-2.5 text-base bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent" />
         </div>
         <div v-if="docType === 'invoice'" class="flex-1 min-w-0">
-          <label class="block text-sm font-semibold text-gray-700 mb-1">Due Date</label>
+          <label class="block text-sm font-semibold text-gray-700 mb-1">{{ t('invoice.dueDate') }}</label>
           <input v-model="dueDate" type="date"
             class="w-full min-w-0 appearance-none border border-gray-300 rounded-xl px-3 py-2.5 text-base bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent" />
         </div>
       </div>
 
       <div v-if="docType === 'invoice'" class="md:col-span-2">
-        <label class="block text-sm font-semibold text-gray-700 mb-1">Payment Status</label>
+        <label class="block text-sm font-semibold text-gray-700 mb-1">{{ t('invoice.paymentStatus') }}</label>
         <div class="flex bg-gray-100 rounded-full p-1 w-full">
           <button
             v-for="opt in paymentStatuses"
@@ -133,7 +133,7 @@
               paymentStatus === opt.value ? 'bg-blue-600 text-white shadow-sm' : 'text-gray-500 hover:text-gray-700',
             ]"
           >
-            {{ opt.label }}
+            {{ t(opt.labelKey) }}
           </button>
         </div>
       </div>
@@ -143,7 +143,7 @@
 
     <!-- Items -->
     <div>
-      <p class="text-xs font-bold uppercase tracking-widest text-gray-400 mb-2">Items</p>
+      <p class="text-xs font-bold uppercase tracking-widest text-gray-400 mb-2">{{ t('invoice.items') }}</p>
       <div class="space-y-2">
         <div v-for="(item, index) in items" :key="index" class="bg-gray-50 rounded-xl p-2">
           <div class="flex flex-col gap-2 sm:flex-row sm:items-end">
@@ -157,7 +157,7 @@
                   <button
                     @click="removeItemImage(item)"
                     type="button"
-                    title="Remove image"
+                    :title="t('invoice.removeImage')"
                     class="absolute -top-2 -right-2 w-4 h-4 flex items-center justify-center rounded-full bg-red-500 text-white text-[10px] shadow"
                   >
                     ✕
@@ -165,7 +165,7 @@
                 </div>
                 <label
                   v-else
-                  title="Add image (optional)"
+                  :title="t('invoice.addImage')"
                   class="cursor-pointer h-10 w-10 flex items-center justify-center border-2 border-dashed border-gray-300 text-gray-400 hover:border-blue-400 hover:text-blue-600 rounded-lg text-base transition-colors"
                 >
                   📷
@@ -178,8 +178,8 @@
                 </label>
               </div>
               <div class="flex-1 min-w-0">
-                <label class="block text-xs font-semibold text-gray-400 uppercase tracking-wide mb-0.5">Description</label>
-                <input v-model="item.description" type="text" placeholder="Item"
+                <label class="block text-xs font-semibold text-gray-400 uppercase tracking-wide mb-0.5">{{ t('invoice.description') }}</label>
+                <input v-model="item.description" type="text" :placeholder="t('invoice.item')"
                   class="w-full border border-gray-300 rounded-lg px-2.5 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent" />
               </div>
             </div>
@@ -187,23 +187,23 @@
             <!-- Qty / price / total / remove: one even row on mobile, inline on desktop -->
             <div class="flex gap-2 items-end">
               <div class="flex-1 min-w-0 sm:flex-none sm:w-16">
-                <label class="block text-xs font-semibold text-gray-400 uppercase tracking-wide mb-0.5">Qty</label>
+                <label class="block text-xs font-semibold text-gray-400 uppercase tracking-wide mb-0.5">{{ t('invoice.qty') }}</label>
                 <input v-model.number="item.qty" type="number" placeholder="0" min="0"
                   class="w-full border border-gray-300 rounded-lg px-2.5 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent" />
               </div>
               <div class="flex-1 min-w-0 sm:flex-none sm:w-24">
-                <label class="block text-xs font-semibold text-gray-400 uppercase tracking-wide mb-0.5">Unit Price</label>
+                <label class="block text-xs font-semibold text-gray-400 uppercase tracking-wide mb-0.5">{{ t('invoice.unitPrice') }}</label>
                 <input v-model.number="item.unitPrice" type="number" placeholder="0.00" min="0"
                   class="w-full border border-gray-300 rounded-lg px-2.5 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent" />
               </div>
               <div class="flex-1 min-w-0 sm:flex-none sm:w-24">
-                <label class="block text-xs font-semibold text-gray-400 uppercase tracking-wide mb-0.5 text-right">Total</label>
+                <label class="block text-xs font-semibold text-gray-400 uppercase tracking-wide mb-0.5 text-right">{{ t('invoice.total') }}</label>
                 <p class="text-sm font-semibold text-gray-700 text-right py-2 truncate">${{ fmt(lineTotal(item)) }}</p>
               </div>
               <button
                 @click="removeItem(index)"
                 type="button"
-                title="Remove item"
+                :title="t('invoice.removeItem')"
                 class="w-9 h-9 flex items-center justify-center rounded-lg bg-red-50 text-red-500 hover:bg-red-100 transition-colors shrink-0 sm:hidden"
               >
                 ✕
@@ -226,35 +226,35 @@
         type="button"
         class="mt-2 w-full border-2 border-dashed border-gray-300 text-gray-500 hover:border-blue-400 hover:text-blue-600 rounded-xl py-2 text-sm font-semibold transition-colors"
       >
-        + Add Item
+        {{ t('invoice.addItem') }}
       </button>
     </div>
 
     <div class="grid gap-4" :class="docType === 'invoice' ? 'md:grid-cols-2' : ''">
       <div>
-        <label class="block text-sm font-semibold text-gray-700 mb-1">Discount</label>
+        <label class="block text-sm font-semibold text-gray-700 mb-1">{{ t('invoice.discount') }}</label>
         <div class="flex gap-2">
           <input v-model.number="discountValue" type="number" min="0"
             :placeholder="discountType === 'percent' ? 'e.g. 10' : 'e.g. 50'"
             class="flex-1 min-w-0 border border-gray-300 rounded-xl px-3 py-2.5 text-base focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent" />
           <div class="flex items-center bg-gray-100 rounded-full p-0.5 shrink-0 self-center">
             <button
-              v-for="t in [{ value: 'amount', label: '$' }, { value: 'percent', label: '%' }]"
-              :key="t.value"
+              v-for="dt in [{ value: 'amount', label: '$' }, { value: 'percent', label: '%' }]"
+              :key="dt.value"
               type="button"
-              @click="discountType = t.value"
+              @click="discountType = dt.value"
               :class="[
                 'px-4 py-1.5 rounded-full text-sm font-semibold transition-colors duration-150',
-                discountType === t.value ? 'bg-blue-600 text-white shadow-sm' : 'text-gray-500 hover:text-gray-700',
+                discountType === dt.value ? 'bg-blue-600 text-white shadow-sm' : 'text-gray-500 hover:text-gray-700',
               ]"
             >
-              {{ t.label }}
+              {{ dt.label }}
             </button>
           </div>
         </div>
       </div>
       <div v-if="docType === 'invoice'">
-        <label class="block text-sm font-semibold text-gray-700 mb-1">Deposit ($)</label>
+        <label class="block text-sm font-semibold text-gray-700 mb-1">{{ t('invoice.deposit') }} ($)</label>
         <input v-model.number="deposit" type="number" placeholder="e.g. 100" min="0"
                class="w-full border border-gray-300 rounded-xl px-3 py-2.5 text-base focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent" />
       </div>
@@ -262,8 +262,8 @@
 
     <!-- Notes -->
     <div>
-      <label class="block text-sm font-semibold text-gray-700 mb-1">Notes</label>
-      <textarea v-model="notes" rows="2" placeholder="Optional notes / payment terms"
+      <label class="block text-sm font-semibold text-gray-700 mb-1">{{ t('invoice.notes') }}</label>
+      <textarea v-model="notes" rows="2" :placeholder="t('invoice.notesPh')"
         class="w-full border border-gray-300 rounded-xl px-3 py-2.5 text-base focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"></textarea>
     </div>
 
@@ -271,13 +271,13 @@
     <div class="rounded-2xl overflow-hidden shadow-md">
       <div class="bg-gradient-to-r from-blue-600 to-cyan-500 px-5 py-4 text-white">
         <p class="text-xs opacity-75 uppercase tracking-widest font-semibold mb-1">
-          {{ docType === 'invoice' ? 'Amount Due' : 'Grand Total' }}
+          {{ docType === 'invoice' ? t('invoice.amountDue') : t('invoice.grandTotal') }}
         </p>
         <p class="text-4xl font-bold">${{ fmt(grandTotal) }}</p>
       </div>
       <div class="bg-white divide-y divide-gray-100">
         <div class="flex justify-between items-center px-5 py-3">
-          <span class="text-sm text-gray-500">Subtotal</span>
+          <span class="text-sm text-gray-500">{{ t('invoice.subtotal') }}</span>
           <span class="text-sm font-semibold text-gray-700">${{ fmt(subtotal) }}</span>
         </div>
         <div class="flex justify-between items-center px-5 py-3">
@@ -285,7 +285,7 @@
           <span class="text-sm font-semibold text-red-500">-${{ fmt(discountAmount) }}</span>
         </div>
         <div v-if="depositApplied > 0" class="flex justify-between items-center px-5 py-3">
-          <span class="text-sm text-gray-500">Deposit</span>
+          <span class="text-sm text-gray-500">{{ t('invoice.deposit') }}</span>
           <span class="text-sm font-semibold text-green-600">-${{ fmt(depositApplied) }}</span>
         </div>
       </div>
@@ -297,7 +297,7 @@
         @click="showPreview = true"
         class="flex-1 bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white font-semibold py-2.5 rounded-xl transition-colors"
       >
-        Preview
+        {{ t('invoice.preview') }}
       </button>
 <!--      <button-->
 <!--        @click="downloadExcel"-->
@@ -315,7 +315,7 @@
         @click="clear"
         class="flex-1 bg-red-500 hover:bg-red-600 active:bg-red-700 text-white font-semibold py-2.5 rounded-xl transition-colors"
       >
-        Clear
+        {{ t('invoice.clear') }}
       </button>
     </div>
 
@@ -335,6 +335,9 @@ import { ref, computed } from 'vue'
 import { formatCurrency } from '@/utils/format'
 import { useInvoiceGenerator, docTypes, paymentStatuses } from './useInvoiceGenerator'
 import InvoicePreview from './InvoicePreview.vue'
+import { useI18n } from '@/i18n'
+
+const { t } = useI18n()
 
 const {
   docType, setDocType,
