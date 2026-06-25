@@ -115,74 +115,222 @@
         </div>
 
         <div v-if="selected.w" class="p-5 space-y-4">
-          <div class="grid grid-cols-3 gap-2 text-center">
-            <div class="bg-gray-50 rounded-xl py-2.5">
-              <p class="text-[10px] uppercase tracking-wide text-gray-400 font-bold">{{ t('weather.feelsLike') }}</p>
-              <p class="text-sm font-bold text-gray-700">{{ Math.round(selected.w.current.apparent_temperature) }}°C</p>
-            </div>
-            <div class="bg-gray-50 rounded-xl py-2.5">
-              <p class="text-[10px] uppercase tracking-wide text-gray-400 font-bold">{{ t('weather.humidity') }}</p>
-              <p class="text-sm font-bold text-gray-700">{{ selected.w.current.relative_humidity_2m }}%</p>
-            </div>
-            <div class="bg-gray-50 rounded-xl py-2.5">
-              <p class="text-[10px] uppercase tracking-wide text-gray-400 font-bold">{{ t('weather.wind') }}</p>
-              <p class="text-sm font-bold text-gray-700">{{ Math.round(selected.w.current.wind_speed_10m) }} km/h</p>
-            </div>
+          <!-- Sub-tabs -->
+          <div class="flex gap-1 bg-gray-100 rounded-xl p-1 overflow-x-auto no-scrollbar">
+            <button
+              v-for="tb in detailTabs"
+              :key="tb.id"
+              type="button"
+              @click="detailTab = tb.id"
+              :class="[
+                'flex-1 whitespace-nowrap px-2.5 py-1.5 rounded-lg text-xs font-bold transition-colors',
+                detailTab === tb.id ? 'bg-white text-blue-700 shadow-sm' : 'text-gray-500 hover:text-gray-700',
+              ]"
+            >
+              {{ tb.emoji }} {{ tb.label }}
+            </button>
           </div>
 
-          <div class="grid grid-cols-2 gap-2 text-center">
-            <div class="bg-amber-50 border border-amber-100 rounded-xl py-2.5">
-              <p class="text-[10px] uppercase tracking-wide text-amber-500 font-bold">🌅 {{ t('weather.sunrise') }}</p>
-              <p class="text-sm font-bold text-gray-700">{{ sunFor(selected).sunrise }}</p>
+          <!-- ===== OVERVIEW ===== -->
+          <div v-show="detailTab === 'overview'" class="space-y-4">
+            <div class="grid grid-cols-3 gap-2 text-center">
+              <div class="bg-gray-50 rounded-xl py-2.5">
+                <p class="text-[10px] uppercase tracking-wide text-gray-400 font-bold">{{ t('weather.feelsLike') }}</p>
+                <p class="text-sm font-bold text-gray-700">{{ Math.round(selected.w.current.apparent_temperature) }}°C</p>
+              </div>
+              <div class="bg-gray-50 rounded-xl py-2.5">
+                <p class="text-[10px] uppercase tracking-wide text-gray-400 font-bold">{{ t('weather.humidity') }}</p>
+                <p class="text-sm font-bold text-gray-700">{{ selected.w.current.relative_humidity_2m }}%</p>
+              </div>
+              <div class="bg-gray-50 rounded-xl py-2.5">
+                <p class="text-[10px] uppercase tracking-wide text-gray-400 font-bold">{{ t('weather.wind') }}</p>
+                <p class="text-sm font-bold text-gray-700">{{ Math.round(selected.w.current.wind_speed_10m) }} km/h</p>
+              </div>
             </div>
-            <div class="bg-orange-50 border border-orange-100 rounded-xl py-2.5">
-              <p class="text-[10px] uppercase tracking-wide text-orange-500 font-bold">🌇 {{ t('weather.sunset') }}</p>
-              <p class="text-sm font-bold text-gray-700">{{ sunFor(selected).sunset }}</p>
+
+            <div class="grid grid-cols-2 gap-2 text-center">
+              <div class="bg-amber-50 border border-amber-100 rounded-xl py-2.5">
+                <p class="text-[10px] uppercase tracking-wide text-amber-500 font-bold">🌅 {{ t('weather.sunrise') }}</p>
+                <p class="text-sm font-bold text-gray-700">{{ sunFor(selected).sunrise }}</p>
+              </div>
+              <div class="bg-orange-50 border border-orange-100 rounded-xl py-2.5">
+                <p class="text-[10px] uppercase tracking-wide text-orange-500 font-bold">🌇 {{ t('weather.sunset') }}</p>
+                <p class="text-sm font-bold text-gray-700">{{ sunFor(selected).sunset }}</p>
+              </div>
             </div>
-          </div>
 
-          <button
-            v-if="!viewProvince && districtCount(selected)"
-            @click="onViewDistricts"
-            type="button"
-            class="w-full flex items-center justify-between gap-2 bg-blue-50 hover:bg-blue-100 border border-blue-100 rounded-xl px-4 py-2.5 transition-colors"
-          >
-            <span class="text-sm font-semibold text-blue-700">
-              🏘️ {{ t('weather.viewDistricts') }} <span class="text-blue-400 font-normal">({{ districtCount(selected) }})</span>
-            </span>
-            <span class="text-blue-400 text-sm">→</span>
-          </button>
-
-          <div>
-            <p class="text-xs font-bold uppercase tracking-widest text-gray-400 mb-2">{{ t('weather.forecast7') }}</p>
-            <div v-if="daily" class="divide-y divide-gray-100">
+            <!-- Weather alerts -->
+            <div v-if="advisories.length" class="space-y-1.5">
+              <p class="text-xs font-bold uppercase tracking-widest text-gray-400">⚠️ {{ t('weather.alerts') }}</p>
               <div
-                v-for="(day, d) in daily.time"
-                :key="day"
-                class="flex items-center gap-3 py-2"
+                v-for="al in advisories"
+                :key="al.key"
+                :class="['flex items-center gap-2 rounded-xl px-3 py-2 text-sm font-semibold',
+                  al.level === 'warn' ? 'bg-red-50 text-red-700' : 'bg-amber-50 text-amber-700']"
               >
-                <p class="w-16 text-sm font-semibold text-gray-700">{{ dayName(day, d) }}</p>
-                <span class="text-xl w-8 text-center">{{ weatherInfo(daily.weather_code[d]).emoji }}</span>
-                <p class="text-xs text-blue-500 w-12">💧{{ daily.precipitation_probability_max[d] }}{{ daily.precipUnit || '%' }}</p>
-                <div class="flex-1 text-right text-sm">
-                  <span class="text-gray-400">{{ Math.round(daily.temperature_2m_min[d]) }}°</span>
-                  <span class="font-bold text-gray-800 ml-2">{{ Math.round(daily.temperature_2m_max[d]) }}°</span>
+                <span class="text-base">{{ al.icon }}</span>{{ t('weather.' + al.key, al.params) }}
+              </div>
+            </div>
+
+            <!-- Travel suggestion (best / worst day) -->
+            <div v-if="travel && daily">
+              <p class="text-xs font-bold uppercase tracking-widest text-gray-400 mb-2">🧭 {{ t('weather.travelSuggestion') }}</p>
+              <div class="grid grid-cols-2 gap-2">
+                <div class="bg-green-50 border border-green-100 rounded-xl p-3">
+                  <p class="text-[10px] uppercase font-bold text-green-600">😎 {{ t('weather.bestDay') }}</p>
+                  <p class="text-sm font-bold text-gray-800">{{ dayName(daily.time[travel.best], travel.best) }}</p>
+                  <p class="text-[11px] text-gray-500">{{ weatherInfo(daily.weather_code[travel.best]).emoji }} {{ Math.round(daily.temperature_2m_max[travel.best]) }}° · 💧{{ daily.precipitation_probability_max[travel.best] }}%</p>
+                </div>
+                <div class="bg-red-50 border border-red-100 rounded-xl p-3">
+                  <p class="text-[10px] uppercase font-bold text-red-600">🌧️ {{ t('weather.worstDay') }}</p>
+                  <p class="text-sm font-bold text-gray-800">{{ dayName(daily.time[travel.worst], travel.worst) }}</p>
+                  <p class="text-[11px] text-gray-500">{{ weatherInfo(daily.weather_code[travel.worst]).emoji }} {{ Math.round(daily.temperature_2m_max[travel.worst]) }}° · 💧{{ daily.precipitation_probability_max[travel.worst] }}%</p>
                 </div>
               </div>
             </div>
-            <div v-else-if="dailyStateFor(selected) === 'error'" class="flex items-center justify-between gap-2 py-3">
-              <span class="text-xs text-red-500">{{ t('weather.forecastError') }}</span>
-              <button
-                @click="ensureDaily(selected)"
-                class="text-xs font-bold text-blue-600 hover:text-blue-800 underline"
-              >
-                {{ t('weather.retry') }}
-              </button>
+
+            <button
+              v-if="!viewProvince && districtCount(selected)"
+              @click="onViewDistricts"
+              type="button"
+              class="w-full flex items-center justify-between gap-2 bg-blue-50 hover:bg-blue-100 border border-blue-100 rounded-xl px-4 py-2.5 transition-colors"
+            >
+              <span class="text-sm font-semibold text-blue-700">
+                🏘️ {{ t('weather.viewDistricts') }} <span class="text-blue-400 font-normal">({{ districtCount(selected) }})</span>
+              </span>
+              <span class="text-blue-400 text-sm">→</span>
+            </button>
+
+            <!-- 7-day forecast -->
+            <div>
+              <p class="text-xs font-bold uppercase tracking-widest text-gray-400 mb-2">{{ t('weather.forecast7') }}</p>
+              <div v-if="daily" class="divide-y divide-gray-100">
+                <div v-for="(day, d) in daily.time" :key="day" class="flex items-center gap-3 py-2">
+                  <p class="w-16 text-sm font-semibold text-gray-700">{{ dayName(day, d) }}</p>
+                  <span class="text-xl w-8 text-center">{{ weatherInfo(daily.weather_code[d]).emoji }}</span>
+                  <p class="text-xs text-blue-500 w-12">💧{{ daily.precipitation_probability_max[d] }}{{ daily.precipUnit || '%' }}</p>
+                  <div class="flex-1 text-right text-sm">
+                    <span class="text-gray-400">{{ Math.round(daily.temperature_2m_min[d]) }}°</span>
+                    <span class="font-bold text-gray-800 ml-2">{{ Math.round(daily.temperature_2m_max[d]) }}°</span>
+                  </div>
+                </div>
+              </div>
+              <div v-else-if="detailsState === 'error'" class="flex items-center justify-between gap-2 py-3">
+                <span class="text-xs text-red-500">{{ t('weather.forecastError') }}</span>
+                <button @click="ensureDetails(selected)" class="text-xs font-bold text-blue-600 hover:text-blue-800 underline">{{ t('weather.retry') }}</button>
+              </div>
+              <div v-else class="flex items-center gap-2 text-gray-400 py-3">
+                <span class="w-4 h-4 border-2 border-blue-400 border-t-transparent rounded-full animate-spin" />
+                <span class="text-xs font-semibold">{{ t('weather.loadingForecast') }}</span>
+              </div>
             </div>
-            <div v-else class="flex items-center gap-2 text-gray-400 py-3">
-              <span class="w-4 h-4 border-2 border-blue-400 border-t-transparent rounded-full animate-spin" />
-              <span class="text-xs font-semibold">{{ t('weather.loadingForecast') }}</span>
+          </div>
+
+          <!-- ===== HOURLY (48h) ===== -->
+          <div v-show="detailTab === 'hourly'">
+            <p class="text-xs font-bold uppercase tracking-widest text-gray-400 mb-2">⏱️ {{ t('weather.hourly48') }}</p>
+            <div v-if="hourly.length" class="flex gap-2 overflow-x-auto no-scrollbar pb-1">
+              <div v-for="(h, i) in hourly" :key="h.time" class="shrink-0 w-[58px] bg-gray-50 rounded-xl py-2 text-center">
+                <p class="text-[10px] font-bold text-gray-500">{{ hourLabel(h.time, i) }}</p>
+                <span class="text-lg">{{ weatherInfo(h.code).emoji }}</span>
+                <p class="text-sm font-bold text-gray-800">{{ Math.round(h.temp) }}°</p>
+                <p class="text-[10px] text-blue-500">💧{{ h.precip }}%</p>
+                <p class="text-[10px] text-gray-400">💨{{ Math.round(h.wind) }}</p>
+              </div>
             </div>
+            <p v-else class="text-xs text-gray-400 text-center py-6">{{ t('weather.hourlyNa') }}</p>
+          </div>
+
+          <!-- ===== AIR & UV ===== -->
+          <div v-show="detailTab === 'air'" class="space-y-3">
+            <div v-if="airNow && airNow.aqi != null" :class="['rounded-2xl border p-4', aqiBand(airNow.aqi).bg]">
+              <div class="flex items-center justify-between">
+                <div>
+                  <p class="text-[10px] uppercase font-bold text-gray-400">{{ t('weather.aqi') }} · US</p>
+                  <p :class="['text-3xl font-bold leading-tight', aqiBand(airNow.aqi).cls]">{{ airNow.aqi }}</p>
+                  <p :class="['text-xs font-semibold', aqiBand(airNow.aqi).cls]">{{ t('weather.' + aqiBand(airNow.aqi).key) }}</p>
+                </div>
+                <span class="text-4xl">{{ aqiFace(airNow.aqi) }}</span>
+              </div>
+              <div class="grid grid-cols-3 gap-2 mt-3 text-center">
+                <div class="bg-white/60 rounded-lg py-1.5"><p class="text-[10px] text-gray-400 font-bold">PM2.5</p><p class="text-xs font-bold text-gray-700">{{ round1(airNow.pm25) }}</p></div>
+                <div class="bg-white/60 rounded-lg py-1.5"><p class="text-[10px] text-gray-400 font-bold">PM10</p><p class="text-xs font-bold text-gray-700">{{ round1(airNow.pm10) }}</p></div>
+                <div class="bg-white/60 rounded-lg py-1.5"><p class="text-[10px] text-gray-400 font-bold">O₃</p><p class="text-xs font-bold text-gray-700">{{ round1(airNow.ozone) }}</p></div>
+              </div>
+            </div>
+
+            <div v-if="uvVal != null" class="rounded-2xl border border-amber-100 bg-amber-50 p-4">
+              <div class="flex items-center justify-between">
+                <div>
+                  <p class="text-[10px] uppercase font-bold text-gray-400">{{ t('weather.uvIndex') }}</p>
+                  <p :class="['text-3xl font-bold leading-tight', uvBand(uvVal).cls]">{{ Math.round(uvVal) }}</p>
+                  <p :class="['text-xs font-semibold', uvBand(uvVal).cls]">{{ t('weather.' + uvBand(uvVal).key) }}</p>
+                </div>
+                <span class="text-4xl">🌞</span>
+              </div>
+              <div class="mt-3 h-2 rounded-full relative" style="background: linear-gradient(to right, #4ade80, #facc15, #fb923c, #ef4444, #a855f7)">
+                <span class="absolute -top-1 w-1.5 h-4 bg-gray-800 rounded-full -ml-0.5" :style="{ left: Math.min(100, (uvVal / 12) * 100) + '%' }" />
+              </div>
+            </div>
+
+            <div v-if="!airNow || airNow.aqi == null" class="text-xs text-gray-400 text-center py-4">{{ t('weather.airNa') }}</div>
+            <p class="text-[11px] text-gray-400 text-center">{{ t('weather.airSource') }}</p>
+          </div>
+
+          <!-- ===== RAIN RADAR ===== -->
+          <div v-show="detailTab === 'radar'">
+            <p class="text-xs font-bold uppercase tracking-widest text-gray-400 mb-2">🛰️ {{ t('weather.rainRadar') }}</p>
+            <div class="rounded-2xl overflow-hidden border border-gray-200 bg-gray-100">
+              <iframe
+                v-if="detailTab === 'radar'"
+                :src="radarSrc"
+                class="w-full h-72"
+                loading="lazy"
+                referrerpolicy="no-referrer"
+                title="Rain radar"
+              />
+            </div>
+            <p class="text-[11px] text-gray-400 text-center mt-2">{{ t('weather.radarHint') }}</p>
+          </div>
+
+          <!-- ===== AGRICULTURE MODE ===== -->
+          <div v-show="detailTab === 'farm'">
+            <p class="text-xs font-bold uppercase tracking-widest text-gray-400 mb-2">🌾 {{ t('weather.agriculture') }}</p>
+            <div v-if="agri" class="space-y-3">
+              <div class="grid grid-cols-3 gap-2 text-center">
+                <div class="bg-blue-50 rounded-xl py-3">
+                  <p class="text-[10px] uppercase font-bold text-gray-400">💧 {{ t('weather.humidity') }}</p>
+                  <p class="text-base font-bold text-gray-800">{{ agri.humidity }}%</p>
+                </div>
+                <div class="bg-sky-50 rounded-xl py-3">
+                  <p class="text-[10px] uppercase font-bold text-gray-400">🌧️ {{ t('weather.rainChance') }}</p>
+                  <p class="text-base font-bold text-gray-800">{{ agri.rainP }}%</p>
+                </div>
+                <div class="bg-teal-50 rounded-xl py-3">
+                  <p class="text-[10px] uppercase font-bold text-gray-400">💨 {{ t('weather.wind') }}</p>
+                  <p class="text-base font-bold text-gray-800">{{ agri.wind }}</p>
+                </div>
+              </div>
+
+              <div class="bg-gray-50 rounded-xl p-3">
+                <p class="text-xs font-bold text-gray-600 mb-0.5">🌧️ {{ t('weather.farmRainOutlook') }}</p>
+                <p class="text-sm text-gray-700">{{ t('weather.farmRain3', { mm: agri.rainSum3 }) }}</p>
+              </div>
+
+              <div :class="['rounded-xl p-3 flex items-start gap-2', agri.sprayOk ? 'bg-green-50' : 'bg-amber-50']">
+                <span class="text-base">{{ agri.sprayOk ? '✅' : '⚠️' }}</span>
+                <p class="text-sm" :class="agri.sprayOk ? 'text-green-700' : 'text-amber-700'">
+                  {{ agri.sprayOk ? t('weather.farmSprayGood') : t('weather.farmSprayBad') }}
+                </p>
+              </div>
+              <div :class="['rounded-xl p-3 flex items-start gap-2', agri.needIrrigation ? 'bg-amber-50' : 'bg-blue-50']">
+                <span class="text-base">{{ agri.needIrrigation ? '🚿' : '🌧️' }}</span>
+                <p class="text-sm" :class="agri.needIrrigation ? 'text-amber-700' : 'text-blue-700'">
+                  {{ agri.needIrrigation ? t('weather.farmIrrigate') : t('weather.farmNoIrrigate') }}
+                </p>
+              </div>
+            </div>
+            <p v-else class="text-xs text-gray-400 text-center py-6">{{ t('weather.farmNa') }}</p>
           </div>
         </div>
 
@@ -213,20 +361,75 @@ const { t } = useI18n()
 const {
   loading, error, updatedText, hasData,
   viewProvince, openDistricts, closeDistricts, prefetchDistricts,
-  dailyFor, dailyStateFor, ensureDaily,
+  detailsFor, detailsStateFor, ensureDetails,
   search, sortBy, rows,
   fetchWeather, refresh,
 } = useCambodiaWeather()
 
 const selected = ref(null)
-const daily = computed(() => dailyFor(selected.value))
+const detailTab = ref('overview')
+
+const details = computed(() => detailsFor(selected.value))
+const detailsState = computed(() => detailsStateFor(selected.value))
+const daily = computed(() => details.value?.daily || null)
+const hourly = computed(() => details.value?.hourly || [])
+const airNow = computed(() => details.value?.airNow || null)
+const advisories = computed(() => details.value?.advisories || [])
+const travel = computed(() => details.value?.travel || null)
+const agri = computed(() => details.value?.agri || null)
+const uvVal = computed(() => airNow.value?.uv ?? daily.value?.uv_index_max?.[0] ?? null)
+
+const detailTabs = computed(() => [
+  { id: 'overview', emoji: '📋', label: t('weather.tabOverview') },
+  { id: 'hourly', emoji: '⏱️', label: t('weather.tabHourly') },
+  { id: 'air', emoji: '🌫️', label: t('weather.tabAirUv') },
+  { id: 'radar', emoji: '🛰️', label: t('weather.tabRadar') },
+  { id: 'farm', emoji: '🌾', label: t('weather.tabFarm') },
+])
+
 watch(selected, (p) => {
   if (!p) return
-  ensureDaily(p)
+  detailTab.value = 'overview'
+  ensureDetails(p)
   if (!viewProvince.value) prefetchDistricts(p)
 })
 
 const districtCount = (p) => (districts[p.id] || []).length
+
+const round1 = (v) => (v == null ? '—' : Math.round(v * 10) / 10)
+
+// US AQI bands → colour + i18n key.
+const aqiBand = (v) => {
+  if (v <= 50) return { key: 'aqiGood', cls: 'text-green-600', bg: 'bg-green-50 border-green-100' }
+  if (v <= 100) return { key: 'aqiModerate', cls: 'text-yellow-600', bg: 'bg-yellow-50 border-yellow-100' }
+  if (v <= 150) return { key: 'aqiSensitive', cls: 'text-orange-600', bg: 'bg-orange-50 border-orange-100' }
+  if (v <= 200) return { key: 'aqiUnhealthy', cls: 'text-red-600', bg: 'bg-red-50 border-red-100' }
+  if (v <= 300) return { key: 'aqiVeryUnhealthy', cls: 'text-purple-600', bg: 'bg-purple-50 border-purple-100' }
+  return { key: 'aqiHazardous', cls: 'text-rose-800', bg: 'bg-rose-50 border-rose-200' }
+}
+const aqiFace = (v) => (v <= 50 ? '😀' : v <= 100 ? '🙂' : v <= 150 ? '😐' : v <= 200 ? '😷' : '☠️')
+
+const uvBand = (v) => {
+  if (v < 3) return { key: 'uvLow', cls: 'text-green-600' }
+  if (v < 6) return { key: 'uvModerate', cls: 'text-yellow-600' }
+  if (v < 8) return { key: 'uvHigh', cls: 'text-orange-600' }
+  if (v < 11) return { key: 'uvVeryHigh', cls: 'text-red-600' }
+  return { key: 'uvExtreme', cls: 'text-purple-600' }
+}
+
+const radarSrc = computed(() => {
+  const p = selected.value
+  if (!p) return ''
+  return `https://embed.windy.com/embed2.html?lat=${p.lat}&lon=${p.lon}` +
+    `&detailLat=${p.lat}&detailLon=${p.lon}&zoom=8&level=surface&overlay=rain` +
+    '&menu=&message=&marker=true&calendar=&pressure=&type=map&location=coordinates' +
+    '&detail=&metricWind=km%2Fh&metricTemp=%C2%B0C&radarRange=-1'
+})
+
+const hourLabel = (timeStr, i) => {
+  if (i === 0) return t('weather.now')
+  return timeStr.slice(11, 16) // 'HH:MM' — already Phnom Penh local time from the API
+}
 
 const onViewDistricts = () => {
   const province = selected.value
@@ -244,3 +447,8 @@ const dayName = (dateStr, index) => {
 
 onMounted(fetchWeather)
 </script>
+
+<style scoped>
+.no-scrollbar::-webkit-scrollbar { display: none; }
+.no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+</style>

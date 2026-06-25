@@ -4,6 +4,7 @@ import { districts } from './districts'
 import { useI18n } from '@/i18n'
 
 const API = 'https://api.open-meteo.com/v1/forecast'
+const AIR_API = 'https://air-quality-api.open-meteo.com/v1/air-quality'
 const MET_API = 'https://api.met.no/weatherapi/locationforecast/2.0/compact'
 
 const currentUrl = (locations) =>
@@ -12,10 +13,19 @@ const currentUrl = (locations) =>
   '&current=weather_code,temperature_2m,relative_humidity_2m,apparent_temperature,wind_speed_10m' +
   '&timezone=Asia%2FPhnom_Penh'
 
-const dailyUrl = (p) =>
+// One rich call backing the detail modal: 48h hourly + 7-day daily (with UV,
+// rain totals & wind), plus the current UV index.
+const detailsUrl = (p) =>
   `${API}?latitude=${p.lat}&longitude=${p.lon}` +
-  '&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max' +
-  '&forecast_days=7&timezone=Asia%2FPhnom_Penh'
+  '&current=uv_index' +
+  '&hourly=temperature_2m,precipitation_probability,weather_code,wind_speed_10m,relative_humidity_2m,uv_index' +
+  '&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max,' +
+  'uv_index_max,precipitation_sum,wind_speed_10m_max' +
+  '&forecast_days=7&forecast_hours=48&timezone=Asia%2FPhnom_Penh'
+
+const airUrl = (p) =>
+  `${AIR_API}?latitude=${p.lat}&longitude=${p.lon}` +
+  '&current=us_aqi,pm2_5,pm10,ozone,uv_index&timezone=Asia%2FPhnom_Penh'
 
 const fetchWithTimeout = (url, ms = 8000) =>
   fetch(url, { signal: AbortSignal.timeout(ms) })
@@ -93,14 +103,84 @@ const metDaily = (ts) => {
   }
 }
 
+const mapHourly = (h) =>
+  (h?.time || []).map((time, i) => ({
+    time,
+    temp: h.temperature_2m[i],
+    precip: h.precipitation_probability[i] ?? 0,
+    code: h.weather_code[i],
+    wind: h.wind_speed_10m[i],
+    humidity: h.relative_humidity_2m[i],
+    uv: h.uv_index[i],
+  }))
+
+// Best/worst day to travel over the 7-day window. Penalise rain chance, fierce
+// heat, very high UV and storms; lowest score wins.
+const deriveTravel = (daily) => {
+  const score = (i) => {
+    let s = daily.precipitation_probability_max?.[i] ?? 0
+    const tmax = daily.temperature_2m_max?.[i] ?? 30
+    const uv = daily.uv_index_max?.[i] ?? 0
+    if (tmax > 34) s += (tmax - 34) * 4
+    if (uv >= 9) s += 8
+    if ([95, 96, 99].includes(daily.weather_code?.[i])) s += 25
+    return s
+  }
+  const scores = (daily.time || []).map((_, i) => score(i))
+  if (!scores.length) return null
+  const min = Math.min(...scores), max = Math.max(...scores)
+  const best = scores.indexOf(min), worst = scores.indexOf(max)
+  return best === worst ? null : { best, worst }
+}
+
+// Local advisories synthesised from today's forecast (no public alert feed
+// covers Cambodia). Returns [{ level, icon, key, params }].
+const deriveAdvisories = (daily, airNow) => {
+  const a = []
+  const tmax = daily.temperature_2m_max?.[0]
+  const rainP = daily.precipitation_probability_max?.[0] ?? 0
+  const rainSum = daily.precipitation_sum?.[0] ?? 0
+  const uv = daily.uv_index_max?.[0] ?? 0
+  const wind = daily.wind_speed_10m_max?.[0] ?? 0
+  if ([95, 96, 99].includes(daily.weather_code?.[0])) a.push({ level: 'warn', icon: '⛈️', key: 'alertThunder' })
+  if (rainSum >= 20 || rainP >= 85) a.push({ level: 'warn', icon: '🌧️', key: 'alertHeavyRain' })
+  if (tmax >= 36) a.push({ level: 'warn', icon: '🔥', key: 'alertHeat', params: { t: Math.round(tmax) } })
+  if (uv >= 8) a.push({ level: 'info', icon: '🧴', key: 'alertHighUv', params: { uv: Math.round(uv) } })
+  if (wind >= 40) a.push({ level: 'info', icon: '💨', key: 'alertWind', params: { w: Math.round(wind) } })
+  if (airNow && airNow.aqi >= 101) a.push({ level: 'info', icon: '😷', key: 'alertAir', params: { aqi: airNow.aqi } })
+  return a
+}
+
+// Farming-focused read-out (Agriculture mode) — daytime humidity/wind averages,
+// 3-day rain total, and simple spray/irrigation calls. Useful for Cambodia.
+const deriveAgri = (daily, hourly) => {
+  const day = hourly.filter((h) => {
+    const hr = new Date(h.time).getHours()
+    return hr >= 6 && hr <= 18
+  })
+  const avg = (arr) => (arr.length ? arr.reduce((s, v) => s + v, 0) / arr.length : 0)
+  const rainSum3 = (daily.precipitation_sum || []).slice(0, 3).reduce((s, v) => s + (v || 0), 0)
+  const humidity = Math.round(avg(day.map((h) => h.humidity)))
+  const wind = Math.round(avg(day.map((h) => h.wind)))
+  const rainP = daily.precipitation_probability_max?.[0] ?? 0
+  return {
+    rainSum3: Math.round(rainSum3),
+    humidity,
+    wind,
+    rainP,
+    sprayOk: wind < 15 && rainP < 40,   // calm & dry enough to spray
+    needIrrigation: rainSum3 < 5,        // little rain coming — irrigate
+  }
+}
+
 const keyOf = (p) => `${p.lat},${p.lon}`
 
 export function useCambodiaWeather() {
   const { t } = useI18n()
   const weather = ref([])
   const districtWeather = ref({})
-  const dailyCache = ref({})
-  const dailyStatus = ref({})
+  const detailsCache = ref({})
+  const detailsStatus = ref({})
 
   const loading = ref(false)
   const error = ref('')
@@ -177,32 +257,54 @@ export function useCambodiaWeather() {
     }
   }
 
-  const ensureDaily = async (p) => {
+  // Rich detail bundle for the modal: 7-day + 48h hourly + air quality, plus the
+  // derived advisories / travel pick / agriculture read-out. Forecast falls back
+  // to met.no (daily only) if Open-Meteo is down; air quality is best-effort.
+  const ensureDetails = async (p) => {
     const k = keyOf(p)
-    if (dailyCache.value[k] || dailyStatus.value[k] === 'loading') return
-    dailyStatus.value = { ...dailyStatus.value, [k]: 'loading' }
+    if (detailsCache.value[k] || detailsStatus.value[k] === 'loading') return
+    detailsStatus.value = { ...detailsStatus.value, [k]: 'loading' }
     try {
-      let daily
-      if (primaryHealthy()) {
-        try {
-          const res = await fetchWithTimeout(dailyUrl(p))
-          if (!res.ok) throw new Error(`HTTP ${res.status}`)
-          daily = (await res.json()).daily
-          markPrimaryUp()
-        } catch {
-          markPrimaryDown()
+      const getJson = (url) =>
+        fetchWithTimeout(url).then((r) => { if (!r.ok) throw new Error(`HTTP ${r.status}`); return r.json() })
+      const [fRes, aRes] = await Promise.allSettled([getJson(detailsUrl(p)), getJson(airUrl(p))])
+
+      let daily, hourly = []
+      if (fRes.status === 'fulfilled') {
+        daily = fRes.value.daily
+        hourly = mapHourly(fRes.value.hourly)
+        markPrimaryUp()
+      } else {
+        markPrimaryDown()
+        daily = metDaily(await metFetchOne(p)) // last resort: 7-day only, no hourly/UV
+      }
+
+      let airNow = null
+      if (aRes.status === 'fulfilled') {
+        const c = aRes.value.current || {}
+        airNow = {
+          aqi: c.us_aqi != null ? Math.round(c.us_aqi) : null,
+          pm25: c.pm2_5, pm10: c.pm10, ozone: c.ozone, uv: c.uv_index,
         }
       }
-      if (!daily) daily = metDaily(await metFetchOne(p))
-      dailyCache.value = { ...dailyCache.value, [k]: daily }
-      const { [k]: _, ...rest } = dailyStatus.value
-      dailyStatus.value = rest
+
+      const details = {
+        daily,
+        hourly,
+        airNow,
+        advisories: deriveAdvisories(daily, airNow),
+        travel: deriveTravel(daily),
+        agri: hourly.length ? deriveAgri(daily, hourly) : null,
+      }
+      detailsCache.value = { ...detailsCache.value, [k]: details }
+      const { [k]: _, ...rest } = detailsStatus.value
+      detailsStatus.value = rest
     } catch {
-      dailyStatus.value = { ...dailyStatus.value, [k]: 'error' }
+      detailsStatus.value = { ...detailsStatus.value, [k]: 'error' }
     }
   }
-  const dailyFor = (p) => (p ? dailyCache.value[keyOf(p)] : null)
-  const dailyStateFor = (p) => (p ? dailyStatus.value[keyOf(p)] : null)
+  const detailsFor = (p) => (p ? detailsCache.value[keyOf(p)] : null)
+  const detailsStateFor = (p) => (p ? detailsStatus.value[keyOf(p)] : null)
 
   const openDistricts = (province) => {
     viewProvince.value = province
@@ -252,7 +354,7 @@ export function useCambodiaWeather() {
   return {
     loading, error, updatedText, hasData,
     viewProvince, openDistricts, closeDistricts, prefetchDistricts,
-    dailyFor, dailyStateFor, ensureDaily,
+    detailsFor, detailsStateFor, ensureDetails,
     search, sortBy, rows,
     fetchWeather, refresh,
   }

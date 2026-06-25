@@ -287,6 +287,102 @@ const mapMatchStats = (data, homeId, awayId) => {
   return { home, away }
 }
 
+const STANDINGS_API = 'https://site.api.espn.com/apis/v2/sports/soccer'
+const CORE_API = 'https://sports.core.api.espn.com/v2/sports/soccer/leagues'
+
+const statVal = (e, name) => {
+  const s = (e.stats || []).find((x) => x.name === name)
+  if (!s) return 0
+  return s.value != null ? s.value : Number(s.displayValue) || 0
+}
+
+const mapStanding = (e) => ({
+  rank: statVal(e, 'rank'),
+  team: {
+    id: e.team?.id,
+    name: e.team?.shortDisplayName || e.team?.displayName || '',
+    abbr: e.team?.abbreviation || '',
+    logo: e.team?.logos?.[0]?.href || '',
+  },
+  gp: statVal(e, 'gamesPlayed'),
+  w: statVal(e, 'wins'),
+  d: statVal(e, 'ties'),
+  l: statVal(e, 'losses'),
+  gf: statVal(e, 'pointsFor'),
+  ga: statVal(e, 'pointsAgainst'),
+  gd: statVal(e, 'pointDifferential'),
+  pts: statVal(e, 'points'),
+  // qualification marker (Champions League / relegation …) — ESPN supplies colour + text
+  note: e.note ? { color: e.note.color, text: e.note.description } : null,
+})
+
+// Standings tables for a league. ESPN's season year N is the "N–N+1" campaign;
+// during the off-season the current table is all zeros, so fall back to the most
+// recent completed season. Returns { season, groups:[{ name, rows }] } — most
+// leagues have one group; cups (World Cup) have several.
+const fetchStandings = async (slug) => {
+  const base = `${STANDINGS_API}/${slug}/standings`
+  const read = (data) => {
+    const kids = data.children?.length ? data.children : [{ standings: data.standings }]
+    const groups = kids
+      .map((c) => ({ name: c.name || '', entries: c.standings?.entries || [] }))
+      .filter((g) => g.entries.length)
+    const season = kids[0]?.standings?.season ?? data.season?.year
+    return { season, groups }
+  }
+  let { season, groups } = read(await fetchJson(base))
+  const empty =
+    groups.length && groups.every((g) => g.entries.every((e) => statVal(e, 'gamesPlayed') === 0))
+  if (empty && season) {
+    const prev = read(await fetchJson(`${base}?season=${season - 1}`))
+    if (prev.groups.length) ({ season, groups } = prev)
+  }
+  return {
+    season,
+    groups: groups.map((g) => ({
+      name: g.name,
+      rows: g.entries.map(mapStanding).sort((a, b) => a.rank - b.rank),
+    })),
+  }
+}
+
+// Top scorers (and assists/appearances) for a season. The leaders feed gives goals
+// plus `$ref`s for each athlete/team; resolve athlete names in parallel and reuse the
+// standings team map for crests so no per-team request is needed.
+const fetchScorers = async (slug, season, teamMap = {}) => {
+  const data = await fetchJson(`${CORE_API}/${slug}/seasons/${season}/types/1/leaders`)
+  const cat = (data.categories || []).find((c) => c.name === 'goalsLeaders')
+  if (!cat?.leaders?.length) return []
+  const top = cat.leaders.slice(0, 20)
+  const athletes = await Promise.all(
+    top.map((l) =>
+      l.athlete?.$ref
+        ? fetchJson(l.athlete.$ref.replace(/^http:/, 'https:')).catch(() => null)
+        : null,
+    ),
+  )
+  return top.map((l, i) => {
+    const a = athletes[i] || {}
+    const tid = l.team?.$ref?.match(/teams\/(\d+)/)?.[1]
+    const tm = teamMap[tid]
+    const short = l.shortDisplayValue || '' // e.g. "M: 38, G: 22: A: 1"
+    return {
+      rank: i + 1,
+      goals: l.value || 0,
+      assists: Number(short.match(/A:\s*(\d+)/)?.[1] ?? 0),
+      matches: Number(short.match(/M:\s*(\d+)/)?.[1] ?? 0),
+      name: a.displayName || a.fullName || '—',
+      pos: a.position?.abbreviation || '',
+      flag: a.flag?.href || '',
+      team: {
+        name: tm?.name || '',
+        abbr: tm?.abbr || '',
+        logo: tm?.logo || (tid ? `https://a.espncdn.com/i/teamlogos/soccer/500/${tid}.png` : ''),
+      },
+    }
+  })
+}
+
 export function useFootballScores() {
   const { t } = useI18n()
   const dark = ref((() => {
@@ -308,6 +404,17 @@ export function useFootballScores() {
   const summaryCache = ref({})  // eventId -> { lineup: [home,away]|null, prediction }
   const summaryStatus = ref({}) // eventId -> 'loading' | 'error'
   const lineupEvent = ref(null) // the event whose lineup modal is open
+
+  // ----- Table / Top-scorers views (per-league, fetched on demand & cached) -----
+  const view = ref('scores') // 'scores' | 'table' | 'scorers'
+  const tableCache = {}       // slug -> { season, groups, teamMap }
+  const scorerCache = {}      // slug -> rows[]
+  const table = ref(null)
+  const scorers = ref(null)
+  const tableLoading = ref(false)
+  const scorersLoading = ref(false)
+  const tableError = ref('')
+  const scorersError = ref('')
 
   let timer = null
   let reqId = 0
@@ -436,10 +543,70 @@ export function useFootballScores() {
   const lineupFor = (id) => summaryCache.value[id]?.lineup || null
   const detailsStateFor = (id) => summaryStatus.value[id] || null   // 'loading' | 'error' | null
 
+  const ensureTable = async (slug = leagueSlug.value) => {
+    if (tableCache[slug]) { table.value = tableCache[slug]; return tableCache[slug] }
+    tableLoading.value = true
+    tableError.value = ''
+    try {
+      const { season, groups } = await fetchStandings(slug)
+      if (!groups.length) throw new Error('no standings')
+      const teamMap = {}
+      for (const g of groups)
+        for (const r of g.rows)
+          teamMap[r.team.id] = { name: r.team.name, abbr: r.team.abbr, logo: r.team.logo }
+      const result = { season, groups, teamMap }
+      tableCache[slug] = result
+      if (slug === leagueSlug.value) table.value = result // ignore if league switched mid-fetch
+      return result
+    } catch {
+      if (slug === leagueSlug.value) tableError.value = t('football.noStandings')
+      return null
+    } finally {
+      if (slug === leagueSlug.value) tableLoading.value = false
+    }
+  }
+
+  const ensureScorers = async (slug = leagueSlug.value) => {
+    if (scorerCache[slug]) { scorers.value = scorerCache[slug]; return }
+    scorersLoading.value = true
+    scorersError.value = ''
+    try {
+      const tbl = await ensureTable(slug)          // reuse season + team crests
+      if (!tbl?.season) throw new Error('no season')
+      const rows = await fetchScorers(slug, tbl.season, tbl.teamMap)
+      if (!rows.length) throw new Error('no scorers')
+      scorerCache[slug] = rows
+      if (slug === leagueSlug.value) scorers.value = rows
+    } catch {
+      if (slug === leagueSlug.value) scorersError.value = t('football.noScorers')
+    } finally {
+      if (slug === leagueSlug.value) scorersLoading.value = false
+    }
+  }
+
+  const setView = (v) => {
+    if (v === view.value) return
+    view.value = v
+    if (v === 'table') ensureTable()
+    else if (v === 'scorers') ensureScorers()
+  }
+
+  // Header refresh button — re-fetch whatever the current view shows.
+  const refreshCurrent = () => {
+    if (view.value === 'table') { delete tableCache[leagueSlug.value]; table.value = null; ensureTable() }
+    else if (view.value === 'scorers') { delete scorerCache[leagueSlug.value]; scorers.value = null; ensureScorers() }
+    else fetchScores()
+  }
+
   const selectLeague = (slug) => {
     if (slug === leagueSlug.value) return
     leagueSlug.value = slug
     fetchScores()
+    // Swap in the new league's data for whichever view is open.
+    table.value = tableCache[slug] || null
+    scorers.value = scorerCache[slug] || null
+    if (view.value === 'table') ensureTable()
+    else if (view.value === 'scorers') ensureScorers()
   }
 
   const shiftDay = (delta) => {
@@ -496,6 +663,8 @@ export function useFootballScores() {
     date, dateLabel, isToday,
     events, featured, others, liveCount,
     loading, error, updatedText,
+    view, setView, refreshCurrent,
+    table, scorers, tableLoading, scorersLoading, tableError, scorersError,
     fetchScores, selectLeague, shiftDay, goToday,
     lineupEvent, openLineup, closeLineup, retryLineup,
     lineupFor, detailsStateFor,

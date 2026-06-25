@@ -3,14 +3,16 @@ import en from './locales/en'
 import km from './locales/km'
 import zh from './locales/zh'
 import th from './locales/th'
+import vi from './locales/vi'
 
-const messages = { en, km, zh, th }
+const messages = { en, km, zh, th, vi }
 
 export const LOCALES = [
   { code: 'en', label: 'English', flag: '🇬🇧' },
   { code: 'km', label: 'ខ្មែរ', flag: '🇰🇭' },
   { code: 'zh', label: '中文', flag: '🇨🇳' },
   { code: 'th', label: 'ไทย', flag: '🇹🇭' },
+  { code: 'vi', label: 'Tiếng Việt', flag: '🇻🇳' },
 ]
 
 const STORAGE_KEY = 'app-locale'

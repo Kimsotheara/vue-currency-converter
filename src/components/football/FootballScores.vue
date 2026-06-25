@@ -20,12 +20,12 @@
           {{ dark ? '☀️' : '🌙' }}
         </button>
         <button
-          @click="fetchScores()"
-          :disabled="loading"
+          @click="refreshCurrent()"
+          :disabled="busy"
           class="shrink-0 w-9 h-9 rounded-lg bg-white/10 hover:bg-white/20 active:scale-95 transition flex items-center justify-center text-white disabled:opacity-50"
           :title="t('football.refresh')"
         >
-          <span class="text-base" :class="{ 'animate-spin': loading }">↻</span>
+          <span class="text-base" :class="{ 'animate-spin': busy }">↻</span>
         </button>
       </div>
 
@@ -47,8 +47,25 @@
       </div>
     </div>
 
-    <!-- ===== Date bar ===== -->
-    <div class="bg-slate-800 px-5 py-2.5 flex items-center justify-between border-t border-white/5">
+    <!-- ===== View tabs ===== -->
+    <div class="bg-slate-800 px-3 pt-2 flex gap-1 border-t border-white/5">
+      <button
+        v-for="tab in tabs"
+        :key="tab.id"
+        @click="setView(tab.id)"
+        :class="[
+          'flex-1 inline-flex items-center justify-center gap-1.5 py-2 rounded-t-lg text-xs font-semibold transition border-b-2',
+          view === tab.id
+            ? 'text-white border-emerald-500 bg-white/5'
+            : 'text-slate-400 border-transparent hover:text-slate-200',
+        ]"
+      >
+        <span>{{ tab.emoji }}</span>{{ tab.label }}
+      </button>
+    </div>
+
+    <!-- ===== Date bar (scores only) ===== -->
+    <div v-if="view === 'scores'" class="bg-slate-800 px-5 py-2.5 flex items-center justify-between border-t border-white/5">
       <button :class="navBtn" @click="shiftDay(-1)" :title="t('football.prevDay')">‹</button>
       <button
         @click="goToday"
@@ -64,6 +81,8 @@
 
     <!-- ===== Body ===== -->
     <div class="ft-body bg-slate-900 rounded-b-2xl px-4 sm:px-5 pt-4 pb-5 min-h-[260px]">
+      <!-- ============ SCORES ============ -->
+      <template v-if="view === 'scores'">
       <!-- Loading -->
       <div v-if="loading && !events.length" class="space-y-3 animate-pulse">
         <div class="h-44 rounded-2xl bg-slate-800/70" />
@@ -224,6 +243,119 @@
           {{ t('football.updated', { time: updatedText }) }}<span v-if="liveCount"> · {{ t('football.autoRefreshing') }}</span>
         </p>
       </template>
+      </template>
+
+      <!-- ============ LEAGUE TABLE ============ -->
+      <template v-else-if="view === 'table'">
+        <div v-if="tableLoading && !table" class="space-y-2 animate-pulse">
+          <div v-for="n in 8" :key="n" class="h-9 rounded-lg bg-slate-800/70" />
+        </div>
+        <div v-else-if="tableError" class="text-center py-12">
+          <p class="text-4xl mb-3">📊</p>
+          <p class="text-slate-400 text-sm mb-4">{{ tableError }}</p>
+          <button @click="refreshCurrent()" class="px-5 py-2 rounded-lg bg-emerald-500 hover:bg-emerald-400 text-white text-sm font-semibold transition">{{ t('football.retry') }}</button>
+        </div>
+        <div v-else-if="table">
+          <div class="flex items-center justify-between mb-3 px-1">
+            <h3 class="text-white text-sm font-bold">📊 {{ t('football.standings') }}</h3>
+            <span class="text-slate-500 text-[11px] font-semibold">{{ seasonText(table.season) }}</span>
+          </div>
+
+          <div v-for="(g, gi) in table.groups" :key="gi" :class="{ 'mt-5': gi }">
+            <p v-if="table.groups.length > 1" class="text-slate-400 text-[11px] font-semibold uppercase tracking-wider mb-1.5 px-1">{{ g.name }}</p>
+            <table class="w-full text-xs">
+              <thead>
+                <tr class="text-slate-500 text-[10px] uppercase tracking-wider">
+                  <th class="font-semibold text-left py-1.5 pl-1 w-6">#</th>
+                  <th class="font-semibold text-left py-1.5">{{ t('football.team') }}</th>
+                  <th class="font-semibold text-center py-1.5 w-7">P</th>
+                  <th class="font-semibold text-center py-1.5 w-7 hidden sm:table-cell">W</th>
+                  <th class="font-semibold text-center py-1.5 w-7 hidden sm:table-cell">D</th>
+                  <th class="font-semibold text-center py-1.5 w-7 hidden sm:table-cell">L</th>
+                  <th class="font-semibold text-center py-1.5 w-9 hidden md:table-cell">GF</th>
+                  <th class="font-semibold text-center py-1.5 w-9 hidden md:table-cell">GA</th>
+                  <th class="font-semibold text-center py-1.5 w-8">GD</th>
+                  <th class="font-semibold text-right py-1.5 pr-1 w-9">Pts</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr v-for="r in g.rows" :key="r.team.id" class="border-t border-white/5">
+                  <td class="py-1.5 pl-1 relative">
+                    <span v-if="r.note" class="absolute left-0 top-1 bottom-1 w-0.5 rounded" :style="{ background: r.note.color }" :title="r.note.text" />
+                    <span class="text-slate-400 font-semibold tabular-nums">{{ r.rank }}</span>
+                  </td>
+                  <td class="py-1.5">
+                    <div class="flex items-center gap-2 min-w-0">
+                      <img v-if="r.team.logo" :src="r.team.logo" class="w-5 h-5 object-contain shrink-0" loading="lazy" :alt="r.team.name" />
+                      <span class="text-white truncate">{{ r.team.name }}</span>
+                    </div>
+                  </td>
+                  <td class="text-center text-slate-300 tabular-nums">{{ r.gp }}</td>
+                  <td class="text-center text-slate-300 tabular-nums hidden sm:table-cell">{{ r.w }}</td>
+                  <td class="text-center text-slate-300 tabular-nums hidden sm:table-cell">{{ r.d }}</td>
+                  <td class="text-center text-slate-300 tabular-nums hidden sm:table-cell">{{ r.l }}</td>
+                  <td class="text-center text-slate-300 tabular-nums hidden sm:table-cell">{{ r.gf }}</td>
+                  <td class="text-center text-slate-300 tabular-nums hidden sm:table-cell">{{ r.ga }}</td>
+                  <td class="text-center tabular-nums" :class="r.gd > 0 ? 'text-emerald-400' : r.gd < 0 ? 'text-red-400' : 'text-slate-400'">{{ r.gd > 0 ? '+' + r.gd : r.gd }}</td>
+                  <td class="text-right pr-1 font-bold text-white tabular-nums">{{ r.pts }}</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <!-- Qualification legend -->
+          <div v-if="legend.length" class="mt-4 pt-3 border-t border-white/5 flex flex-wrap gap-x-4 gap-y-1.5">
+            <span v-for="lg in legend" :key="lg.text" class="inline-flex items-center gap-1.5 text-[10px] text-slate-400">
+              <span class="w-2.5 h-2.5 rounded-sm shrink-0" :style="{ background: lg.color }" />{{ lg.text }}
+            </span>
+          </div>
+        </div>
+      </template>
+
+      <!-- ============ TOP SCORERS ============ -->
+      <template v-else-if="view === 'scorers'">
+        <div v-if="scorersLoading && !scorers" class="space-y-2 animate-pulse">
+          <div v-for="n in 8" :key="n" class="h-12 rounded-xl bg-slate-800/70" />
+        </div>
+        <div v-else-if="scorersError" class="text-center py-12">
+          <p class="text-4xl mb-3">👟</p>
+          <p class="text-slate-400 text-sm mb-4">{{ scorersError }}</p>
+          <button @click="refreshCurrent()" class="px-5 py-2 rounded-lg bg-emerald-500 hover:bg-emerald-400 text-white text-sm font-semibold transition">{{ t('football.retry') }}</button>
+        </div>
+        <div v-else-if="scorers">
+          <div class="flex items-center justify-between mb-3 px-1">
+            <h3 class="text-white text-sm font-bold">👟 {{ t('football.topScorers') }}</h3>
+            <span class="text-slate-500 text-[11px] font-semibold">{{ seasonText(table?.season) }}</span>
+          </div>
+          <div class="space-y-1.5">
+            <div
+              v-for="p in scorers"
+              :key="p.rank"
+              class="flex items-center gap-3 rounded-xl bg-slate-800/60 ring-1 ring-white/5 px-3 py-2"
+            >
+              <span class="w-5 text-center text-sm font-bold tabular-nums shrink-0"
+                    :class="p.rank === 1 ? 'text-amber-400' : p.rank <= 3 ? 'text-slate-300' : 'text-slate-500'">{{ p.rank }}</span>
+              <img v-if="p.flag" :src="p.flag" class="w-5 h-4 object-cover rounded-sm shrink-0" loading="lazy" alt="" />
+              <div class="min-w-0 flex-1">
+                <p class="text-white text-sm font-semibold leading-tight truncate">{{ p.name }}</p>
+                <p class="text-slate-400 text-[11px] flex items-center gap-1.5 mt-0.5">
+                  <img v-if="p.team.logo" :src="p.team.logo" class="w-3.5 h-3.5 object-contain" loading="lazy" alt="" />
+                  <span class="truncate">{{ p.team.name || p.team.abbr }}</span>
+                  <span v-if="p.pos" class="text-slate-600">· {{ p.pos }}</span>
+                </p>
+              </div>
+              <div class="text-right shrink-0 leading-tight">
+                <div class="text-emerald-400 font-bold text-lg tabular-nums">{{ p.goals }}</div>
+                <div class="text-slate-500 text-[10px]">
+                  <span v-if="p.assists">{{ p.assists }} {{ t('football.assistsShort') }}</span>
+                  <span v-if="p.assists && p.matches"> · </span>
+                  <span v-if="p.matches">{{ p.matches }} {{ t('football.appsShort') }}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </template>
     </div>
 
     <!-- Match details modal: line-up · last 10 · head-to-head -->
@@ -257,6 +389,8 @@ const {
   leagues, leagueSlug, activeLeague, leagueName,
   dateLabel, events, featured, others, liveCount,
   loading, error, updatedText,
+  view, setView, refreshCurrent,
+  table, scorers, tableLoading, scorersLoading, tableError, scorersError,
   fetchScores, selectLeague, shiftDay, goToday,
   lineupEvent, openLineup, closeLineup, retryLineup,
   lineupFor, detailsStateFor,
@@ -265,6 +399,32 @@ const {
 } = useFootballScores()
 
 onMounted(fetchScores)
+
+const tabs = computed(() => [
+  { id: 'scores', emoji: '⚽', label: t('football.tabScores') },
+  { id: 'table', emoji: '📊', label: t('football.tabTable') },
+  { id: 'scorers', emoji: '👟', label: t('football.tabScorers') },
+])
+
+// Spin/disable the header refresh button while the active view is loading.
+const busy = computed(() =>
+  view.value === 'table' ? tableLoading.value
+    : view.value === 'scorers' ? scorersLoading.value
+    : loading.value,
+)
+
+// ESPN season year N is the "N–N+1" campaign, e.g. 2025 → "2025-26".
+const seasonText = (s) => (s ? `${s}-${String(s + 1).slice(-2)}` : '')
+
+// Distinct qualification markers (Champions League / relegation …) for the legend.
+const legend = computed(() => {
+  if (!table.value) return []
+  const seen = new Map()
+  for (const g of table.value.groups)
+    for (const r of g.rows)
+      if (r.note?.text && !seen.has(r.note.text)) seen.set(r.note.text, r.note.color)
+  return [...seen].map(([text, color]) => ({ text, color }))
+})
 
 // Make the device/browser Back button (and back-swipe) close the lineup modal
 // instead of leaving the app. We push a history entry when the modal opens and
