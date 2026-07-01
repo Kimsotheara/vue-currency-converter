@@ -401,6 +401,7 @@ export default {
     topAssists: 'Vua kiến tạo',
     mGoals: 'Bàn thắng',
     mAssists: 'Kiến tạo',
+    knockout: 'Vòng loại trực tiếp',
   },
 
   weather: {

@@ -401,6 +401,7 @@ export default {
     topAssists: 'Top Assists',
     mGoals: 'Goals',
     mAssists: 'Assists',
+    knockout: 'Knockout Stage',
   },
 
   weather: {

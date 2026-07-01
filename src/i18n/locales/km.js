@@ -401,6 +401,7 @@ export default {
     topAssists: 'អ្នកបញ្ជូនបាល់ច្រើនជាងគេ',
     mGoals: 'គ្រាប់បាល់',
     mAssists: 'បញ្ជូនបាល់',
+    knockout: 'វគ្គចាញ់ធ្លាក់',
   },
 
   weather: {

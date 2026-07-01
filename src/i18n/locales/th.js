@@ -401,6 +401,7 @@ export default {
     topAssists: 'ผู้จ่ายบอลสูงสุด',
     mGoals: 'ประตู',
     mAssists: 'แอสซิสต์',
+    knockout: 'รอบน็อคเอาท์',
   },
 
   weather: {

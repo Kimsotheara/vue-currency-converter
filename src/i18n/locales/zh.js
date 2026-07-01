@@ -401,6 +401,7 @@ export default {
     topAssists: '助攻榜',
     mGoals: '进球',
     mAssists: '助攻',
+    knockout: '淘汰赛',
   },
 
   weather: {
