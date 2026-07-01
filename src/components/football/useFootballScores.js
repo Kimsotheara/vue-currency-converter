@@ -7,7 +7,9 @@ const POLL_MS = 30_000       // scoreboard refresh cadence while a match is live
 const TABLE_POLL_MS = 45_000 // standings refresh cadence while a league has a live match
 
 const fetchJson = async (url, ms = 9000) => {
-  const res = await fetch(url, { signal: AbortSignal.timeout(ms) })
+  // `no-store` bypasses the browser HTTP cache so every load/poll gets the real
+  // live figures — never a stale cached scoreboard/standings/leaders response.
+  const res = await fetch(url, { signal: AbortSignal.timeout(ms), cache: 'no-store' })
   if (!res.ok) throw new Error(`HTTP ${res.status}`)
   return res.json()
 }
@@ -160,7 +162,7 @@ const fetchAfRatings = async (event) => {
   const date = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
   const get = async (path) => {
     let res
-    try { res = await fetch(`/api/football${path}`, { signal: AbortSignal.timeout(9000) }) }
+    try { res = await fetch(`/api/football${path}`, { signal: AbortSignal.timeout(9000), cache: 'no-store' }) }
     catch { return null }
     if ([401, 403, 404, 499].includes(res.status)) { afDown = true; return null }
     return res.ok ? res.json() : null
@@ -448,7 +450,8 @@ const fetchBracket = async (slug) => {
     const board = await fetchJson(`${API}/${slug}/scoreboard`)
     const entries = board.leagues?.[0]?.calendar?.[0]?.entries || []
     stages = entries
-      .filter((e) => !/group/i.test(e.label)) // the group stage is the standings table
+      // the group / league phase is the standings table, not a bracket round
+      .filter((e) => !/group|league/i.test(e.label))
       .map((e) => ({ label: e.label, start: new Date(e.startDate), end: new Date(e.endDate) }))
     if (!stages.length) return null
     bracketStagesCache[slug] = stages
@@ -469,8 +472,58 @@ const fetchBracket = async (slug) => {
     if (i >= 0) rounds[i].matches.push(normalize(ev))
   }
   const filled = rounds.filter((r) => r.matches.length)
-  for (const r of filled) r.matches.sort((a, b) => new Date(a.date) - new Date(b.date))
+  for (const r of filled) r.matches = collapseTies(r.matches)
   return filled.length ? filled : null
+}
+
+// Two-legged ties (UEFA knockouts) arrive as two matches with the same pair of
+// teams. Collapse each round's matches into one node per tie carrying the aggregate
+// score. Single-leg competitions (World Cup) are a no-op — every pair has one match,
+// so the "aggregate" is just that match's score.
+const collapseTies = (matches) => {
+  const groups = new Map()
+  for (const m of matches) {
+    const ids = [m.home.id, m.away.id].filter(Boolean).sort()
+    const key = ids.length === 2 ? ids.join('-') : m.id // future/TBD legs stay separate
+    if (!groups.has(key)) groups.set(key, [])
+    groups.get(key).push(m)
+  }
+  const ties = []
+  for (const legs of groups.values()) {
+    legs.sort((a, b) => new Date(a.date) - new Date(b.date))
+    const first = legs[0]
+    const A = first.home, B = first.away // orient the tie by the first leg
+    let aG = 0, bG = 0, anyLive = false, allDone = true, anyScore = false
+    for (const leg of legs) {
+      anyLive = anyLive || leg.live
+      allDone = allDone && leg.completed
+      if (leg.state !== 'pre') anyScore = true
+      const aHome = leg.home.id === A.id
+      aG += (Number(aHome ? leg.home.score : leg.away.score) || 0)
+      bG += (Number(aHome ? leg.away.score : leg.home.score) || 0)
+    }
+    let aWin = false, bWin = false
+    if (allDone) {
+      if (aG > bG) aWin = true
+      else if (bG > aG) bWin = true
+      else { // level on aggregate — decided in the last leg (extra time / penalties)
+        const last = legs[legs.length - 1]
+        const aHome = last.home.id === A.id
+        aWin = aHome ? !!last.home.winner : !!last.away.winner
+        bWin = aHome ? !!last.away.winner : !!last.home.winner
+      }
+    }
+    ties.push({
+      id: legs.map((l) => l.id).join('-'),
+      date: first.date,
+      state: anyLive ? 'in' : allDone ? 'post' : anyScore ? 'in' : 'pre',
+      live: anyLive,
+      completed: allDone,
+      home: { ...A, score: anyScore ? aG : '', winner: aWin },
+      away: { ...B, score: anyScore ? bG : '', winner: bWin },
+    })
+  }
+  return ties.sort((a, b) => new Date(a.date) - new Date(b.date))
 }
 
 // ESPN's leaders feed only aggregates the group/league phase — knockout goals and
@@ -578,12 +631,15 @@ export function useFootballScores() {
   const scorersError = ref('')
   const tableLiveCount = ref(0)   // matches in play for the current league (Table view)
   const tableUpdatedAt = ref(null)
+  const scorersLiveCount = ref(0) // matches in play (Best Player view)
+  const scorersUpdatedAt = ref(null)
   const bracket = ref(null)       // knockout rounds for cups (Table view)
   const bracketLoading = ref(false)
   const bracketCache = {}         // slug -> rounds
 
-  let timer = null       // scoreboard poll (scores view)
-  let tableTimer = null  // standings poll (table view)
+  let timer = null         // scoreboard poll (scores view)
+  let tableTimer = null    // standings poll (table view)
+  let scorersTimer = null  // leaders poll (best-player view)
   let reqId = 0
 
   const activeLeague = computed(() => leagues.find((l) => l.slug === leagueSlug.value))
@@ -732,27 +788,64 @@ export function useFootballScores() {
     }
   }
 
+  // Build the goals/assists leaderboard for a league. Cups add knockout goals/assists
+  // on top of the group-phase feed. Shared by the initial load and the live poll.
+  const buildScorers = async (slug) => {
+    const tbl = await ensureTable(slug)            // reuse season + team crests
+    if (!tbl?.season) throw new Error('no season')
+    let data = await fetchLeaders(slug, tbl.season, tbl.teamMap)
+    if (isCup(slug)) {
+      const rounds = bracketCache[slug] || (await fetchBracket(slug))
+      data = mergeKnockout(data, await fetchKnockoutStats(slug, rounds, tbl.teamMap))
+    }
+    return data
+  }
+
   const ensureScorers = async (slug = leagueSlug.value) => {
     if (scorerCache[slug]) { scorers.value = scorerCache[slug]; return }
     scorersLoading.value = true
     scorersError.value = ''
     try {
-      const tbl = await ensureTable(slug)          // reuse season + team crests
-      if (!tbl?.season) throw new Error('no season')
-      let data = await fetchLeaders(slug, tbl.season, tbl.teamMap)
-      // Cups: the feed is group-only — add goals/assists from played knockout matches.
-      if (isCup(slug)) {
-        const rounds = bracketCache[slug] || (await fetchBracket(slug))
-        data = mergeKnockout(data, await fetchKnockoutStats(slug, rounds, tbl.teamMap))
-      }
+      const data = await buildScorers(slug)
       if (!data.goals.length && !data.assists.length) throw new Error('no leaders')
       scorerCache[slug] = data
-      if (slug === leagueSlug.value) scorers.value = data
+      if (slug === leagueSlug.value) { scorers.value = data; scorersUpdatedAt.value = new Date() }
     } catch {
       if (slug === leagueSlug.value) scorersError.value = t('football.noScorers')
     } finally {
       if (slug === leagueSlug.value) scorersLoading.value = false
     }
+  }
+
+  // ----- Live leaders polling (Best Player view) -----
+  // While the tab is open and a match is in play, silently rebuild the leaderboard so
+  // new goals/assists show up. Guarded against a stale league/view before applying.
+  const refreshScorersLive = async () => {
+    const slug = leagueSlug.value
+    if (view.value !== 'scorers') return
+    const live = await fetchLiveCount(slug)
+    if (slug !== leagueSlug.value || view.value !== 'scorers') return
+    scorersLiveCount.value = live
+    if (!live) return
+    try {
+      delete scorerCache[slug] // force a fresh feed (cached knockout box scores are reused)
+      const data = await buildScorers(slug)
+      if ((data.goals.length || data.assists.length) && slug === leagueSlug.value && view.value === 'scorers') {
+        scorerCache[slug] = data
+        scorers.value = data
+        scorersUpdatedAt.value = new Date()
+      }
+    } catch { /* keep the last-good leaderboard on a transient failure */ }
+  }
+
+  const startScorersPolling = () => {
+    clearInterval(scorersTimer)
+    refreshScorersLive()
+    scorersTimer = setInterval(refreshScorersLive, TABLE_POLL_MS)
+  }
+  const stopScorersPolling = () => {
+    clearInterval(scorersTimer)
+    scorersLiveCount.value = 0
   }
 
   const isCup = (slug) => !!leagues.find((l) => l.slug === slug)?.cup
@@ -813,8 +906,9 @@ export function useFootballScores() {
     if (v === view.value) return
     view.value = v
     stopTablePolling()
+    stopScorersPolling()
     if (v === 'table') { ensureTable(); ensureBracket(); startTablePolling() }
-    else if (v === 'scorers') ensureScorers()
+    else if (v === 'scorers') { ensureScorers(); startScorersPolling() }
   }
 
   // Header refresh button — re-fetch whatever the current view shows.
@@ -838,8 +932,9 @@ export function useFootballScores() {
     scorers.value = scorerCache[slug] || null
     bracket.value = bracketCache[slug] || null
     stopTablePolling()
+    stopScorersPolling()
     if (view.value === 'table') { ensureTable(); ensureBracket(); startTablePolling() }
-    else if (view.value === 'scorers') ensureScorers()
+    else if (view.value === 'scorers') { ensureScorers(); startScorersPolling() }
   }
 
   const shiftDay = (delta) => {
@@ -886,8 +981,9 @@ export function useFootballScores() {
     d ? d.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' }) : ''
   const updatedText = computed(() => clockText(updatedAt.value))
   const tableUpdatedText = computed(() => clockText(tableUpdatedAt.value))
+  const scorersUpdatedText = computed(() => clockText(scorersUpdatedAt.value))
 
-  onUnmounted(() => { clearInterval(timer); clearInterval(tableTimer) })
+  onUnmounted(() => { clearInterval(timer); clearInterval(tableTimer); clearInterval(scorersTimer) })
 
   return {
     dark, toggleTheme,
@@ -898,6 +994,7 @@ export function useFootballScores() {
     view, setView, refreshCurrent,
     table, scorers, tableLoading, scorersLoading, tableError, scorersError,
     tableLiveCount, tableUpdatedText,
+    scorersLiveCount, scorersUpdatedText,
     bracket, bracketLoading,
     fetchScores, selectLeague, shiftDay, goToday,
     lineupEvent, openLineup, closeLineup, retryLineup,

@@ -264,49 +264,42 @@
             </div>
           </div>
           <div v-else-if="bracketColumns.length" class="mb-6">
-            <h3 class="text-white text-sm font-bold mb-3 px-1">🏆 {{ t('football.knockout') }}</h3>
+            <div class="flex items-center justify-between mb-2 px-1">
+              <h3 class="text-white text-sm font-bold">🏆 {{ t('football.knockout') }}</h3>
+              <span v-if="tableLiveCount" class="inline-flex items-center gap-1 text-red-400 text-[11px] font-semibold">
+                <span class="live-dot" />{{ t('football.liveCount', { n: tableLiveCount }) }}
+              </span>
+            </div>
 
-            <div class="bracket-scroll overflow-x-auto pb-3 -mx-4 px-4">
-              <div class="inline-flex flex-col">
-                <!-- Round labels -->
-                <div class="flex mb-2">
-                  <div v-for="(c, ci) in bracketColumns" :key="'l' + ci" class="bracket-col-w text-center">
-                    <span
-                      class="text-[10px] font-semibold uppercase tracking-wider"
-                      :class="c.side === 'final' ? 'text-amber-400' : 'text-slate-400'"
-                    >{{ c.side === 'final' ? '🏆 ' : '' }}{{ c.label }}</span>
-                  </div>
+            <!-- Full-width flag bracket — no horizontal scroll -->
+            <div class="ft-bracket">
+              <!-- Round labels -->
+              <div class="ft-brow">
+                <div v-for="(c, ci) in bracketColumns" :key="'l' + ci" class="ft-bcol">
+                  <span class="ft-blabel" :class="{ 'ft-blabel-final': c.side === 'final' }">{{ shortRound(c) }}</span>
                 </div>
-
-                <!-- Bracket tree -->
-                <div class="flex" :style="{ height: bracketHeight + 'px' }">
+              </div>
+              <!-- Bracket tree -->
+              <div class="ft-brow" :style="{ height: bracketHeight + 'px' }">
+                <div
+                  v-for="(c, ci) in bracketColumns"
+                  :key="ci"
+                  class="ft-bcol"
+                  :class="[`side-${c.side}`, { 'col-outer': c.outer, 'col-final': c.side === 'final' }]"
+                >
                   <div
-                    v-for="(c, ci) in bracketColumns"
-                    :key="ci"
-                    class="bracket-col bracket-col-w"
-                    :class="[`side-${c.side}`, { 'col-outer': c.outer, 'col-final': c.side === 'final' }]"
+                    v-for="(m, mi) in c.matches"
+                    :key="m.id"
+                    class="ft-bmatch"
+                    :class="{ 'pair-top': mi % 2 === 0 }"
+                    :style="{ '--v': bracketHeight / c.matches.length + 'px' }"
                   >
-                    <div
-                      v-for="(m, mi) in c.matches"
-                      :key="m.id"
-                      class="bracket-match"
-                      :class="{ 'pair-top': mi % 2 === 0 }"
-                      :style="{ '--v': bracketHeight / c.matches.length + 'px' }"
-                    >
-                      <span v-if="c.matches.length > 1 && mi % 2 === 0 && c.side !== 'final'" class="rail" />
-                      <div class="mc" :class="{ 'mc-live': m.live, 'mc-final': c.side === 'final' }">
-                        <div class="mc-row" :class="rowDim(m, 'home')">
-                          <img v-if="m.home.logo" :src="m.home.logo" class="mc-flag" loading="lazy" alt="" />
-                          <span class="mc-team">{{ m.home.short || m.home.name }}</span>
-                          <span class="mc-score">{{ scoreCell(m, 'home') }}</span>
-                        </div>
-                        <div class="mc-div" />
-                        <div class="mc-row" :class="rowDim(m, 'away')">
-                          <img v-if="m.away.logo" :src="m.away.logo" class="mc-flag" loading="lazy" alt="" />
-                          <span class="mc-team">{{ m.away.short || m.away.name }}</span>
-                          <span class="mc-score">{{ scoreCell(m, 'away') }}</span>
-                        </div>
-                        <span v-if="m.live" class="mc-livedot"><span class="live-dot" /></span>
+                    <span v-if="c.matches.length > 1 && mi % 2 === 0 && c.side !== 'final'" class="rail" />
+                    <div class="ft-node" :class="{ 'ft-node-final': c.side === 'final', 'ft-node-live': m.live }">
+                      <div v-for="side in ['home', 'away']" :key="side" class="ft-team" :class="rowDim(m, side)">
+                        <img v-if="m[side].logo" :src="m[side].logo" class="ft-flag" loading="lazy" :alt="m[side].short" />
+                        <span v-else class="ft-flag ft-flag-ph" />
+                        <span v-if="m.state !== 'pre'" class="ft-sc">{{ m[side].score }}</span>
                       </div>
                     </div>
                   </div>
@@ -315,19 +308,13 @@
             </div>
 
             <!-- 3rd-place match -->
-            <div v-if="thirdPlace" class="mt-3">
-              <p class="text-[10px] font-semibold uppercase tracking-wider text-amber-400 mb-1.5 px-1">🥉 {{ thirdPlace.label }}</p>
-              <div class="mc mc-wide" :class="{ 'mc-live': thirdPlace.match.live }">
-                <div class="mc-row" :class="rowDim(thirdPlace.match, 'home')">
-                  <img v-if="thirdPlace.match.home.logo" :src="thirdPlace.match.home.logo" class="mc-flag" loading="lazy" alt="" />
-                  <span class="mc-team">{{ thirdPlace.match.home.name }}</span>
-                  <span class="mc-score">{{ scoreCell(thirdPlace.match, 'home') }}</span>
-                </div>
-                <div class="mc-div" />
-                <div class="mc-row" :class="rowDim(thirdPlace.match, 'away')">
-                  <img v-if="thirdPlace.match.away.logo" :src="thirdPlace.match.away.logo" class="mc-flag" loading="lazy" alt="" />
-                  <span class="mc-team">{{ thirdPlace.match.away.name }}</span>
-                  <span class="mc-score">{{ scoreCell(thirdPlace.match, 'away') }}</span>
+            <div v-if="thirdPlace" class="mt-4 flex items-center justify-center gap-2">
+              <span class="text-[10px] font-semibold uppercase tracking-wider text-amber-400 shrink-0">🥉 {{ shortRound({ label: thirdPlace.label }) }}</span>
+              <div class="ft-node ft-node-row" :class="{ 'ft-node-live': thirdPlace.match.live }">
+                <div v-for="side in ['home', 'away']" :key="side" class="ft-team" :class="rowDim(thirdPlace.match, side)">
+                  <img v-if="thirdPlace.match[side].logo" :src="thirdPlace.match[side].logo" class="ft-flag" loading="lazy" alt="" />
+                  <span v-else class="ft-flag ft-flag-ph" />
+                  <span v-if="thirdPlace.match.state !== 'pre'" class="ft-sc">{{ thirdPlace.match[side].score }}</span>
                 </div>
               </div>
             </div>
@@ -413,7 +400,12 @@
             <h3 class="text-white text-sm font-bold">
               {{ scorerMetric === 'goals' ? '👟 ' + t('football.topScorers') : '🅰️ ' + t('football.topAssists') }}
             </h3>
-            <span class="text-slate-500 text-[11px] font-semibold">{{ seasonText(table?.season) }}</span>
+            <div class="flex items-center gap-2.5">
+              <span v-if="scorersLiveCount" class="inline-flex items-center gap-1 text-red-400 text-[11px] font-semibold">
+                <span class="live-dot" />{{ t('football.liveCount', { n: scorersLiveCount }) }}
+              </span>
+              <span class="text-slate-500 text-[11px] font-semibold">{{ seasonText(table?.season) }}</span>
+            </div>
           </div>
 
           <!-- Goals / Assists toggle -->
@@ -464,6 +456,10 @@
             </div>
           </div>
           <p v-else class="text-slate-500 text-sm text-center py-10">{{ t('football.noScorers') }}</p>
+
+          <p v-if="scorersLiveCount && scorersUpdatedText" class="mt-4 text-center text-[11px] text-slate-600">
+            {{ t('football.updated', { time: scorersUpdatedText }) }} · {{ t('football.autoRefreshing') }}
+          </p>
         </div>
       </template>
     </div>
@@ -502,6 +498,7 @@ const {
   view, setView, refreshCurrent,
   table, scorers, tableLoading, scorersLoading, tableError, scorersError,
   tableLiveCount, tableUpdatedText,
+  scorersLiveCount, scorersUpdatedText,
   bracket, bracketLoading,
   fetchScores, selectLeague, shiftDay, goToday,
   lineupEvent, openLineup, closeLineup, retryLineup,
@@ -515,13 +512,26 @@ onMounted(fetchScores)
 const tabs = computed(() => [
   { id: 'scores', emoji: '⚽', label: t('football.tabScores') },
   { id: 'table', emoji: '📊', label: t('football.tabTable') },
-  { id: 'scorers', emoji: '👟', label: t('football.tabScorers') },
+  { id: 'scorers', emoji: '🏅', label: t('football.tabScorers') },
 ])
 
 // Knockout bracket: the halving rounds (R32 → Final) form the tree; the 3rd-place
 // match sits outside it and is shown on its own below.
 const isThirdPlace = (label) => /3rd|third/i.test(label)
-const bracketRounds = computed(() => (bracket.value || []).filter((r) => !isThirdPlace(r.label)))
+const bracketRounds = computed(() => {
+  const rounds = (bracket.value || []).filter((r) => !isThirdPlace(r.label))
+  // Keep only the clean-halving tail ending at the Final, so the symmetric tree is
+  // well-formed. This drops rounds that don't halve into the next — e.g. UCL's
+  // knockout play-off round (8 ties, same as the Round of 16 it feeds).
+  const tail = []
+  let expected = 0
+  for (let i = rounds.length - 1; i >= 0; i--) {
+    const n = rounds[i].matches.length
+    if (!tail.length || n === expected) { tail.unshift(rounds[i]); expected = n * 2 }
+    else break
+  }
+  return tail
+})
 const thirdPlace = computed(() => {
   const r = (bracket.value || []).find((x) => isThirdPlace(x.label))
   return r?.matches?.[0] ? { label: r.label, match: r.matches[0] } : null
@@ -550,12 +560,25 @@ const bracketColumns = computed(() => {
 
 // One row-height drives the whole tree; every round centres between its pair via
 // CSS `justify-content: space-around`. Height = tallest column (the R32 halves).
-const BRACKET_ROW = 56
+const BRACKET_ROW = 62
 const bracketHeight = computed(() => {
   const cols = bracketColumns.value
   if (!cols.length) return 0
   return Math.max(1, ...cols.map((c) => c.matches.length)) * BRACKET_ROW
 })
+
+// Short column headers so nine rounds fit the width (Round of 32 → R32, Final → 🏆).
+const shortRound = (c) => {
+  if (c.side === 'final') return '🏆'
+  const l = (c.label || '').toLowerCase()
+  if (l.includes('32')) return 'R32'
+  if (l.includes('16')) return 'R16'
+  if (l.includes('quarter')) return 'QF'
+  if (l.includes('semi')) return 'SF'
+  if (l.includes('3rd') || l.includes('third')) return '3rd'
+  if (l.includes('final')) return 'F'
+  return c.label
+}
 
 // Goals / Assists toggle within the Scorers view.
 const scorerMetric = ref('goals')
@@ -654,50 +677,53 @@ const navBtn =
 .no-scrollbar::-webkit-scrollbar { display: none; }
 .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
 
-/* ===== Knockout bracket tree (symmetric, converging on the centre Final) ===== */
-.bracket-scroll { --ft-line: #334155; }
-.bracket-scroll::-webkit-scrollbar { height: 6px; }
-.bracket-scroll::-webkit-scrollbar-thumb { background: #475569; border-radius: 3px; }
-.bracket-col-w { width: 140px; flex: 0 0 140px; }
-.bracket-col {
-  display: flex; flex-direction: column; justify-content: space-around;
+/* ===== Knockout bracket — full-width symmetric flag tree (no scroll) ===== */
+.ft-bracket { --ft-line: #f59e0b; width: 100%; }
+.ft-brow { display: flex; align-items: stretch; }
+.ft-bcol {
+  flex: 1 1 0; min-width: 0; position: relative;
+  display: flex; flex-direction: column; justify-content: space-around; align-items: center;
 }
-.bracket-match {
-  position: relative; display: flex; align-items: center; justify-content: center;
+.ft-blabel { font-size: 9px; font-weight: 700; letter-spacing: .03em; color: #94a3b8; padding-bottom: 4px; }
+.ft-blabel-final { color: #fbbf24; font-size: 13px; }
+
+.ft-bmatch {
+  position: relative; width: 100%;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
 }
-.bracket-match .mc { width: 108px; }
-
-/* Left half: connectors flow rightward toward the centre. */
-.side-left:not(.col-outer) .bracket-match::before { content: ''; position: absolute; left: 0; top: 50%; width: 16px; height: 2px; background: var(--ft-line); }
-.side-left .bracket-match::after { content: ''; position: absolute; right: 0; top: 50%; width: 16px; height: 2px; background: var(--ft-line); }
-.side-left .bracket-match.pair-top .rail { position: absolute; right: 0; top: 50%; width: 2px; height: var(--v); background: var(--ft-line); }
-
-/* Right half: mirrored — connectors flow leftward toward the centre. */
-.side-right:not(.col-outer) .bracket-match::after { content: ''; position: absolute; right: 0; top: 50%; width: 16px; height: 2px; background: var(--ft-line); }
-.side-right .bracket-match::before { content: ''; position: absolute; left: 0; top: 50%; width: 16px; height: 2px; background: var(--ft-line); }
-.side-right .bracket-match.pair-top .rail { position: absolute; left: 0; top: 50%; width: 2px; height: var(--v); background: var(--ft-line); }
-
-/* Final joins both semifinals. */
-.col-final .bracket-match::before { content: ''; position: absolute; left: 0; top: 50%; width: 16px; height: 2px; background: var(--ft-line); }
-.col-final .bracket-match::after { content: ''; position: absolute; right: 0; top: 50%; width: 16px; height: 2px; background: var(--ft-line); }
-
-/* Match card */
-.mc {
-  position: relative; background: #1e293b; border: 1px solid rgba(255,255,255,.07);
-  border-radius: 10px; overflow: hidden;
+/* Node (two stacked flags) sits above the connector lines and hides their inner ends. */
+.ft-node {
+  position: relative; z-index: 1; background: #0f172a; border-radius: 10px;
+  display: flex; flex-direction: column; gap: 3px; padding: 2px;
 }
-.mc-wide { width: 100%; max-width: 240px; }
-.mc-row { display: flex; align-items: center; gap: 6px; padding: 5px 8px; }
-.mc-flag { width: 20px; height: 14px; object-fit: cover; border-radius: 2px; flex: 0 0 auto; }
-.mc-team {
-  flex: 1; min-width: 0; font-size: 11px; font-weight: 600; color: #fff;
-  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+.ft-node-row { flex-direction: row; gap: 8px; padding: 4px 8px; }
+.ft-team { display: flex; align-items: center; gap: 2px; }
+.ft-flag {
+  width: clamp(15px, 4vw, 26px); height: clamp(15px, 4vw, 26px);
+  border-radius: 9999px; object-fit: cover; background: #334155;
+  box-shadow: 0 0 0 1.5px rgba(255,255,255,.18);
 }
-.mc-score { font-size: 12px; font-weight: 700; color: #fff; font-variant-numeric: tabular-nums; }
-.mc-div { height: 1px; background: rgba(255,255,255,.07); }
-.mc-live { border-color: rgba(248,113,113,.6); box-shadow: 0 0 12px -3px rgba(248,113,113,.7); }
-.mc-livedot { position: absolute; top: 4px; right: 4px; }
-.mc-final { border-color: rgba(251,191,36,.55); box-shadow: 0 0 18px -4px rgba(251,191,36,.55); }
+/* Undecided slot → orange hexagon, echoing the poster. */
+.ft-flag-ph {
+  display: inline-block; background: #f59e0b; opacity: .45; box-shadow: none; border-radius: 0;
+  clip-path: polygon(25% 4%, 75% 4%, 100% 50%, 75% 96%, 25% 96%, 0 50%);
+}
+.ft-sc { font-size: 10px; font-weight: 700; color: #fff; font-variant-numeric: tabular-nums; min-width: 7px; }
+.ft-node-final .ft-flag { box-shadow: 0 0 0 1.5px rgba(251,191,36,.8); }
+.ft-node-final { box-shadow: 0 0 16px -4px rgba(251,191,36,.6); }
+.ft-node-live { box-shadow: 0 0 12px -3px rgba(248,113,113,.75); }
+
+/* Connectors: percentage widths so they scale with each flex column (no scroll). */
+.side-left .ft-bmatch::after { content: ''; position: absolute; top: 50%; left: 50%; width: 50%; height: 2px; background: var(--ft-line); }
+.side-left:not(.col-outer) .ft-bmatch::before { content: ''; position: absolute; top: 50%; right: 50%; width: 50%; height: 2px; background: var(--ft-line); }
+.side-left .ft-bmatch.pair-top .rail { position: absolute; top: 50%; left: 100%; width: 2px; height: var(--v); background: var(--ft-line); }
+
+.side-right .ft-bmatch::after { content: ''; position: absolute; top: 50%; right: 50%; width: 50%; height: 2px; background: var(--ft-line); }
+.side-right:not(.col-outer) .ft-bmatch::before { content: ''; position: absolute; top: 50%; left: 50%; width: 50%; height: 2px; background: var(--ft-line); }
+.side-right .ft-bmatch.pair-top .rail { position: absolute; top: 50%; right: 100%; width: 2px; height: var(--v); background: var(--ft-line); }
+
+.col-final .ft-bmatch::before { content: ''; position: absolute; top: 50%; right: 50%; width: 50%; height: 2px; background: var(--ft-line); }
+.col-final .ft-bmatch::after { content: ''; position: absolute; top: 50%; left: 50%; width: 50%; height: 2px; background: var(--ft-line); }
 
 /* ===== Light theme (header stays dark, body flips) ===== */
 .ft-light .ft-body { background: #ffffff; }
@@ -718,8 +744,6 @@ const navBtn =
 .ft-light .ft-body .hover\:text-white:hover { color: #0f172a; }
 .ft-light .ft-body .border-white\/5 { border-color: #e2e8f0; }
 .ft-light .ft-body .ring-white\/5 { --tw-ring-color: #e2e8f0; }
-.ft-light .bracket-scroll { --ft-line: #cbd5e1; }
-.ft-light .mc { background: #f8fafc; border-color: #e2e8f0; }
-.ft-light .mc-team, .ft-light .mc-score { color: #0f172a; }
-.ft-light .mc-div { background: #e2e8f0; }
+.ft-light .ft-node { background: #ffffff; }
+.ft-light .ft-sc { color: #0f172a; }
 </style>
