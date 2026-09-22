@@ -607,7 +607,7 @@ export function useFootballScores() {
     try { localStorage.setItem('ft-theme', dark.value ? 'dark' : 'light') } catch {}
   }
 
-  const leagueSlug = ref(leagues[0].slug) // default: FIFA World Cup
+  const leagueSlug = ref(leagues.find((l) => l.slug === 'eng.1')?.slug || leagues[0].slug) // default: Premier League
   const date = ref(new Date())
   const events = ref([])
   const leagueName = ref('')
@@ -620,7 +620,7 @@ export function useFootballScores() {
   const lineupEvent = ref(null) // the event whose lineup modal is open
 
   // ----- Table / Top-scorers views (per-league, fetched on demand & cached) -----
-  const view = ref('scores') // 'scores' | 'table' | 'scorers'
+  const view = ref('table') // 'scores' | 'table' | 'scorers'
   const tableCache = {}       // slug -> { season, groups, teamMap }
   const scorerCache = {}      // slug -> { goals, assists }
   const table = ref(null)
@@ -982,6 +982,10 @@ export function useFootballScores() {
   const updatedText = computed(() => clockText(updatedAt.value))
   const tableUpdatedText = computed(() => clockText(tableUpdatedAt.value))
   const scorersUpdatedText = computed(() => clockText(scorersUpdatedAt.value))
+
+  // Activate whichever view is the initial default (mirrors setView's branch).
+  if (view.value === 'table') { ensureTable(); ensureBracket(); startTablePolling() }
+  else if (view.value === 'scorers') { ensureScorers(); startScorersPolling() }
 
   onUnmounted(() => { clearInterval(timer); clearInterval(tableTimer); clearInterval(scorersTimer) })
 
