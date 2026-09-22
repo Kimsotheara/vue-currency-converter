@@ -4,7 +4,6 @@
       {{ t('loan.afford.intro') }}
     </p>
 
-    <!-- Currency -->
     <div class="flex justify-end">
       <div class="flex bg-gray-100 rounded-full p-0.5">
         <button
@@ -76,7 +75,6 @@
       <p class="text-xs text-gray-400 mt-1">{{ t('loan.afford.shareHint') }}</p>
     </div>
 
-    <!-- Result -->
     <div v-if="result" class="rounded-2xl overflow-hidden shadow-md">
       <div class="bg-gradient-to-r from-emerald-600 to-green-500 px-5 py-4 text-white">
         <p class="text-xs opacity-75 uppercase tracking-widest font-semibold mb-1">{{ t('loan.afford.safeLoan') }}</p>

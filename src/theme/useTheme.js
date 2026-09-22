@@ -1,8 +1,5 @@
 import { reactive, computed } from 'vue'
 
-// Each theme toggles the existing `.dark` class (so the global utility remap in
-// main.css keeps working) and sets a `data-theme` attribute that swaps the CSS
-// colour variables. Light is the only non-dark theme.
 export const THEMES = [
   { value: 'light', labelKey: 'settings.themes.light', icon: '☀️', dark: false, swatch: '#f8fafc' },
   { value: 'dark', labelKey: 'settings.themes.dark', icon: '🌙', dark: true, swatch: '#1e293b' },
@@ -31,7 +28,7 @@ export function setTheme(value) {
 export function initTheme() {
   let saved = null
   try { saved = localStorage.getItem(STORAGE_KEY) } catch {}
-  // Old builds stored only 'light' / 'dark' — both remain valid theme values.
+
   if (saved && THEMES.some((t) => t.value === saved)) state.theme = saved
   applyTheme()
 }

@@ -12,7 +12,7 @@
             class="w-full sm:max-w-md bg-white rounded-t-3xl sm:rounded-3xl shadow-2xl p-5 sm:p-6 max-h-[85vh] overflow-y-auto"
             style="padding-bottom: max(1.25rem, env(safe-area-inset-bottom))"
           >
-            <!-- Header -->
+
             <div class="flex items-center justify-between mb-5">
               <h2 class="text-lg font-bold text-gray-800">{{ t('settings.title') }}</h2>
               <button
@@ -24,7 +24,6 @@
               </button>
             </div>
 
-            <!-- Theme -->
             <section class="mb-4">
               <h3 class="text-xs font-semibold uppercase tracking-wider text-gray-400 mb-3">
                 {{ t('settings.appearance') }}
@@ -53,7 +52,6 @@
               </div>
             </section>
 
-            <!-- Language -->
             <section>
               <h3 class="text-xs font-semibold uppercase tracking-wider text-gray-400 mb-3">
                 {{ t('settings.language') }}

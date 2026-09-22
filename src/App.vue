@@ -1,14 +1,12 @@
 <template>
   <div class="h-dvh flex flex-col" :class="activeKey ? 'bg-gray-100 dark:bg-slate-900' : 'bg-gradient-to-b from-indigo-50 via-purple-50 to-white dark:bg-slate-900 dark:bg-none'">
 
-    <!-- App bar -->
     <header
       class="sticky top-0 z-40 bg-white/70 dark:bg-slate-900/70 backdrop-blur-xl border-b border-gray-200/60 dark:border-white/5 shadow-[0_1px_12px_-4px_rgba(0,0,0,0.08)]"
       style="padding-top: env(safe-area-inset-top)"
     >
       <div :class="[containerWidth, 'mx-auto h-16 flex items-center gap-2 px-3 sm:px-4 select-none']">
 
-        <!-- Feature view: back button · centered title · action -->
         <template v-if="activeTab">
           <button
             @click="activeKey = null"
@@ -134,7 +132,7 @@ const tabs = [
 
 const { t } = useI18n()
 
-const activeKey = ref(null) // null = home grid
+const activeKey = ref(null)
 const activeTab = computed(() => tabs.find(t => t.key === activeKey.value) || null)
 
 const settingsOpen = ref(false)
@@ -143,7 +141,6 @@ const refreshApp = () => window.location.reload()
 
 const openFeature = (key) => { activeKey.value = key }
 
-// Form-heavy tools get a wider canvas on tablet / desktop
 const wideTabs = ['invoice', 'invitation', 'weather', 'football']
 const containerWidth = computed(() =>
   wideTabs.includes(activeKey.value)

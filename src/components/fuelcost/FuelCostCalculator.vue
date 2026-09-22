@@ -1,7 +1,6 @@
 <template>
   <div class="space-y-4">
 
-    <!-- Currency toggle -->
     <div class="flex rounded-xl bg-gray-100 p-1">
       <button
         v-for="c in ['USD', 'KHR']"
@@ -14,7 +13,6 @@
       >{{ c }}</button>
     </div>
 
-    <!-- Distance -->
     <div>
       <label class="block text-sm font-semibold text-gray-700 mb-1">{{ t('fuelCost.distance') }}</label>
       <input
@@ -25,7 +23,6 @@
       />
     </div>
 
-    <!-- Fuel efficiency -->
     <div>
       <label class="block text-sm font-semibold text-gray-700 mb-1">{{ t('fuelCost.efficiency') }}</label>
       <input
@@ -36,7 +33,6 @@
       />
     </div>
 
-    <!-- Fuel price -->
     <div>
       <label class="block text-sm font-semibold text-gray-700 mb-1">{{ t('fuelCost.fuelPrice', { symbol }) }}</label>
       <input
@@ -48,7 +44,6 @@
       />
     </div>
 
-    <!-- People -->
     <div>
       <label class="block text-sm font-semibold text-gray-700 mb-1">{{ t('fuelCost.splitBetween') }}</label>
       <div class="flex items-center gap-3">
@@ -63,7 +58,6 @@
       </div>
     </div>
 
-    <!-- Round trip -->
     <label class="flex items-center justify-between cursor-pointer select-none">
       <span class="text-sm font-semibold text-gray-700">{{ t('fuelCost.roundTrip') }}</span>
       <input type="checkbox" v-model="roundTrip" class="w-5 h-5 accent-blue-600" />
@@ -76,7 +70,6 @@
       {{ t('fuelCost.clear') }}
     </button>
 
-    <!-- Result -->
     <div v-if="result" class="rounded-2xl overflow-hidden shadow-md">
       <div class="bg-gradient-to-r from-amber-500 to-orange-500 px-5 py-4 text-white">
         <p class="text-xs opacity-75 uppercase tracking-widest font-semibold mb-1">{{ t('fuelCost.totalCost') }}</p>

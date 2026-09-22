@@ -57,7 +57,7 @@ const drawGradient = async (ctx, url, { bgColor, qrColor, name, sub, icon, platf
     }
 
   const QS = 310, QX = (W - QS) / 2, QY = 50
-  ctx.drawImage(await makeQR(url, '#ffffff', '#00000000', QS), QX, QY)
+  ctx.drawImage(await makeQR(url, qrColor, '#00000000', QS), QX, QY)
 
   const cx = W / 2, cy = QY + QS / 2
   ctx.fillStyle = '#ffffff'

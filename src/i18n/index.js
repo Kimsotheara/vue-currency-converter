@@ -22,8 +22,6 @@ function lookup(obj, path) {
   return path.split('.').reduce((acc, part) => (acc == null ? undefined : acc[part]), obj)
 }
 
-// Reads `state.locale` on every call, so any template using t() re-renders when
-// the language changes. Falls back to English, then to the raw key.
 export function t(key, params) {
   let str = lookup(messages[state.locale], key)
   if (str == null) str = lookup(messages.en, key)

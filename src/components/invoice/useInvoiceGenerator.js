@@ -30,7 +30,6 @@ export const formatDate = (dateStr) => {
   return `${d}/${m}/${y}`
 }
 
-// image: { dataUrl, width, height } | null — optional product photo per line
 const blankItem = () => ({ description: '', qty: 1, unitPrice: 0, image: null })
 
 export function useInvoiceGenerator() {
@@ -40,12 +39,10 @@ export function useInvoiceGenerator() {
   const companyName = ref('')
   const companyAddress = ref('')
   const companyPhone = ref('')
-  // { dataUrl, width, height } — downscaled PNG so PDF/Excel stay small
+
   const logo = ref(null)
   const customerLogo = ref(null)
 
-  // Crops the image to a circle (cover-fit, transparent corners) so the logo
-  // renders round everywhere — including PDF and Excel, which can't mask images.
   const readLogoInto = (targetRef, file) => {
     if (!file || !file.type.startsWith('image/')) return
     const reader = new FileReader()
@@ -77,7 +74,6 @@ export function useInvoiceGenerator() {
   const setCustomerLogoFile = (file) => readLogoInto(customerLogo, file)
   const removeCustomerLogo = () => { customerLogo.value = null }
 
-  // Square cover-crop, downscaled so PDF/Excel stay small
   const setItemImage = (item, file) => {
     if (!file || !file.type.startsWith('image/')) return
     const reader = new FileReader()
@@ -113,8 +109,7 @@ export function useInvoiceGenerator() {
   const paymentStatus = ref('unpaid')
   const deposit = ref(null)
 
-  // Document-level discount (applies to quotation and invoice alike)
-  const discountType = ref('amount') // 'amount' | 'percent'
+  const discountType = ref('amount')
   const discountValue = ref(null)
 
   const notes = ref('')
@@ -130,7 +125,6 @@ export function useInvoiceGenerator() {
 
   const subtotal = computed(() => items.value.reduce((sum, item) => sum + lineTotal(item), 0))
 
-  // Never discount more than the subtotal; percent is capped at 100
   const discountAmount = computed(() => {
     const v = discountValue.value || 0
     if (v <= 0 || subtotal.value <= 0) return 0
@@ -147,7 +141,7 @@ export function useInvoiceGenerator() {
   )
 
   const afterDiscount = computed(() => subtotal.value - discountAmount.value)
-  // Deposit only applies to invoices; never let the amount due go negative
+
   const depositApplied = computed(() =>
     docType.value === 'invoice' ? Math.min(deposit.value || 0, afterDiscount.value) : 0,
   )
@@ -182,8 +176,6 @@ export function useInvoiceGenerator() {
   const esc = (s) => String(s ?? '')
     .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
 
-  // Khmer (and other complex scripts) can't be shaped by jsPDF's text engine,
-  // so the document is rendered as HTML by the browser and captured to the PDF.
   const buildDocumentHtml = () => {
     const title = docType.value === 'invoice' ? 'INVOICE' : 'QUOTATION'
     const fontStack = `-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, 'Noto Sans Khmer', 'Khmer OS', sans-serif`
@@ -319,7 +311,6 @@ export function useInvoiceGenerator() {
     const title = docType.value === 'invoice' ? 'INVOICE' : 'QUOTATION'
     const currencyFmt = '"$"#,##0.00'
 
-    // The Image column only exists when at least one item has a photo
     const hasImages = items.value.some(it => it.image)
     const C = hasImages
       ? { img: 'B', desc: 'C', qty: 'D', price: 'E', total: 'F' }
@@ -333,11 +324,10 @@ export function useInvoiceGenerator() {
       ? [{ width: 6 }, { width: 13 }, { width: 36 }, { width: 8 }, { width: 14 }, { width: 14 }]
       : [{ width: 6 }, { width: 40 }, { width: 8 }, { width: 14 }, { width: 14 }]
 
-    // Header — when a logo exists it gets its own tall row so nothing overlaps
     if (logo.value) {
       const imageId = wb.addImage({ base64: logo.value.dataUrl, extension: 'png' })
       ws.getRow(1).height = 42
-      // Right-aligned: 52px logo tucked into the last column
+
       ws.addImage(imageId, {
         tl: { col: (hasImages ? 5 : 4) + 0.45, row: 0.05 },
         ext: { width: 52, height: 52 },
@@ -350,7 +340,6 @@ export function useInvoiceGenerator() {
     ws.getCell('A2').value = `#${docNumber.value}`
     ws.getCell('A2').font = { color: { argb: 'FF6B7280' } }
 
-    // Company text starts below the logo row when present
     const compRow = logo.value ? 2 : 1
     ws.getCell(`${lastCol}${compRow}`).value = companyName.value
     ws.getCell(`${lastCol}${compRow}`).font = { bold: true }
@@ -360,7 +349,6 @@ export function useInvoiceGenerator() {
       ws.getCell(`${lastCol}${compRow + i}`).alignment = { horizontal: 'right' }
     }
 
-    // Bill to & dates — one blank row after the company block
     const billRow = compRow + 4
     ws.getCell(`A${billRow}`).value = 'Bill To:'
     ws.getCell(`A${billRow}`).font = { bold: true }
@@ -368,7 +356,7 @@ export function useInvoiceGenerator() {
     if (customerLogo.value) {
       const imageId = wb.addImage({ base64: customerLogo.value.dataUrl, extension: 'png' })
       ws.getRow(billRow).height = 42
-      // Sits right after the "Bill To:" label, at the start of column B
+
       ws.addImage(imageId, {
         tl: { col: 1.02, row: billRow - 1 + 0.05 },
         ext: { width: 52, height: 52 },
@@ -393,7 +381,6 @@ export function useInvoiceGenerator() {
       ws.getCell(`${lastCol}${billRow + i}`).alignment = { horizontal: 'right', vertical: 'middle' }
     }
 
-    // Items table — one blank row after the bill-to block
     const headerRowNum = billRow + 5
     const headerRow = ws.getRow(headerRowNum)
     headerRow.values = hasImages
@@ -432,7 +419,6 @@ export function useInvoiceGenerator() {
     })
     const lastItemRow = firstItemRow + items.value.length - 1
 
-    // Totals (formulas so the file stays editable)
     const subtotalRow = lastItemRow + 2
     const setTotal = (r, label, value, opts = {}) => {
       ws.getCell(`${labelCol}${r}`).value = label
@@ -477,7 +463,6 @@ export function useInvoiceGenerator() {
       { font: { bold: true, size: 12 } },
     )
 
-    // Notes sit under the table on the left, level with the totals
     if (notes.value) {
       ws.getCell(`A${subtotalRow}`).value = 'Notes:'
       ws.getCell(`A${subtotalRow}`).font = { bold: true }

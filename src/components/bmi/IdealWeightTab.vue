@@ -1,17 +1,14 @@
 <template>
   <div class="space-y-4">
 
-    <!-- Sex -->
     <div class="flex rounded-xl bg-gray-100 p-1">
       <button v-for="s in [['male','bmi.male'],['female','bmi.female']]" :key="s[0]" @click="sex = s[0]"
         :class="['flex-1 py-2 rounded-lg text-sm font-semibold transition-colors', sex === s[0] ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500']">{{ t(s[1]) }}</button>
     </div>
 
-    <!-- Shared height (weight not needed here) -->
     <BodyFields :show-weight="false" v-model:unit="unit"
       v-model:heightCm="heightCm" v-model:heightFt="heightFt" v-model:heightIn="heightIn" />
 
-    <!-- Frame -->
     <div>
       <label class="block text-sm font-semibold text-gray-700 mb-1">{{ t('bmi.bodyFrame') }}</label>
       <div class="flex rounded-xl bg-gray-100 p-1">
@@ -73,7 +70,6 @@ const result = computed(() => {
   const low = 18.5 * m2
   const high = 24.9 * m2
 
-  // Devine ideal weight, adjusted by frame.
   const inchesOver5ft = Math.max(0, cm / 2.54 - 60)
   const devine = (sex.value === 'male' ? 50 : 45.5) + 2.3 * inchesOver5ft
   const frameFactor = frame.value === 'small' ? 0.9 : frame.value === 'large' ? 1.1 : 1

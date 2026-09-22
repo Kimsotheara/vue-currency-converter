@@ -1,7 +1,6 @@
 <template>
   <div class="space-y-4">
 
-    <!-- Mode tabs -->
     <div class="flex bg-gray-100 rounded-full p-1 w-full">
       <button
         v-for="opt in modes"
@@ -17,9 +16,8 @@
       </button>
     </div>
 
-    <!-- ───────── Calculate ───────── -->
     <template v-if="mode === 'calc'">
-      <!-- Currency toggle -->
+
       <div class="flex justify-end">
         <div class="flex bg-gray-100 rounded-full p-0.5">
           <button
@@ -102,7 +100,6 @@
         />
       </div>
 
-      <!-- Loan type toggle -->
       <div>
         <label class="block text-sm font-semibold text-gray-700 mb-1">{{ t('loan.loanType') }}</label>
         <div class="flex bg-gray-100 rounded-full p-1 w-full">
@@ -150,7 +147,6 @@
         </div>
       </div>
 
-      <!-- Extra payment -->
       <div v-if="result" class="rounded-2xl border border-gray-100 p-4 space-y-3">
         <label class="block text-sm font-semibold text-gray-700">
           {{ t('loan.extraPayment', { cur: currency }) }}
@@ -180,7 +176,6 @@
         </div>
       </div>
 
-      <!-- Amortization -->
       <div v-if="activeSchedule" class="rounded-2xl border border-gray-100 overflow-hidden">
         <button
           type="button"
@@ -264,7 +259,6 @@ const modes = [
 const mode = ref('calc')
 const showSchedule = ref(false)
 
-// When the borrower overpays, show the shortened (with-extra) schedule.
 const activeSchedule = computed(() =>
   extraSavings.value && !extraSavings.value.unsupported ? extraSavings.value.schedule : amortization.value,
 )

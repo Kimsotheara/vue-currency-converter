@@ -1,7 +1,6 @@
 <template>
   <div class="space-y-4">
 
-    <!-- Currency toggle -->
     <div class="flex rounded-xl bg-gray-100 p-1">
       <button
         v-for="c in ['USD', 'KHR']"
@@ -14,7 +13,6 @@
       >{{ c }}</button>
     </div>
 
-    <!-- Gross monthly salary -->
     <div>
       <label class="block text-sm font-semibold text-gray-700 mb-1">{{ t('salaryTax.gross') }} ({{ symbol }})</label>
       <input
@@ -26,7 +24,6 @@
       />
     </div>
 
-    <!-- Residency toggle -->
     <div class="flex rounded-xl bg-gray-100 p-1">
       <button
           v-for="r in residencyOptions"
@@ -39,7 +36,6 @@
       >{{ t(r.labelKey) }}</button>
     </div>
 
-    <!-- Dependents (residents only) -->
     <div v-if="residency === 'resident'">
       <label class="block text-sm font-semibold text-gray-700 mb-1">{{ t('salaryTax.dependents') }}</label>
       <div class="flex items-center gap-3">
@@ -55,7 +51,6 @@
       <p class="text-xs text-gray-400 mt-1">{{ t('salaryTax.reliefEach', { amount: fmtKHR(RELIEF_PER_DEPENDENT) }) }}</p>
     </div>
 
-    <!-- NSSF -->
     <label class="flex items-center justify-between cursor-pointer select-none">
       <span class="text-sm font-semibold text-gray-700">{{ t('salaryTax.deductNssf', { rate: (NSSF_RATE * 100).toFixed(0) }) }}</span>
       <input type="checkbox" v-model="nssf" class="w-5 h-5 accent-emerald-600" />
@@ -68,7 +63,6 @@
       {{ t('salaryTax.clear') }}
     </button>
 
-    <!-- Result -->
     <div v-if="result" class="rounded-2xl overflow-hidden shadow-md">
       <div class="bg-gradient-to-r from-emerald-600 to-green-500 px-5 py-4 text-white">
         <p class="text-xs opacity-75 uppercase tracking-widest font-semibold mb-1">{{ t('salaryTax.netMonthly') }}</p>
@@ -98,7 +92,6 @@
         </div>
       </div>
 
-      <!-- Bracket breakdown (KHR, as defined by law) -->
       <div class="bg-white border-t border-gray-100 px-5 py-3">
         <p class="text-[11px] font-semibold uppercase tracking-wider text-gray-400 mb-2">{{ t('salaryTax.bracketBreakdown') }}</p>
         <div class="space-y-1.5">
@@ -129,7 +122,6 @@ import { useI18n } from '@/i18n'
 const { t } = useI18n()
 const { exchangeRate } = useExchangeRate()
 
-// Cambodia monthly Tax on Salary brackets (KHR), GDT Sub-Decree (resident).
 const BRACKETS = [
   { upTo: 1_500_000,  rate: 0.00 },
   { upTo: 2_000_000,  rate: 0.05 },
@@ -137,11 +129,11 @@ const BRACKETS = [
   { upTo: 12_500_000, rate: 0.15 },
   { upTo: Infinity,   rate: 0.20 },
 ]
-const RELIEF_PER_DEPENDENT = 150_000 // KHR per spouse / minor child, per month
-const NONRESIDENT_RATE = 0.20 // flat final withholding on non-resident salary
-// NSSF pension: employee share, charged on the contributory wage up to a ceiling.
+const RELIEF_PER_DEPENDENT = 150_000
+const NONRESIDENT_RATE = 0.20
+
 const NSSF_RATE = 0.02
-const NSSF_CEILING = 1_200_000 // KHR — max assessed monthly wage
+const NSSF_CEILING = 1_200_000
 
 const residencyOptions = [
   { key: 'resident', labelKey: 'salaryTax.resident' },
@@ -172,7 +164,6 @@ const clear = () => {
   residency.value = 'resident'
 }
 
-// Progressive tax over the KHR brackets, with a per-bracket breakdown.
 const computeTax = (taxable) => {
   let tax = 0
   let lower = 0
@@ -198,7 +189,7 @@ const result = computed(() => {
   if (!gross.value || gross.value <= 0) return null
   const grossKHR = currency.value === 'KHR' ? gross.value : gross.value * exchangeRate.value
   const resident = residency.value === 'resident'
-  // Residents: progressive brackets + dependent relief. Non-residents: flat 20%.
+
   const reliefKHR = resident ? dependents.value * RELIEF_PER_DEPENDENT : 0
   const taxableKHR = Math.max(0, grossKHR - reliefKHR)
   let taxKHR, breakdown
@@ -216,7 +207,6 @@ const result = computed(() => {
   }
 })
 
-// Convert an internal KHR amount to the selected display currency.
 const disp = (khr) => (currency.value === 'KHR' ? khr : khr / exchangeRate.value)
 
 const fmt = (v) =>

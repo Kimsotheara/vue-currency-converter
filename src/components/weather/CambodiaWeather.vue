@@ -398,7 +398,6 @@ const districtCount = (p) => (districts[p.id] || []).length
 
 const round1 = (v) => (v == null ? '—' : Math.round(v * 10) / 10)
 
-// US AQI bands → colour + i18n key.
 const aqiBand = (v) => {
   if (v <= 50) return { key: 'aqiGood', cls: 'text-green-600', bg: 'bg-green-50 border-green-100' }
   if (v <= 100) return { key: 'aqiModerate', cls: 'text-yellow-600', bg: 'bg-yellow-50 border-yellow-100' }
@@ -428,7 +427,7 @@ const radarSrc = computed(() => {
 
 const hourLabel = (timeStr, i) => {
   if (i === 0) return t('weather.now')
-  return timeStr.slice(11, 16) // 'HH:MM' — already Phnom Penh local time from the API
+  return timeStr.slice(11, 16)
 }
 
 const onViewDistricts = () => {

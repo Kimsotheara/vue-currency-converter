@@ -1,11 +1,10 @@
 <template>
   <div class="space-y-6">
 
-    <!-- Gauge -->
     <div class="flex flex-col items-center">
       <div class="relative w-64 h-40">
         <svg viewBox="0 0 200 120" class="w-full h-full">
-          <!-- Track -->
+
           <path
             d="M 20 110 A 80 80 0 0 1 180 110"
             fill="none"
@@ -13,7 +12,7 @@
             stroke-width="14"
             stroke-linecap="round"
           />
-          <!-- Progress -->
+
           <path
             d="M 20 110 A 80 80 0 0 1 180 110"
             fill="none"
@@ -26,7 +25,6 @@
           />
         </svg>
 
-        <!-- Center readout -->
         <div class="absolute inset-0 flex flex-col items-center justify-end pb-1">
           <p class="text-4xl font-bold text-gray-800 tabular-nums leading-none">
             {{ displayValue }}
@@ -40,7 +38,6 @@
       </p>
     </div>
 
-    <!-- Action button -->
     <button
       @click="running ? null : start()"
       :disabled="running"
@@ -54,7 +51,6 @@
       {{ running ? t('speedtest.testing') : (phase === 'done' ? t('speedtest.testAgain') : t('speedtest.startTest')) }}
     </button>
 
-    <!-- Results grid -->
     <div class="grid grid-cols-2 gap-3">
       <div
         v-for="metric in metrics"
@@ -132,11 +128,8 @@ const phaseColor = computed(() => ({
   done: '#2563eb',
 }[phase.value]))
 
-// Half-circle arc length for r = 80  ->  π * r
 const arcLength = Math.PI * 80
 
-// Map the live value onto the gauge with a log scale so both slow and fast
-// connections read sensibly. Ping uses a smaller (inverted-feel) scale.
 const gaugeFraction = computed(() => {
   if (phase.value === 'idle') return 0
   if (phase.value === 'done') return clampLog(download.value, 1000)

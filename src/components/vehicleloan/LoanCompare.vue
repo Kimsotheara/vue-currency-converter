@@ -4,7 +4,6 @@
       {{ t('loan.compare.intro') }}
     </p>
 
-    <!-- Currency -->
     <div class="flex justify-end">
       <div class="flex bg-gray-100 rounded-full p-0.5">
         <button
@@ -81,7 +80,6 @@
       </div>
     </div>
 
-    <!-- Editable bank rates -->
     <div class="space-y-2">
       <p class="text-sm font-semibold text-gray-700">
         {{ rateType === 'monthly' ? t('loan.compare.rateMonthly') : t('loan.compare.rateYearly') }}
@@ -98,7 +96,6 @@
       </div>
     </div>
 
-    <!-- Results -->
     <div v-if="rows.length" class="overflow-hidden rounded-2xl border border-gray-100 shadow-sm">
       <table class="w-full text-sm">
         <thead>
@@ -145,7 +142,6 @@ const loanType = ref('reducing')
 const rateType = ref('annual')
 const currency = ref('USD')
 
-// Editable estimates — borrowers should confirm against each bank's live offer.
 const banks = ref([
   { name: 'ABA', rate: 16 },
   { name: 'ACLEDA', rate: 15 },

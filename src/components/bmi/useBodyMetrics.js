@@ -1,17 +1,14 @@
 import { ref, computed } from 'vue'
 
-// Shared, app-lifetime body inputs so every Health tab reuses the same values:
-// type once in any tab and the others are already filled in. These refs live at
-// module scope (a singleton), so all tabs read and write the same state.
-const unit = ref('metric') // 'metric' | 'imperial'
+const unit = ref('metric')
 const weight = ref(null)
 const heightCm = ref(null)
 const heightFt = ref(null)
 const heightIn = ref(null)
-const sex = ref('male') // 'male' | 'female'
+const sex = ref('male')
 const age = ref(null)
 const activity = ref(1.55)
-const frame = ref('medium') // 'small' | 'medium' | 'large'
+const frame = ref('medium')
 
 const weightKg = computed(() => {
   if (!weight.value || weight.value <= 0) return null
