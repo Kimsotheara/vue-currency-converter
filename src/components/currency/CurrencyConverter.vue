@@ -1,7 +1,6 @@
 <template>
   <div class="space-y-4">
 
-    <!-- Tabs: Convert · Salary Tax -->
     <div class="flex rounded-xl bg-gray-100 p-1">
       <button
         v-for="tb in tabs"
@@ -60,7 +59,6 @@ const toCurrency = ref(null)
 const amount = ref(1)
 const error = ref(null)
 
-// Result updates live as the amount or selected currencies change.
 const result = computed(() => {
   if (
     amount.value === null || amount.value === '' ||

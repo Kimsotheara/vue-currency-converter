@@ -16,12 +16,9 @@ export function useInvitationCards() {
 
   const template = computed(() => templates.find(t => t.id === templateId.value) || templates[0])
 
-  // Khmer Moul heading script for the title and guest names
   const useKhmerMoul = ref(false)
   const titleFont = computed(() => (useKhmerMoul.value ? khmerMoulFont : ''))
 
-  // Circular cover-crop (like the invoice logo) so the photo renders round
-  // in the PNG download too — html2canvas can't always honor border-radius masks.
   const photo = ref(null)
   const setPhotoFile = (file) => {
     if (!file || !file.type.startsWith('image/')) return
@@ -65,7 +62,6 @@ export function useInvitationCards() {
     return `${hr}:${String(m).padStart(2, '0')} ${h >= 12 ? 'PM' : 'AM'}`
   })
 
-  // "Theara,Lina, Youna" → ['Theara', 'Lina', 'Youna'] — commas or newlines both work
   const parsedNames = computed(() =>
     namesInput.value.split(/[,\n]+/).map(s => s.trim()).filter(Boolean),
   )
@@ -103,7 +99,6 @@ export function useInvitationCards() {
     downloadDataUrl(await captureCard(el), `Invitation-${safeFileName(guestName)}.png`)
   }
 
-  // One file per guest; small gaps keep browsers from blocking the burst of downloads
   const downloadAll = async (els, names) => {
     for (let i = 0; i < els.length; i++) {
       if (!els[i]) continue

@@ -27,7 +27,6 @@ export const playTick = () => {
 export const playCelebration = () => {
   const ctx = getAudioCtx()
 
-  // Ascending C major arpeggio: C4 → E4 → G4 → C5
   const notes = [
     { freq: 523,  delay: 0.00, duration: 0.25 },
     { freq: 659,  delay: 0.15, duration: 0.25 },

@@ -38,15 +38,13 @@ export function useVehicleLoanCalculator() {
   const rateType = ref('monthly')
   const currency = ref('USD')
   const extraPayment = ref(null)
-  const exchangeRate = ref(FALLBACK_USD_TO_KHR) // KHR per 1 USD
+  const exchangeRate = ref(FALLBACK_USD_TO_KHR)
 
   onMounted(async () => {
     try {
       const { data } = await axios.get('https://api.exchangerate-api.com/v4/latest/USD')
       if (data?.rates?.KHR) exchangeRate.value = data.rates.KHR
-    } catch {
-      // keep fallback rate
-    }
+    } catch {}
   })
 
   const setCurrency = (newCurrency) => {
@@ -97,7 +95,6 @@ export function useVehicleLoanCalculator() {
     return { loanAmount, ...calc }
   })
 
-  // Full repayment table for the current loan (no extra payment).
   const amortization = computed(() => {
     if (!result.value) return null
     return buildAmortizationSchedule(result.value.loanAmount, annualRate.value, termMonths.value, {
@@ -105,8 +102,6 @@ export function useVehicleLoanCalculator() {
     })
   })
 
-  // What happens if the borrower overpays every month. Only reducing-balance
-  // loans save interest — flat-rate interest is locked in up front.
   const extraSavings = computed(() => {
     if (!result.value || !extraPayment.value || extraPayment.value <= 0) return null
     if (loanType.value === 'flat') return { unsupported: true }

@@ -2,8 +2,6 @@ import jsPDF from 'jspdf'
 import autoTable from 'jspdf-autotable'
 import { downloadBlob } from '@/utils/download'
 
-// jsPDF's built-in fonts can't render the Khmer riel glyph (៛), so the PDF
-// formats amounts with a plain currency code instead of the on-screen symbol.
 const pdfAmount = (value, currency) => {
   if (currency === 'KHR') {
     return `${new Intl.NumberFormat('en-US', { maximumFractionDigits: 0 }).format(Math.round(value))} KHR`
@@ -11,8 +9,6 @@ const pdfAmount = (value, currency) => {
   return `$${new Intl.NumberFormat('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(value)}`
 }
 
-// `summary` is a list of { label, value } where value is a raw number that
-// gets formatted PDF-safely, or { label, text } for already-formatted text.
 export function exportAmortizationPdf({ rows, currency = 'USD', summary = [] }) {
   const doc = new jsPDF('p', 'mm', 'a4')
 

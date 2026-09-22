@@ -13,8 +13,6 @@ const currentUrl = (locations) =>
   '&current=weather_code,temperature_2m,relative_humidity_2m,apparent_temperature,wind_speed_10m' +
   '&timezone=Asia%2FPhnom_Penh'
 
-// One rich call backing the detail modal: 48h hourly + 7-day daily (with UV,
-// rain totals & wind), plus the current UV index.
 const detailsUrl = (p) =>
   `${API}?latitude=${p.lat}&longitude=${p.lon}` +
   '&current=uv_index' +
@@ -114,8 +112,6 @@ const mapHourly = (h) =>
     uv: h.uv_index[i],
   }))
 
-// Best/worst day to travel over the 7-day window. Penalise rain chance, fierce
-// heat, very high UV and storms; lowest score wins.
 const deriveTravel = (daily) => {
   const score = (i) => {
     let s = daily.precipitation_probability_max?.[i] ?? 0
@@ -133,8 +129,6 @@ const deriveTravel = (daily) => {
   return best === worst ? null : { best, worst }
 }
 
-// Local advisories synthesised from today's forecast (no public alert feed
-// covers Cambodia). Returns [{ level, icon, key, params }].
 const deriveAdvisories = (daily, airNow) => {
   const a = []
   const tmax = daily.temperature_2m_max?.[0]
@@ -151,8 +145,6 @@ const deriveAdvisories = (daily, airNow) => {
   return a
 }
 
-// Farming-focused read-out (Agriculture mode) — daytime humidity/wind averages,
-// 3-day rain total, and simple spray/irrigation calls. Useful for Cambodia.
 const deriveAgri = (daily, hourly) => {
   const day = hourly.filter((h) => {
     const hr = new Date(h.time).getHours()
@@ -168,8 +160,8 @@ const deriveAgri = (daily, hourly) => {
     humidity,
     wind,
     rainP,
-    sprayOk: wind < 15 && rainP < 40,   // calm & dry enough to spray
-    needIrrigation: rainSum3 < 5,        // little rain coming — irrigate
+    sprayOk: wind < 15 && rainP < 40,
+    needIrrigation: rainSum3 < 5,
   }
 }
 
@@ -257,9 +249,6 @@ export function useCambodiaWeather() {
     }
   }
 
-  // Rich detail bundle for the modal: 7-day + 48h hourly + air quality, plus the
-  // derived advisories / travel pick / agriculture read-out. Forecast falls back
-  // to met.no (daily only) if Open-Meteo is down; air quality is best-effort.
   const ensureDetails = async (p) => {
     const k = keyOf(p)
     if (detailsCache.value[k] || detailsStatus.value[k] === 'loading') return
@@ -276,7 +265,7 @@ export function useCambodiaWeather() {
         markPrimaryUp()
       } else {
         markPrimaryDown()
-        daily = metDaily(await metFetchOne(p)) // last resort: 7-day only, no hourly/UV
+        daily = metDaily(await metFetchOne(p))
       }
 
       let airNow = null

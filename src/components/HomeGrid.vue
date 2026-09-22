@@ -27,7 +27,7 @@ const visibleTabs = computed(() => {
 
 <template>
   <div>
-    <!-- Search -->
+
     <label class="relative block mb-5">
       <Search class="w-5 h-5 text-gray-400 absolute left-4 top-1/2 -translate-y-1/2" />
       <input
@@ -38,7 +38,6 @@ const visibleTabs = computed(() => {
       />
     </label>
 
-    <!-- Featured banner -->
     <div class="relative overflow-hidden rounded-2xl bg-gradient-to-r from-violet-600 to-purple-500 px-5 py-5 mb-7 shadow-md">
       <p class="text-[11px] font-semibold uppercase tracking-widest text-white/70 mb-1">{{ t('home.featured') }}</p>
       <h2 class="text-white text-lg font-bold leading-tight">{{ t('home.featuredTitle', { count: tabs.length }) }}</h2>
@@ -47,7 +46,6 @@ const visibleTabs = computed(() => {
       <div class="absolute right-0 bottom-2 w-16 h-16 rounded-full bg-white/10" />
     </div>
 
-    <!-- Section heading -->
     <div class="flex items-center justify-between mb-4">
       <h3 class="text-base font-bold text-gray-800">{{ t('home.allTools') }}</h3>
       <button class="text-sm font-semibold text-purple-600 hover:text-purple-700" @click="search = ''">
@@ -55,7 +53,6 @@ const visibleTabs = computed(() => {
       </button>
     </div>
 
-    <!-- Tool grid -->
     <div class="grid grid-cols-3 sm:grid-cols-4 gap-x-3 gap-y-6">
       <button
         v-for="tab in visibleTabs"
@@ -75,7 +72,6 @@ const visibleTabs = computed(() => {
       </button>
     </div>
 
-    <!-- Empty state -->
     <p v-if="!visibleTabs.length" class="text-center text-sm text-gray-400 py-10">
       {{ t('home.noMatch', { q: search }) }}
     </p>

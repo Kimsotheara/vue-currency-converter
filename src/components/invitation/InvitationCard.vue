@@ -1,5 +1,5 @@
 <template>
-  <!-- Inline styles only: html2canvas captures this node 1:1 for the PNG download -->
+
   <div
     :style="{
       width: '340px',
@@ -11,7 +11,7 @@
       overflow: 'hidden',
     }"
   >
-    <!-- t.arch: arched top frame, Greetings Island style -->
+
     <div
       :style="{
         height: '100%',
@@ -28,7 +28,7 @@
         fontFamily: t.font,
       }"
     >
-      <!-- Modern badge: occasion emoji in a soft tinted circle -->
+
       <div
         :style="{
           width: '56px',
@@ -51,7 +51,6 @@
         {{ t.eyebrowText || L('invitation.youreInvited') }}
       </p>
 
-      <!-- Khmer Moul glyphs are tall — extra line-height keeps them from clipping -->
       <h3 :style="{ color: t.title, fontFamily: headingFont, fontSize: headingSize, fontWeight: isScript ? 400 : 700, lineHeight: titleFont ? 1.8 : (isScript ? 1.35 : 1.25), margin: '8px 0 0', wordBreak: 'break-word' }">
         {{ eventTitle || L('invitation.specialEvent') }}
       </h3>
@@ -125,8 +124,6 @@ const props = defineProps({
 
 const t = computed(() => props.template)
 
-// Heading font priority: explicit override (Khmer Moul) > template script > template font.
-// Calligraphy needs a bigger size at regular weight to stay legible.
 const isScript = computed(() => !props.titleFont && !!t.value.script)
 const headingFont = computed(() => props.titleFont || (isScript.value ? scriptFont : t.value.font))
 const headingSize = computed(() => (props.titleFont ? '23px' : isScript.value ? '36px' : '27px'))

@@ -27,7 +27,6 @@ export const useWheelSpinner = () => {
       angle.value += velocity * (Math.PI / 180)
       redraw()
 
-      // Play tick each time wheel crosses a segment boundary
       const currSegment = Math.floor(angle.value / slice)
       if (currSegment !== prevSegment) {
         playTick()
@@ -49,7 +48,7 @@ export const useWheelSpinner = () => {
   const pickWinner = () => {
     const n      = items.value.length
     const slice  = (2 * Math.PI) / n
-    // Find which segment is under the pointer at the top (−π/2)
+
     const offset = ((-Math.PI / 2 - angle.value) % (2 * Math.PI) + 2 * Math.PI) % (2 * Math.PI)
     winner.value = items.value[Math.floor(offset / slice) % n]
   }

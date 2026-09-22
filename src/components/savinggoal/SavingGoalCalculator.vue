@@ -37,18 +37,6 @@
       />
     </div>
 
-<!--    <div>-->
-<!--      <label class="block text-sm font-semibold text-gray-700 mb-1">Expected Interest Rate (% per year, optional)</label>-->
-<!--      <input-->
-<!--        :value="interestRate ?? ''"-->
-<!--        @input="interestRate = $event.target.value === '' ? null : Number($event.target.value)"-->
-<!--        type="number"-->
-<!--        placeholder="e.g. 5"-->
-<!--        min="0"-->
-<!--        class="w-full border border-gray-300 rounded-xl px-3 py-2.5 text-base focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"-->
-<!--      />-->
-<!--    </div>-->
-
     <button
       @click="clear"
       class="w-full bg-red-500 hover:bg-red-600 active:bg-red-700 text-white font-semibold py-2.5 rounded-xl transition-colors"
@@ -63,7 +51,6 @@
         <p class="text-4xl font-bold">${{ fmt(result.monthly) }}</p>
       </div>
 
-      <!-- Progress bar -->
       <div class="bg-white px-5 py-4">
         <div class="flex justify-between text-xs text-gray-500 font-semibold mb-1">
           <span>{{ t('savingGoal.saved') }}: ${{ fmt(currentSavings || 0) }}</span>
@@ -109,7 +96,6 @@ const { t } = useI18n()
 const goalAmount = ref(null)
 const currentSavings = ref(null)
 const months = ref(null)
-// const interestRate = ref(null)
 
 const clear = () => {
   goalAmount.value = null
@@ -122,7 +108,7 @@ const error = computed(() => {
   if (goalAmount.value <= 0) return t('savingGoal.errGoal')
   if (months.value <= 0) return t('savingGoal.errMonths')
   if (currentSavings.value < 0) return t('savingGoal.errSavings')
-  // if (interestRate.value < 0) return 'Interest rate cannot be negative.'
+
   return null
 })
 
@@ -131,13 +117,6 @@ const result = computed(() => {
 
   const saved = currentSavings.value || 0
   let remaining = goalAmount.value - saved
-
-  // Apply expected interest growth on current savings (monthly compounding)
-  // if (interestRate.value) {
-  //   const monthlyRate = interestRate.value / 100 / 12
-  //   const futureValueOfSavings = saved * Math.pow(1 + monthlyRate, months.value)
-  //   remaining = goalAmount.value - futureValueOfSavings
-  // }
 
   remaining = Math.max(0, remaining)
 

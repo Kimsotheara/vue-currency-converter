@@ -1,12 +1,4 @@
-/**
- * Maps each tool's tab `key` to its icon (a Lucide component).
- *
- * To change an icon:
- *   1. Find one at https://lucide.dev
- *   2. Add its name to the import below
- *   3. Assign it to the tool key here
- * No SVG path editing or `v-html` needed — HomeGrid renders these as components.
- */
+
 import {
   Gauge,
   ArrowRightLeft,
@@ -43,10 +35,6 @@ export const toolIcons = {
   fuelcost: Fuel,
 }
 
-/**
- * Returns the icon component for a tool key, or `null` if none is defined.
- * @param {string} key - the tool's tab key
- */
 export function getToolIcon(key) {
   return toolIcons[key] ?? null
 }

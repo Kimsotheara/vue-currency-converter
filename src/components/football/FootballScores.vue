@@ -1,6 +1,6 @@
 <template>
   <div class="-mx-1 sm:-mx-2" :class="{ 'ft-light': !dark }">
-    <!-- ===== Header ===== -->
+
     <div class="rounded-t-2xl bg-gradient-to-br from-slate-900 via-slate-900 to-slate-800 px-5 pt-5 pb-4">
       <div class="flex items-center gap-3">
         <div class="w-11 h-11 rounded-xl bg-white/10 flex items-center justify-center text-2xl shrink-0">
@@ -29,7 +29,6 @@
         </button>
       </div>
 
-      <!-- League chips -->
       <div class="mt-4 flex gap-2 overflow-x-auto no-scrollbar -mx-1 px-1 pb-1">
         <button
           v-for="l in leagues"
@@ -47,7 +46,6 @@
       </div>
     </div>
 
-    <!-- ===== View tabs ===== -->
     <div class="bg-slate-800 px-3 pt-2 flex gap-1 border-t border-white/5">
       <button
         v-for="tab in tabs"
@@ -64,7 +62,6 @@
       </button>
     </div>
 
-    <!-- ===== Date bar (scores only) ===== -->
     <div v-if="view === 'scores'" class="bg-slate-800 px-5 py-2.5 flex items-center justify-between border-t border-white/5">
       <button :class="navBtn" @click="shiftDay(-1)" :title="t('football.prevDay')">‹</button>
       <button
@@ -79,11 +76,10 @@
       <button :class="navBtn" @click="shiftDay(1)" :title="t('football.nextDay')">›</button>
     </div>
 
-    <!-- ===== Body ===== -->
     <div class="ft-body bg-slate-900 rounded-b-2xl px-4 sm:px-5 pt-4 pb-5 min-h-[260px]">
-      <!-- ============ SCORES ============ -->
+
       <template v-if="view === 'scores'">
-      <!-- Loading -->
+
       <div v-if="loading && !events.length" class="space-y-3 animate-pulse">
         <div class="h-44 rounded-2xl bg-slate-800/70" />
         <div class="grid sm:grid-cols-2 gap-3">
@@ -92,7 +88,6 @@
         </div>
       </div>
 
-      <!-- Error -->
       <div v-else-if="error" class="text-center py-12">
         <p class="text-4xl mb-3">📡</p>
         <p class="text-slate-300 text-sm mb-4">{{ error }}</p>
@@ -104,7 +99,6 @@
         </button>
       </div>
 
-      <!-- Empty -->
       <div v-else-if="!events.length" class="text-center py-12">
         <p class="text-5xl mb-3">⚽</p>
         <p class="text-slate-400 text-sm">{{ t('football.noMatches', { day: dateLabel.toLowerCase() }) }}</p>
@@ -112,7 +106,7 @@
       </div>
 
       <template v-else>
-        <!-- ===== Featured match ===== -->
+
         <div v-if="featured" class="rounded-2xl bg-gradient-to-b from-slate-800 to-slate-800/40 ring-1 ring-white/5 p-5">
           <div class="flex items-center justify-between text-xs">
             <span class="text-slate-400 truncate">{{ leagueName }} · {{ dateLabel }}</span>
@@ -122,13 +116,13 @@
           </div>
 
           <div class="mt-4 grid grid-cols-[1fr_auto_1fr] items-center gap-2">
-            <!-- Home -->
+
             <div class="flex flex-col items-center text-center gap-2">
               <img v-if="featured.home.logo" :src="featured.home.logo" :alt="featured.home.name"
                    class="w-16 h-16 object-contain" loading="lazy" />
               <span class="text-white font-bold text-sm leading-tight">{{ featured.home.name }}</span>
             </div>
-            <!-- Score -->
+
             <div class="px-2 sm:px-4 text-center">
               <div v-if="featured.state !== 'pre'" class="flex items-end gap-2 sm:gap-3 text-white font-bold tabular-nums">
                 <span class="text-5xl" :class="{ 'opacity-50': featured.completed && !featured.home.winner }">{{ featured.home.score }}</span>
@@ -137,7 +131,7 @@
               </div>
               <div v-else class="text-2xl font-bold text-white tabular-nums">{{ kickoff(featured) }}</div>
             </div>
-            <!-- Away -->
+
             <div class="flex flex-col items-center text-center gap-2">
               <img v-if="featured.away.logo" :src="featured.away.logo" :alt="featured.away.name"
                    class="w-16 h-16 object-contain" loading="lazy" />
@@ -145,7 +139,6 @@
             </div>
           </div>
 
-          <!-- Scorers -->
           <div
             v-if="featured.homeScorers.length || featured.awayScorers.length"
             class="mt-5 pt-4 border-t border-white/5 grid grid-cols-[1fr_auto_1fr] gap-3 items-start text-xs"
@@ -165,7 +158,6 @@
             </ul>
           </div>
 
-          <!-- Match stats (possession / shots on target) -->
           <div v-if="matchStats" class="mt-5 pt-4 border-t border-white/5 space-y-2">
             <div class="text-[11px] text-slate-400 font-semibold uppercase tracking-wider mb-1">📊 {{ t('football.stats') }}</div>
             <div v-for="row in statRows" :key="row.label" class="flex items-center text-[11px]">
@@ -175,7 +167,6 @@
             </div>
           </div>
 
-          <!-- Prediction -->
           <div v-if="prediction" class="mt-5 pt-4 border-t border-white/5">
             <div class="flex items-center justify-between text-[11px] mb-2">
               <span class="text-slate-400 font-semibold uppercase tracking-wider">🔮 {{ t('football.prediction') }}</span>
@@ -203,7 +194,6 @@
           </button>
         </div>
 
-        <!-- ===== Other matches ===== -->
         <div v-if="others.length" class="mt-4">
           <p class="text-slate-500 text-xs font-semibold uppercase tracking-wider mb-2 px-1">{{ t('football.otherMatches') }}</p>
           <div class="grid sm:grid-cols-2 gap-2.5">
@@ -256,7 +246,7 @@
           <button @click="refreshCurrent()" class="px-5 py-2 rounded-lg bg-emerald-500 hover:bg-emerald-400 text-white text-sm font-semibold transition">{{ t('football.retry') }}</button>
         </div>
         <div v-else-if="table">
-          <!-- ===== Knockout bracket (cups only) — shown above the table ===== -->
+
           <div v-if="bracketLoading && !bracket" class="mb-6 flex gap-4 animate-pulse overflow-hidden">
             <div v-for="n in 3" :key="n" class="flex-1 space-y-2">
               <div class="h-3 w-16 rounded bg-slate-800/70" />
@@ -271,15 +261,14 @@
               </span>
             </div>
 
-            <!-- Full-width flag bracket — no horizontal scroll -->
             <div class="ft-bracket">
-              <!-- Round labels -->
+
               <div class="ft-brow">
                 <div v-for="(c, ci) in bracketColumns" :key="'l' + ci" class="ft-bcol">
                   <span class="ft-blabel" :class="{ 'ft-blabel-final': c.side === 'final' }">{{ shortRound(c) }}</span>
                 </div>
               </div>
-              <!-- Bracket tree -->
+
               <div class="ft-brow" :style="{ height: bracketHeight + 'px' }">
                 <div
                   v-for="(c, ci) in bracketColumns"
@@ -307,7 +296,6 @@
               </div>
             </div>
 
-            <!-- 3rd-place match -->
             <div v-if="thirdPlace" class="mt-4 flex items-center justify-center gap-2">
               <span class="text-[10px] font-semibold uppercase tracking-wider text-amber-400 shrink-0">🥉 {{ shortRound({ label: thirdPlace.label }) }}</span>
               <div class="ft-node ft-node-row" :class="{ 'ft-node-live': thirdPlace.match.live }">
@@ -372,7 +360,6 @@
             </table>
           </div>
 
-          <!-- Qualification legend -->
           <div v-if="legend.length" class="mt-4 pt-3 border-t border-white/5 flex flex-wrap gap-x-4 gap-y-1.5">
             <span v-for="lg in legend" :key="lg.text" class="inline-flex items-center gap-1.5 text-[10px] text-slate-400">
               <span class="w-2.5 h-2.5 rounded-sm shrink-0" :style="{ background: lg.color }" />{{ lg.text }}
@@ -408,7 +395,6 @@
             </div>
           </div>
 
-          <!-- Goals / Assists toggle -->
           <div class="flex bg-slate-800 rounded-full p-0.5 mb-3 text-xs font-semibold">
             <button
               v-for="m in [{ id: 'goals', emoji: '⚽', label: t('football.mGoals') }, { id: 'assists', emoji: '🅰️', label: t('football.mAssists') }]"
@@ -515,14 +501,10 @@ const tabs = computed(() => [
   { id: 'scorers', emoji: '🏅', label: t('football.tabScorers') },
 ])
 
-// Knockout bracket: the halving rounds (R32 → Final) form the tree; the 3rd-place
-// match sits outside it and is shown on its own below.
 const isThirdPlace = (label) => /3rd|third/i.test(label)
 const bracketRounds = computed(() => {
   const rounds = (bracket.value || []).filter((r) => !isThirdPlace(r.label))
-  // Keep only the clean-halving tail ending at the Final, so the symmetric tree is
-  // well-formed. This drops rounds that don't halve into the next — e.g. UCL's
-  // knockout play-off round (8 ties, same as the Round of 16 it feeds).
+
   const tail = []
   let expected = 0
   for (let i = rounds.length - 1; i >= 0; i--) {
@@ -537,16 +519,13 @@ const thirdPlace = computed(() => {
   return r?.matches?.[0] ? { label: r.label, match: r.matches[0] } : null
 })
 
-// Symmetric bracket like the real World Cup wall chart: each feeder round is split
-// into a left and a (mirrored) right half that both converge on the central Final.
-// Rendered as one ordered column list — left halves, Final, then reversed right halves.
 const bracketColumns = computed(() => {
   const rounds = bracketRounds.value
   if (!rounds.length) return []
   if (rounds.length === 1)
     return [{ label: rounds[0].label, matches: rounds[0].matches, side: 'left', outer: true }]
 
-  const feeders = rounds.slice(0, -1) // R32 … SF
+  const feeders = rounds.slice(0, -1)
   const final = rounds[rounds.length - 1]
   const mid = (m) => Math.ceil(m.length / 2)
   const cols = []
@@ -558,8 +537,6 @@ const bracketColumns = computed(() => {
   return cols
 })
 
-// One row-height drives the whole tree; every round centres between its pair via
-// CSS `justify-content: space-around`. Height = tallest column (the R32 halves).
 const BRACKET_ROW = 62
 const bracketHeight = computed(() => {
   const cols = bracketColumns.value
@@ -567,7 +544,6 @@ const bracketHeight = computed(() => {
   return Math.max(1, ...cols.map((c) => c.matches.length)) * BRACKET_ROW
 })
 
-// Short column headers so nine rounds fit the width (Round of 32 → R32, Final → 🏆).
 const shortRound = (c) => {
   if (c.side === 'final') return '🏆'
   const l = (c.label || '').toLowerCase()
@@ -580,23 +556,19 @@ const shortRound = (c) => {
   return c.label
 }
 
-// Goals / Assists toggle within the Scorers view.
 const scorerMetric = ref('goals')
 const scorerList = computed(() =>
   scorerMetric.value === 'goals' ? scorers.value?.goals || [] : scorers.value?.assists || [],
 )
 
-// Spin/disable the header refresh button while the active view is loading.
 const busy = computed(() =>
   view.value === 'table' ? tableLoading.value
     : view.value === 'scorers' ? scorersLoading.value
     : loading.value,
 )
 
-// ESPN season year N is the "N–N+1" campaign, e.g. 2025 → "2025-26".
 const seasonText = (s) => (s ? `${s}-${String(s + 1).slice(-2)}` : '')
 
-// Distinct qualification markers (Champions League / relegation …) for the legend.
 const legend = computed(() => {
   if (!table.value) return []
   const seen = new Map()
@@ -606,9 +578,6 @@ const legend = computed(() => {
   return [...seen].map(([text, color]) => ({ text, color }))
 })
 
-// Make the device/browser Back button (and back-swipe) close the lineup modal
-// instead of leaving the app. We push a history entry when the modal opens and
-// pop it when it closes, keeping the back stack clean.
 const onPopState = () => { if (lineupEvent.value) closeLineup() }
 watch(lineupEvent, (open, wasOpen) => {
   if (open && !wasOpen) history.pushState({ ftLineup: true }, '')
@@ -617,10 +586,9 @@ watch(lineupEvent, (open, wasOpen) => {
 onMounted(() => window.addEventListener('popstate', onPopState))
 onUnmounted(() => window.removeEventListener('popstate', onPopState))
 
-// Pull the match prediction for whichever game is featured.
 watch(featured, (m) => { if (m) ensurePrediction(m) }, { immediate: true })
 const prediction = computed(() => (featured.value ? predictionFor(featured.value.id) : null))
-// Possession / shots exist only once a match is live or finished.
+
 const matchStats = computed(() => {
   const m = featured.value
   if (!m || (!m.live && !m.completed)) return null
@@ -677,7 +645,6 @@ const navBtn =
 .no-scrollbar::-webkit-scrollbar { display: none; }
 .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
 
-/* ===== Knockout bracket — full-width symmetric flag tree (no scroll) ===== */
 .ft-bracket { --ft-line: #f59e0b; width: 100%; }
 .ft-brow { display: flex; align-items: stretch; }
 .ft-bcol {
@@ -691,7 +658,7 @@ const navBtn =
   position: relative; width: 100%;
   display: flex; flex-direction: column; align-items: center; justify-content: center;
 }
-/* Node (two stacked flags) sits above the connector lines and hides their inner ends. */
+
 .ft-node {
   position: relative; z-index: 1; background: #0f172a; border-radius: 10px;
   display: flex; flex-direction: column; gap: 3px; padding: 2px;
@@ -703,7 +670,7 @@ const navBtn =
   border-radius: 9999px; object-fit: cover; background: #334155;
   box-shadow: 0 0 0 1.5px rgba(255,255,255,.18);
 }
-/* Undecided slot → orange hexagon, echoing the poster. */
+
 .ft-flag-ph {
   display: inline-block; background: #f59e0b; opacity: .45; box-shadow: none; border-radius: 0;
   clip-path: polygon(25% 4%, 75% 4%, 100% 50%, 75% 96%, 25% 96%, 0 50%);
@@ -713,7 +680,6 @@ const navBtn =
 .ft-node-final { box-shadow: 0 0 16px -4px rgba(251,191,36,.6); }
 .ft-node-live { box-shadow: 0 0 12px -3px rgba(248,113,113,.75); }
 
-/* Connectors: percentage widths so they scale with each flex column (no scroll). */
 .side-left .ft-bmatch::after { content: ''; position: absolute; top: 50%; left: 50%; width: 50%; height: 2px; background: var(--ft-line); }
 .side-left:not(.col-outer) .ft-bmatch::before { content: ''; position: absolute; top: 50%; right: 50%; width: 50%; height: 2px; background: var(--ft-line); }
 .side-left .ft-bmatch.pair-top .rail { position: absolute; top: 50%; left: 100%; width: 2px; height: var(--v); background: var(--ft-line); }
@@ -725,7 +691,6 @@ const navBtn =
 .col-final .ft-bmatch::before { content: ''; position: absolute; top: 50%; right: 50%; width: 50%; height: 2px; background: var(--ft-line); }
 .col-final .ft-bmatch::after { content: ''; position: absolute; top: 50%; left: 50%; width: 50%; height: 2px; background: var(--ft-line); }
 
-/* ===== Light theme (header stays dark, body flips) ===== */
 .ft-light .ft-body { background: #ffffff; }
 .ft-light .ft-body .text-white { color: #0f172a; }
 .ft-light .ft-body .text-slate-300 { color: #334155; }

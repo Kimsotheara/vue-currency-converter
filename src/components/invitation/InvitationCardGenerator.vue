@@ -1,7 +1,6 @@
 <template>
   <div class="space-y-5">
 
-    <!-- Event details -->
     <div>
       <p class="text-xs font-bold uppercase tracking-widest text-gray-400 mb-2">{{ t('invitation.eventDetails') }}</p>
       <div class="grid gap-3 md:grid-cols-2">
@@ -31,7 +30,6 @@
       </div>
     </div>
 
-    <!-- Photo -->
     <div class="flex items-center gap-3">
       <div v-if="photo" class="relative shrink-0">
         <img :src="photo" alt="Event photo"
@@ -58,7 +56,6 @@
       </label>
     </div>
 
-    <!-- Template picker: category tabs, 8 designs each -->
     <div>
       <p class="text-xs font-bold uppercase tracking-widest text-gray-400 mb-2">{{ t('invitation.cardTemplate') }}</p>
       <div class="flex bg-gray-100 rounded-full p-1 w-full mb-2">
@@ -105,7 +102,6 @@
       </div>
     </div>
 
-    <!-- Khmer Moul heading font -->
     <button
       type="button"
       @click="useKhmerMoul = !useKhmerMoul"
@@ -130,7 +126,6 @@
       </span>
     </button>
 
-    <!-- Guest names -->
     <div>
       <label class="block text-sm font-semibold text-gray-700 mb-1">{{ t('invitation.guestNames') }}</label>
       <textarea v-model="namesInput" rows="2"
@@ -141,7 +136,6 @@
       </p>
     </div>
 
-    <!-- Actions -->
     <div class="flex gap-2">
       <button
         @click="onGenerate"
@@ -158,7 +152,6 @@
       </button>
     </div>
 
-    <!-- Generated cards -->
     <div v-if="guests.length" class="space-y-3">
       <div class="flex items-center justify-between gap-3 flex-wrap">
         <p class="text-sm font-semibold text-gray-700">

@@ -1,6 +1,6 @@
 <template>
   <div class="space-y-4">
-    <!-- Unit toggle -->
+
     <div class="flex rounded-xl bg-gray-100 p-1">
       <button
         v-for="u in [['metric', 'bmi.unitMetric'], ['imperial', 'bmi.unitImperial']]"
@@ -13,7 +13,6 @@
       >{{ t(u[1]) }}</button>
     </div>
 
-    <!-- Weight -->
     <div v-if="showWeight">
       <label class="block text-sm font-semibold text-gray-700 mb-1">{{ t('bmi.weight') }} ({{ unit === 'metric' ? 'kg' : 'lbs' }})</label>
       <input
@@ -25,7 +24,6 @@
       />
     </div>
 
-    <!-- Height -->
     <div>
       <label class="block text-sm font-semibold text-gray-700 mb-1">{{ t('bmi.height') }}</label>
       <input

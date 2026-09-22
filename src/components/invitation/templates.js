@@ -1,29 +1,16 @@
-// Invitation card designs, grouped by occasion (8 per category). Every color/font
-// lives here so the card component stays a single layout — picking a template
-// swaps this object.
-//
-// badge      — emoji centerpiece shown in a soft circle at the top of the card
-// badgeBg    — tint behind the badge emoji (keep translucent for a modern look)
-// eyebrowText— themed line above the title (falls back to "You're Invited")
+
+
 const serif = `Georgia, 'Times New Roman', 'Noto Serif Khmer', serif`
 const sans = `-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Noto Sans Khmer', sans-serif`
 
-// Khmer Moul — ornate heading script for formal invitations. Loaded from
-// Google Fonts ('Moul') with the locally installed variants as fallback.
 export const khmerMoulFont = `'Moul', 'Khmer OS Muol Light', 'Khmer OS Muol', 'Khmer OS Moul', ${serif}`
 
-// Calligraphy for names/titles on elegant cards (Greetings Island style).
-// Latin only — Khmer text falls through to the serif stack.
 export const scriptFont = `'Great Vibes', 'Noto Serif Khmer', cursive`
-
-// Template flags:
-// script — title & guest name render in calligraphy
-// arch   — inner frame gets the trendy arched top
 
 export const templateCategories = ['Wedding', 'Birthday', 'Ceremony', 'Party & More']
 
 export const templates = [
-  // ───────────── Wedding ─────────────
+
   {
     id: 'wedding-gold',
     name: 'Golden Wedding',
@@ -180,7 +167,6 @@ export const templates = [
     ornamentBottom: '❖ ✦ ❖',
   },
 
-  // ───────────── Birthday ─────────────
   {
     id: 'birthday-pop',
     name: 'Confetti Pop',
@@ -326,7 +312,6 @@ export const templates = [
     ornamentBottom: '⭐ 🪐 ⭐',
   },
 
-  // ───────────── Ceremony ─────────────
   {
     id: 'khmer-ceremony',
     name: 'Khmer Ceremony',
@@ -475,7 +460,6 @@ export const templates = [
     ornamentBottom: '💍 ✿ 💍',
   },
 
-  // ───────────── Party & More ─────────────
   {
     id: 'baby-shower',
     name: 'Baby Shower',

@@ -2,11 +2,11 @@
   <Transition name="fade">
     <div class="fixed inset-0 z-50 bg-black/70 flex items-end sm:items-center justify-center p-0 sm:p-4" @click.self="$emit('close')">
       <div class="modal-panel bg-slate-900 w-full sm:max-w-2xl lg:max-w-3xl sm:rounded-2xl rounded-t-2xl max-h-[92vh] flex flex-col shadow-2xl" :class="{ 'ft-light': !dark }">
-        <!-- Mobile drag handle / dismiss affordance -->
+
         <button class="sm:hidden w-full pt-2.5 pb-1 flex justify-center shrink-0" aria-label="Close" @click="$emit('close')">
           <span class="w-10 h-1.5 rounded-full bg-white/25" />
         </button>
-        <!-- Result header (always shown) -->
+
         <div class="px-5 pt-3 pb-4 border-b border-white/10">
           <div class="flex items-center">
             <p class="flex-1 text-xs font-semibold inline-flex items-center gap-1.5"
@@ -54,7 +54,6 @@
             </ul>
           </div>
 
-          <!-- Match stats: possession / shots on target -->
           <div v-if="statRows.length" class="mt-3 pt-3 border-t border-white/5 space-y-1.5">
             <div v-for="row in statRows" :key="row.label" class="flex items-center text-[11px]">
               <span class="w-12 text-left font-semibold text-white tabular-nums">{{ row.home }}</span>
@@ -64,7 +63,6 @@
           </div>
         </div>
 
-        <!-- Tabs -->
         <div class="flex px-3 pt-3 gap-2">
           <button
             v-for="tb in tabs"
@@ -78,13 +76,12 @@
         </div>
 
         <div class="overflow-y-auto px-3 pb-5 pt-3">
-          <!-- Loading -->
+
           <div v-if="state === 'loading'" class="py-16 text-center">
             <span class="inline-block text-3xl animate-spin">↻</span>
             <p class="text-slate-400 text-sm mt-3">{{ t('football.loadingDetails') }}</p>
           </div>
 
-          <!-- Error -->
           <div v-else-if="state === 'error'" class="py-14 px-6 text-center">
             <p class="text-4xl mb-3">📡</p>
             <p class="text-slate-300 text-sm">{{ t('football.cantLoad') }}</p>
@@ -92,7 +89,7 @@
           </div>
 
           <template v-else>
-            <!-- ===== LINE-UP ===== -->
+
             <template v-if="tab === 'lineup'">
               <div v-if="!teams" class="py-12 px-6 text-center">
                 <p class="text-4xl mb-3">📋</p>
@@ -101,10 +98,10 @@
                 <button @click="$emit('retry', event)" class="mt-5 px-5 py-2 rounded-lg bg-emerald-500 hover:bg-emerald-400 text-white text-sm font-semibold transition">{{ t('football.checkAgain') }}</button>
               </div>
               <template v-else>
-                <!-- Combined pitch: away (top) vs home (bottom), FotMob-style -->
+
                 <div class="pitch rounded-xl overflow-hidden ring-1 ring-white/10 relative">
                   <div class="absolute inset-0 pitch-grass" />
-                  <!-- markings -->
+
                   <div class="absolute inset-2 border border-white/20 rounded pointer-events-none" />
                   <div class="absolute left-2 right-2 top-1/2 border-t border-white/20 pointer-events-none" />
                   <div class="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-14 h-14 border border-white/20 rounded-full pointer-events-none" />
@@ -113,7 +110,6 @@
                   <div class="absolute bottom-2 left-1/2 -translate-x-1/2 w-1/2 h-10 border-x border-t border-white/20 pointer-events-none" />
                   <div class="absolute bottom-2 left-1/2 -translate-x-1/2 w-1/4 h-4 border-x border-t border-white/20 pointer-events-none" />
 
-                  <!-- team headers on the grass -->
                   <div class="absolute top-2.5 left-3 right-3 flex items-center justify-between z-10">
                     <span class="flex items-center gap-1.5 min-w-0">
                       <img v-if="away.logo" :src="away.logo" class="w-4 h-4 object-contain" />
@@ -129,7 +125,6 @@
                     <span class="text-white text-[11px] font-bold bg-black/40 rounded-full px-2 py-0.5 shrink-0">{{ home.formation }}</span>
                   </div>
 
-                  <!-- rows -->
                   <div class="relative flex flex-col gap-9 sm:gap-11 px-2 pt-14 pb-14">
                     <template v-for="(row, ri) in pitchRows" :key="ri">
                       <div v-if="row.half" class="h-2" />
@@ -139,13 +134,13 @@
                             <img v-if="photoFor(p.name)" :src="photoFor(p.name)" :class="['w-14 h-16 sm:w-16 sm:h-20 rounded-lg object-cover object-top bg-white/15 ring-1 shadow-md', row.side === 'home' ? 'ring-sky-300/50' : 'ring-rose-300/50']" loading="lazy" />
                             <img v-else-if="p.shirt" :src="p.shirt" class="w-14 h-16 sm:w-16 sm:h-20 object-contain drop-shadow" loading="lazy" />
                             <div v-else :class="['w-14 h-16 sm:w-16 sm:h-20 rounded-lg text-white font-bold text-xl flex items-center justify-center shadow-md', row.side === 'home' ? 'bg-sky-500/80' : 'bg-rose-500/80']">{{ p.num }}</div>
-                            <!-- sub arrow (top-left) -->
+
                             <span v-if="subArrow(p)" :class="['absolute -top-1.5 -left-1.5 w-4 h-4 rounded-full text-white text-[10px] font-bold flex items-center justify-center shadow leading-none', subArrow(p) === 'out' ? 'bg-red-600' : 'bg-emerald-600']">{{ subArrow(p) === 'out' ? '↓' : '↑' }}</span>
-                            <!-- card (top-right) -->
+
                             <span v-if="cardIcon(p)" class="absolute -top-2 -right-1.5 text-xs leading-none">{{ cardIcon(p) }}</span>
-                            <!-- goal / assist (bottom-right) -->
+
                             <span v-if="goalIcon(p)" class="absolute bottom-1 -right-2 text-xs leading-none drop-shadow">{{ goalIcon(p) }}</span>
-                            <!-- rating pill (bottom-center) -->
+
                             <span v-if="event.completed && p.rating" :class="['absolute -bottom-2.5 left-1/2 -translate-x-1/2 text-white text-[10px] font-bold rounded-md px-1.5 py-0.5 leading-none shadow', ratingBg(p.rating)]">{{ p.rating.toFixed(1) }}</span>
                           </div>
                           <span class="mt-3.5 text-[10px] sm:text-xs leading-tight text-white text-center font-medium truncate w-full drop-shadow">{{ playerLabel(p) }}</span>
@@ -258,18 +253,16 @@ const { t } = useI18n()
 const props = defineProps({
   event:   { type: Object, required: true },
   dark:    { type: Boolean, default: true },
-  state:   { type: String, default: null },  // 'loading' | 'error' | null
-  teams:   { type: Array, default: null },    // lineup [home, away] or null
-  form:    { type: Object, default: null },   // { home:[], away:[] }
+  state:   { type: String, default: null },
+  teams:   { type: Array, default: null },
+  form:    { type: Object, default: null },
   h2h:     { type: Object, default: null },
-  stats:   { type: Object, default: null },   // { home:{possession,shotsOnTarget}, away:{...} }
-  assists: { type: Object, default: null },   // { scorerNameLower: assistName }
-  ratingSource: { type: String, default: null }, // 'API-Football' when real ratings loaded
+  stats:   { type: Object, default: null },
+  assists: { type: Object, default: null },
+  ratingSource: { type: String, default: null },
 })
 const emit = defineEmits(['close', 'retry'])
 
-// Close on Escape (desktop) — pairs with the back-button/back-gesture handling
-// and the on-screen close button.
 const onKeydown = (e) => { if (e.key === 'Escape') emit('close') }
 onMounted(() => document.addEventListener('keydown', onKeydown))
 onUnmounted(() => document.removeEventListener('keydown', onKeydown))
@@ -283,8 +276,6 @@ const tab = ref('lineup')
 const home = computed(() => props.teams?.[0] || null)
 const away = computed(() => props.teams?.[1] || null)
 
-// Match stats (possession / shots on target) — only available once a match is
-// live or finished. Shown in the header across every tab.
 const statRows = computed(() => {
   const s = props.stats
   if (!s || (!props.event.live && !props.event.completed)) return []
@@ -295,8 +286,6 @@ const statRows = computed(() => {
   ]
 })
 
-// Both teams on one pitch (Google-style): away attacks down from the top,
-// home attacks up from the bottom, so the two front lines meet in the middle.
 const pitchRows = computed(() => {
   if (!home.value || !away.value) return []
   const rows = []
@@ -306,7 +295,6 @@ const pitchRows = computed(() => {
   return rows
 })
 
-// Fetch face photos for everyone in the line-up (starters first, then subs).
 const { photoFor, ensurePhotos } = usePlayerPhotos()
 watch(
   () => props.teams,
@@ -340,7 +328,7 @@ const assistFor = (s) => props.assists?.[s.name?.toLowerCase()] || ''
 const resultBg = (r) => (r === 'W' ? 'bg-emerald-500' : r === 'L' ? 'bg-red-500' : 'bg-slate-500')
 const ratingBg = (n) =>
   n >= 7.5 ? 'bg-emerald-600' : n >= 6.5 ? 'bg-green-600' : n >= 5 ? 'bg-amber-500' : 'bg-red-600'
-// Status / event markers shown around a player photo.
+
 const subArrow = (p) => (p.events?.subOut ? 'out' : p.events?.subIn ? 'in' : '')
 const cardIcon = (p) => (p.events?.red ? '🟥' : p.events?.yellow ? '🟨' : '')
 const goalIcon = (p) => (p.events?.goals ? '⚽' : p.events?.ownGoals ? '🥅' : p.events?.assists ? '👟' : '')
@@ -351,7 +339,7 @@ const playerLabel = (p) => {
   })()
   return p.num ? `${p.num} ${short}` : short
 }
-// One representative event icon per player (goal > red > yellow > assist > own goal).
+
 const eventIcon = (p) => {
   const e = p.events || {}
   if (e.goals) return '⚽'
@@ -369,7 +357,6 @@ const fmtDate = (d) =>
 .fade-enter-active, .fade-leave-active { transition: opacity 0.2s ease; }
 .fade-enter-from, .fade-leave-to { opacity: 0; }
 
-/* Striped grass like the reference */
 .pitch-grass {
   background-color: #166534;
   background-image: repeating-linear-gradient(
@@ -381,10 +368,9 @@ const fmtDate = (d) =>
   );
 }
 
-/* ===== Light theme (pitch keeps its dark/green look) ===== */
 .modal-panel.ft-light { background: #ffffff; }
 .ft-light .text-white { color: #0f172a; }
-.ft-light .pitch .text-white { color: #ffffff; } /* keep player names white on the pitch */
+.ft-light .pitch .text-white { color: #ffffff; }
 .ft-light .text-slate-300 { color: #334155; }
 .ft-light .text-slate-400 { color: #64748b; }
 .ft-light .text-slate-500 { color: #94a3b8; }

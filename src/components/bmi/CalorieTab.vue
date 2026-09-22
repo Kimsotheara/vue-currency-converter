@@ -1,13 +1,11 @@
 <template>
   <div class="space-y-4">
 
-    <!-- Sex -->
     <div class="flex rounded-xl bg-gray-100 p-1">
       <button v-for="s in [['male','bmi.male'],['female','bmi.female']]" :key="s[0]" @click="sex = s[0]"
         :class="['flex-1 py-2 rounded-lg text-sm font-semibold transition-colors', sex === s[0] ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500']">{{ t(s[1]) }}</button>
     </div>
 
-    <!-- Age -->
     <div>
       <label class="block text-sm font-semibold text-gray-700 mb-1">{{ t('bmi.age') }}</label>
       <input :value="age ?? ''" @input="age = $event.target.value === '' ? null : Number($event.target.value)"
@@ -18,7 +16,6 @@
     <BodyFields v-model:unit="unit" v-model:weight="weight"
       v-model:heightCm="heightCm" v-model:heightFt="heightFt" v-model:heightIn="heightIn" />
 
-    <!-- Activity -->
     <div>
       <label class="block text-sm font-semibold text-gray-700 mb-1">{{ t('bmi.activityLevel') }}</label>
       <select v-model="activity"
@@ -69,7 +66,7 @@ const clear = resetBody
 
 const result = computed(() => {
   if (!weightKg.value || !heightCmVal.value || !age.value || age.value <= 0) return null
-  // Mifflin–St Jeor
+
   const base = 10 * weightKg.value + 6.25 * heightCmVal.value - 5 * age.value
   const bmr = sex.value === 'male' ? base + 5 : base - 161
   const tdee = bmr * activity.value

@@ -26,7 +26,6 @@ export const provinces = [
   { id: 'tboungkhmum', name: 'Tboung Khmum', km: 'ត្បូងឃ្មុំ', lat: 11.9118, lon: 105.6582 },
 ]
 
-// [translation key, emoji] — the label text is resolved via i18n (weather.codes.*)
 const codes = {
   0: ['clear', '☀️'],
   1: ['mainlyClear', '🌤️'],

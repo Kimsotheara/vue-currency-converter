@@ -27,10 +27,6 @@ export function calculateReducingBalanceLoan(principal, annualRatePercent, month
   return { monthly, totalInterest: totalRepayment - principal, totalRepayment }
 }
 
-// Builds a month-by-month repayment schedule.
-// For reducing-balance loans an optional `extraPayment` is added to every
-// instalment, which pays the principal down faster and ends the loan early.
-// Flat-rate interest is fixed up front, so extra payments don't change it.
 export function buildAmortizationSchedule(
   principal,
   annualRatePercent,
@@ -58,7 +54,7 @@ export function buildAmortizationSchedule(
   let balance = principal
   let totalInterest = 0
   let m = 0
-  const safetyCap = months + 1200 // guard against pathological inputs
+  const safetyCap = months + 1200
 
   while (balance > 0.005 && m < safetyCap) {
     m++
@@ -74,8 +70,6 @@ export function buildAmortizationSchedule(
   return { rows, totalInterest, months: m, monthly: baseEmi + extra }
 }
 
-// Largest principal whose reducing-balance instalment fits a given monthly
-// budget. Inverse of the EMI formula.
 export function affordableLoanAmount(monthlyPayment, annualRatePercent, months) {
   if (monthlyPayment <= 0 || months <= 0) return 0
   const r = annualRateToMonthly(annualRatePercent) / 100

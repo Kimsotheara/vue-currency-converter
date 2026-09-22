@@ -1,6 +1,6 @@
 <template>
   <div>
-    <!-- Tab bar (horizontally scrollable) -->
+
     <div class="flex gap-2 overflow-x-auto pb-2 mb-4 -mx-1 px-1 tabs-scroll">
       <button
         v-for="tb in tabs"

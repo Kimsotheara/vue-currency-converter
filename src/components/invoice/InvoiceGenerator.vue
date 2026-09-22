@@ -1,7 +1,6 @@
 <template>
   <div class="space-y-4">
 
-    <!-- Doc type toggle -->
     <div class="flex bg-gray-100 rounded-full p-1 w-full">
       <button
         v-for="opt in docTypes"
@@ -18,7 +17,7 @@
     </div>
 
     <div class="grid gap-4 md:grid-cols-2">
-    <!-- Company info -->
+
     <div class="space-y-3">
       <p class="text-xs font-bold uppercase tracking-widest text-gray-400">{{ t('invoice.from') }}</p>
 
@@ -56,7 +55,6 @@
         class="w-full border border-gray-300 rounded-xl px-3 py-2.5 text-base focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent" />
     </div>
 
-    <!-- Customer info -->
     <div class="space-y-3">
       <p class="text-xs font-bold uppercase tracking-widest text-gray-400">{{ t('invoice.billTo') }}</p>
 
@@ -95,7 +93,6 @@
     </div>
     </div>
 
-    <!-- Document meta -->
     <div class="space-y-3 md:grid md:grid-cols-2 md:gap-4 md:space-y-0 md:items-start">
       <div>
         <label class="block text-sm font-semibold text-gray-700 mb-1">
@@ -138,17 +135,14 @@
         </div>
       </div>
 
-
     </div>
 
-    <!-- Items -->
     <div>
       <p class="text-xs font-bold uppercase tracking-widest text-gray-400 mb-2">{{ t('invoice.items') }}</p>
       <div class="space-y-2">
         <div v-for="(item, index) in items" :key="index" class="bg-gray-50 rounded-xl p-2">
           <div class="flex flex-col gap-2 sm:flex-row sm:items-end">
 
-            <!-- Image + description (+ remove on mobile) -->
             <div class="flex gap-2 items-end flex-1 min-w-0">
               <div class="shrink-0">
                 <div v-if="item.image" class="relative">
@@ -184,7 +178,6 @@
               </div>
             </div>
 
-            <!-- Qty / price / total / remove: one even row on mobile, inline on desktop -->
             <div class="flex gap-2 items-end">
               <div class="flex-1 min-w-0 sm:flex-none sm:w-16">
                 <label class="block text-xs font-semibold text-gray-400 uppercase tracking-wide mb-0.5">{{ t('invoice.qty') }}</label>
@@ -260,14 +253,12 @@
       </div>
     </div>
 
-    <!-- Notes -->
     <div>
       <label class="block text-sm font-semibold text-gray-700 mb-1">{{ t('invoice.notes') }}</label>
       <textarea v-model="notes" rows="2" :placeholder="t('invoice.notesPh')"
         class="w-full border border-gray-300 rounded-xl px-3 py-2.5 text-base focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"></textarea>
     </div>
 
-    <!-- Totals -->
     <div class="rounded-2xl overflow-hidden shadow-md">
       <div class="bg-gradient-to-r from-blue-600 to-cyan-500 px-5 py-4 text-white">
         <p class="text-xs opacity-75 uppercase tracking-widest font-semibold mb-1">
@@ -291,7 +282,6 @@
       </div>
     </div>
 
-    <!-- Actions -->
     <div class="flex gap-2">
       <button
         @click="showPreview = true"
@@ -299,18 +289,7 @@
       >
         {{ t('invoice.preview') }}
       </button>
-<!--      <button-->
-<!--        @click="downloadExcel"-->
-<!--        class="flex-1 bg-green-600 hover:bg-green-700 active:bg-green-800 text-white font-semibold py-2.5 rounded-xl transition-colors"-->
-<!--      >-->
-<!--        Excel-->
-<!--      </button>-->
-<!--      <button-->
-<!--        @click="downloadPdf"-->
-<!--        class="flex-1 bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white font-semibold py-2.5 rounded-xl transition-colors"-->
-<!--      >-->
-<!--        Download PDF-->
-<!--      </button>-->
+
       <button
         @click="clear"
         class="flex-1 bg-red-500 hover:bg-red-600 active:bg-red-700 text-white font-semibold py-2.5 rounded-xl transition-colors"
