@@ -344,10 +344,6 @@ const ratingBg = (n) =>
 const subArrow = (p) => (p.events?.subOut ? 'out' : p.events?.subIn ? 'in' : '')
 const cardIcon = (p) => (p.events?.red ? '🟥' : p.events?.yellow ? '🟨' : '')
 const goalIcon = (p) => (p.events?.goals ? '⚽' : p.events?.ownGoals ? '🥅' : p.events?.assists ? '👟' : '')
-const lastName = (full = '') => {
-  const parts = full.trim().split(' ')
-  return parts.length > 1 ? parts[parts.length - 1] : full
-}
 const playerLabel = (p) => {
   const short = p.shortName || (() => {
     const t = (p.name || '').trim().split(/\s+/)

@@ -9,9 +9,6 @@ import { useI18n } from '@/i18n'
 const DOWN_URL = 'https://speed.cloudflare.com/__down'
 const UP_URL = 'https://speed.cloudflare.com/__up'
 
-// Phases the test moves through, in order.
-export const PHASES = ['idle', 'ping', 'download', 'upload', 'done']
-
 export function useSpeedTest() {
   const { t } = useI18n()
   const phase = ref('idle')
@@ -113,7 +110,7 @@ export function useSpeedTest() {
       await measureUpload()
 
       phase.value = 'done'
-    } catch (e) {
+    } catch {
       error.value = t('speedtest.error')
       phase.value = 'idle'
     }
