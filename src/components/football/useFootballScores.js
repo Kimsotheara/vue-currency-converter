@@ -1,20 +1,29 @@
 import { ref, computed, onUnmounted } from 'vue'
 import { leagues } from './leagues'
+import { useI18n } from '@/i18n'
 
 const API = 'https://site.api.espn.com/apis/site/v2/sports/soccer'
-const POLL_MS = 30_000 // refresh cadence while a match is live
+const POLL_MS = 30_000       // scoreboard refresh cadence while a match is live
+const TABLE_POLL_MS = 45_000 // standings refresh cadence while a league has a live match
 
 const fetchJson = async (url, ms = 9000) => {
-  const res = await fetch(url, { signal: AbortSignal.timeout(ms) })
+  // `no-store` bypasses the browser HTTP cache so every load/poll gets the real
+  // live figures — never a stale cached scoreboard/standings/leaders response.
+  const res = await fetch(url, { signal: AbortSignal.timeout(ms), cache: 'no-store' })
   if (!res.ok) throw new Error(`HTTP ${res.status}`)
   return res.json()
 }
+
+const TZ = 'Asia/Ho_Chi_Minh' // Hanoi (UTC+7) — group/display matches in this zone
 
 const ymd = (d) => {
   const m = String(d.getMonth() + 1).padStart(2, '0')
   const day = String(d.getDate()).padStart(2, '0')
   return `${d.getFullYear()}${m}${day}`
 }
+
+// YYYYMMDD for the calendar day a date falls on in Hanoi time.
+const hanoiYmd = (d) => new Date(d).toLocaleDateString('en-CA', { timeZone: TZ }).replace(/-/g, '')
 
 const sameDay = (a, b) =>
   a.getFullYear() === b.getFullYear() &&
@@ -153,7 +162,7 @@ const fetchAfRatings = async (event) => {
   const date = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
   const get = async (path) => {
     let res
-    try { res = await fetch(`/api/football${path}`, { signal: AbortSignal.timeout(9000) }) }
+    try { res = await fetch(`/api/football${path}`, { signal: AbortSignal.timeout(9000), cache: 'no-store' }) }
     catch { return null }
     if ([401, 403, 404, 499].includes(res.status)) { afDown = true; return null }
     return res.ok ? res.json() : null
@@ -255,7 +264,341 @@ const mapH2H = (data) => {
   }
 }
 
+// Team-level match stats (possession %, shots on target) from the boxscore.
+// Only present once a match is live/finished; returns null otherwise.
+const mapMatchStats = (data, homeId, awayId) => {
+  const teams = data.boxscore?.teams || []
+  if (!teams.length) return null
+  const pick = (id) => teams.find((t) => t.team?.id === id) || null
+  const stat = (t, names) => {
+    const s = (t?.statistics || []).find((x) => names.includes(x.name))
+    return s?.displayValue ?? null
+  }
+  const read = (id) => {
+    const t = pick(id)
+    if (!t) return null
+    return {
+      possession: stat(t, ['possessionPct']),
+      shotsOnTarget: stat(t, ['shotsOnTarget', 'onTargetScoringAtt']),
+    }
+  }
+  const home = read(homeId), away = read(awayId)
+  if (!home && !away) return null
+  // Hide if neither stat has any data on either side.
+  const has = (s) => s && (s.possession != null || s.shotsOnTarget != null)
+  if (!has(home) && !has(away)) return null
+  return { home, away }
+}
+
+const STANDINGS_API = 'https://site.api.espn.com/apis/v2/sports/soccer'
+const CORE_API = 'https://sports.core.api.espn.com/v2/sports/soccer/leagues'
+
+const statVal = (e, name) => {
+  const s = (e.stats || []).find((x) => x.name === name)
+  if (!s) return 0
+  return s.value != null ? s.value : Number(s.displayValue) || 0
+}
+
+const mapStanding = (e) => ({
+  rank: statVal(e, 'rank'),
+  team: {
+    id: e.team?.id,
+    name: e.team?.shortDisplayName || e.team?.displayName || '',
+    abbr: e.team?.abbreviation || '',
+    logo: e.team?.logos?.[0]?.href || '',
+  },
+  gp: statVal(e, 'gamesPlayed'),
+  w: statVal(e, 'wins'),
+  d: statVal(e, 'ties'),
+  l: statVal(e, 'losses'),
+  gf: statVal(e, 'pointsFor'),
+  ga: statVal(e, 'pointsAgainst'),
+  gd: statVal(e, 'pointDifferential'),
+  pts: statVal(e, 'points'),
+  // qualification marker (Champions League / relegation …) — ESPN supplies colour + text
+  note: e.note ? { color: e.note.color, text: e.note.description } : null,
+})
+
+// Standings tables for a league. ESPN's season year N is the "N–N+1" campaign;
+// during the off-season the current table is all zeros, so fall back to the most
+// recent completed season. Returns { season, groups:[{ name, rows }] } — most
+// leagues have one group; cups (World Cup) have several.
+const fetchStandings = async (slug) => {
+  const base = `${STANDINGS_API}/${slug}/standings`
+  const read = (data) => {
+    const kids = data.children?.length ? data.children : [{ standings: data.standings }]
+    const groups = kids
+      .map((c) => ({ name: c.name || '', entries: c.standings?.entries || [] }))
+      .filter((g) => g.entries.length)
+    const season = kids[0]?.standings?.season ?? data.season?.year
+    return { season, groups }
+  }
+  let { season, groups } = read(await fetchJson(base))
+  const empty =
+    groups.length && groups.every((g) => g.entries.every((e) => statVal(e, 'gamesPlayed') === 0))
+  if (empty && season) {
+    const prev = read(await fetchJson(`${base}?season=${season - 1}`))
+    if (prev.groups.length) ({ season, groups } = prev)
+  }
+  return {
+    season,
+    groups: groups.map((g) => ({
+      name: g.name,
+      rows: g.entries.map(mapStanding).sort((a, b) => a.rank - b.rank),
+    })),
+  }
+}
+
+// Top scorers AND top assisters for a season. One leaders feed carries both
+// categories; each entry's shortDisplayValue (e.g. "M: 38, G: 22: A: 1") holds
+// goals/assists/matches. Athlete names are resolved once across both lists (deduped),
+// and team crests come from the standings map so no per-team request is needed.
+// Returns { goals: rows[], assists: rows[] }.
+//
+// Season type 0 is the whole-season aggregate: for cups it sums every stage
+// (group + knockout) rather than the group-only type 1; for leagues it equals
+// type 1. We fall back to type 1 for the rare feed that only populates it.
+// Athlete profiles (name / flag / position) don't change during a season, so
+// resolve each ref once and reuse it. This keeps the live top-scorer refresh to a
+// single leaders request instead of re-fetching every athlete on every poll.
+const athleteCache = {}
+
+const fetchLeaders = async (slug, season, teamMap = {}) => {
+  const leadersUrl = (t) => `${CORE_API}/${slug}/seasons/${season}/types/${t}/leaders`
+  const catsOf = async (t) => (await fetchJson(leadersUrl(t)).catch(() => null))?.categories || []
+  const pick = (cats, name) => (cats.find((c) => c.name === name)?.leaders || []).slice(0, 20)
+
+  let cats = await catsOf(0)
+  let goalsTop = pick(cats, 'goalsLeaders')
+  let assistsTop = pick(cats, 'assistsLeaders')
+  if (!goalsTop.length && !assistsTop.length) {
+    cats = await catsOf(1)
+    goalsTop = pick(cats, 'goalsLeaders')
+    assistsTop = pick(cats, 'assistsLeaders')
+  }
+  if (!goalsTop.length && !assistsTop.length) return { goals: [], assists: [] }
+
+  // Resolve every not-yet-seen athlete ref across both lists exactly once.
+  const refs = [...new Set([...goalsTop, ...assistsTop].map((l) => l.athlete?.$ref).filter(Boolean))]
+  await Promise.all(
+    refs.map(async (ref) => {
+      if (ref in athleteCache) return
+      athleteCache[ref] = await fetchJson(ref.replace(/^http:/, 'https:')).catch(() => null)
+    }),
+  )
+
+  const num = (short, k) => Number(short.match(new RegExp(`${k}:\\s*(\\d+)`))?.[1] ?? 0)
+  const build = (list) =>
+    list.map((l, i) => {
+      const a = athleteCache[l.athlete?.$ref] || {}
+      const tid = l.team?.$ref?.match(/teams\/(\d+)/)?.[1]
+      const tm = teamMap[tid]
+      const short = l.shortDisplayValue || ''
+      return {
+        rank: i + 1,
+        goals: num(short, 'G'),
+        assists: num(short, 'A'),
+        matches: num(short, 'M'),
+        name: a.displayName || a.fullName || '—',
+        pos: a.position?.abbreviation || '',
+        flag: a.flag?.href || '',
+        team: {
+          name: tm?.name || '',
+          abbr: tm?.abbr || '',
+          logo: tm?.logo || (tid ? `https://a.espncdn.com/i/teamlogos/soccer/500/${tid}.png` : ''),
+        },
+      }
+    })
+
+  return { goals: build(goalsTop), assists: build(assistsTop) }
+}
+
+// Shape raw standings into the view model, indexing team crests by id so the
+// scorers view can reuse them. Shared by the initial load and the live poll.
+const buildTableResult = ({ season, groups }) => {
+  const teamMap = {}
+  for (const g of groups)
+    for (const r of g.rows)
+      teamMap[r.team.id] = { name: r.team.name, abbr: r.team.abbr, logo: r.team.logo }
+  return { season, groups, teamMap }
+}
+
+// How many of a league's matches are in play right now — drives the Table view's
+// live badge and auto-refresh. ±1-day window catches a late kick-off that has
+// rolled into ESPN's next US-day.
+const fetchLiveCount = async (slug) => {
+  try {
+    const now = new Date()
+    const from = new Date(now); from.setDate(from.getDate() - 1)
+    const to = new Date(now); to.setDate(to.getDate() + 1)
+    const data = await fetchJson(`${API}/${slug}/scoreboard?dates=${ymd(from)}-${ymd(to)}`)
+    return (data.events || []).filter((e) => e.status?.type?.state === 'in').length
+  } catch {
+    return 0
+  }
+}
+
+// Knockout bracket for cup competitions. The league calendar defines the stages
+// (Round of 32 … Final) with date ranges; we cache those, fetch every match across
+// the knockout window in one request, and bucket each into its stage. Returns an
+// ordered [{ label, matches }] of the rounds that have games, or null.
+const bracketStagesCache = {} // slug -> [{ label, start:Date, end:Date }] (knockout only)
+
+const fetchBracket = async (slug) => {
+  let stages = bracketStagesCache[slug]
+  if (!stages) {
+    const board = await fetchJson(`${API}/${slug}/scoreboard`)
+    const entries = board.leagues?.[0]?.calendar?.[0]?.entries || []
+    stages = entries
+      // the group / league phase is the standings table, not a bracket round
+      .filter((e) => !/group|league/i.test(e.label))
+      .map((e) => ({ label: e.label, start: new Date(e.startDate), end: new Date(e.endDate) }))
+    if (!stages.length) return null
+    bracketStagesCache[slug] = stages
+  }
+  const data = await fetchJson(
+    `${API}/${slug}/scoreboard?dates=${ymd(stages[0].start)}-${ymd(stages[stages.length - 1].end)}`,
+  )
+  // Calendar ranges overlap (the 3rd-place window sits inside the semifinal one),
+  // so bucket into the *last* stage that contains the date — the most specific.
+  const stageIndex = (t) => {
+    for (let i = stages.length - 1; i >= 0; i--)
+      if (t >= stages[i].start && t < stages[i].end) return i
+    return -1
+  }
+  const rounds = stages.map((s) => ({ label: s.label, matches: [] }))
+  for (const ev of data.events || []) {
+    const i = stageIndex(new Date(ev.date))
+    if (i >= 0) rounds[i].matches.push(normalize(ev))
+  }
+  const filled = rounds.filter((r) => r.matches.length)
+  for (const r of filled) r.matches = collapseTies(r.matches)
+  return filled.length ? filled : null
+}
+
+// Two-legged ties (UEFA knockouts) arrive as two matches with the same pair of
+// teams. Collapse each round's matches into one node per tie carrying the aggregate
+// score. Single-leg competitions (World Cup) are a no-op — every pair has one match,
+// so the "aggregate" is just that match's score.
+const collapseTies = (matches) => {
+  const groups = new Map()
+  for (const m of matches) {
+    const ids = [m.home.id, m.away.id].filter(Boolean).sort()
+    const key = ids.length === 2 ? ids.join('-') : m.id // future/TBD legs stay separate
+    if (!groups.has(key)) groups.set(key, [])
+    groups.get(key).push(m)
+  }
+  const ties = []
+  for (const legs of groups.values()) {
+    legs.sort((a, b) => new Date(a.date) - new Date(b.date))
+    const first = legs[0]
+    const A = first.home, B = first.away // orient the tie by the first leg
+    let aG = 0, bG = 0, anyLive = false, allDone = true, anyScore = false
+    for (const leg of legs) {
+      anyLive = anyLive || leg.live
+      allDone = allDone && leg.completed
+      if (leg.state !== 'pre') anyScore = true
+      const aHome = leg.home.id === A.id
+      aG += (Number(aHome ? leg.home.score : leg.away.score) || 0)
+      bG += (Number(aHome ? leg.away.score : leg.home.score) || 0)
+    }
+    let aWin = false, bWin = false
+    if (allDone) {
+      if (aG > bG) aWin = true
+      else if (bG > aG) bWin = true
+      else { // level on aggregate — decided in the last leg (extra time / penalties)
+        const last = legs[legs.length - 1]
+        const aHome = last.home.id === A.id
+        aWin = aHome ? !!last.home.winner : !!last.away.winner
+        bWin = aHome ? !!last.away.winner : !!last.home.winner
+      }
+    }
+    ties.push({
+      id: legs.map((l) => l.id).join('-'),
+      date: first.date,
+      state: anyLive ? 'in' : allDone ? 'post' : anyScore ? 'in' : 'pre',
+      live: anyLive,
+      completed: allDone,
+      home: { ...A, score: anyScore ? aG : '', winner: aWin },
+      away: { ...B, score: anyScore ? bG : '', winner: bWin },
+    })
+  }
+  return ties.sort((a, b) => new Date(a.date) - new Date(b.date))
+}
+
+// ESPN's leaders feed only aggregates the group/league phase — knockout goals and
+// assists never appear there. For cups we top it up from the box score of each
+// completed knockout match (immutable once FT, so cached by event id). We keep every
+// player who actually featured (started or came on) so appearances can be counted
+// too. Returns { normalizedName: { name, goals, assists, apps, team } }.
+const koSummaryCache = {} // eventId -> [{ name, goals, assists, teamId }] (players who featured)
+
+const fetchKnockoutStats = async (slug, rounds, teamMap = {}) => {
+  const done = (rounds || []).flatMap((r) => r.matches).filter((m) => m.completed)
+  const acc = {}
+  await Promise.all(
+    done.map(async (m) => {
+      let players = koSummaryCache[m.id]
+      if (!players) {
+        try {
+          const data = await fetchJson(`${API}/${slug}/summary?event=${m.id}`)
+          players = []
+          for (const tm of data.rosters || []) {
+            const teamId = tm.team?.id
+            for (const p of tm.roster || []) {
+              if (p.starter !== true && p.subbedIn !== true) continue // didn't feature
+              const s = parseStats(p.stats)
+              players.push({ name: p.athlete?.displayName || '', goals: s.totalGoals || 0, assists: s.goalAssists || 0, teamId })
+            }
+          }
+          koSummaryCache[m.id] = players
+        } catch { players = [] }
+      }
+      for (const p of players) {
+        const key = normName(p.name)
+        if (!key) continue
+        if (!acc[key])
+          acc[key] = {
+            name: p.name, goals: 0, assists: 0, apps: 0,
+            team: teamMap[p.teamId] || {
+              name: '', abbr: '',
+              logo: p.teamId ? `https://a.espncdn.com/i/teamlogos/soccer/500/${p.teamId}.png` : '',
+            },
+          }
+        acc[key].goals += p.goals
+        acc[key].assists += p.assists
+        acc[key].apps += 1
+      }
+    }),
+  )
+  return acc
+}
+
+// Fold knockout goals/assists/apps into the group-phase leaders and rebuild the two
+// ranked lists, so a player who featured only in the knockout still shows up.
+const mergeKnockout = (base, ko) => {
+  const byName = new Map()
+  const seed = (p) => { const k = normName(p.name); if (k && !byName.has(k)) byName.set(k, { ...p }) }
+  base.goals.forEach(seed)
+  base.assists.forEach(seed)
+  for (const kp of Object.values(ko)) {
+    const k = normName(kp.name)
+    const cur = byName.get(k)
+    if (cur) { cur.goals += kp.goals; cur.assists += kp.assists; cur.matches = (cur.matches || 0) + kp.apps }
+    else byName.set(k, { name: kp.name, goals: kp.goals, assists: kp.assists, matches: kp.apps, flag: '', pos: '', team: kp.team })
+  }
+  const all = [...byName.values()]
+  const ranked = (key, tie) =>
+    all
+      .filter((p) => p[key] > 0)
+      .sort((a, b) => b[key] - a[key] || b[tie] - a[tie])
+      .slice(0, 20)
+      .map((p, i) => ({ ...p, rank: i + 1 }))
+  return { goals: ranked('goals', 'assists'), assists: ranked('assists', 'goals') }
+}
+
 export function useFootballScores() {
+  const { t } = useI18n()
   const dark = ref((() => {
     try { return localStorage.getItem('ft-theme') !== 'light' } catch { return true }
   })())
@@ -276,7 +619,27 @@ export function useFootballScores() {
   const summaryStatus = ref({}) // eventId -> 'loading' | 'error'
   const lineupEvent = ref(null) // the event whose lineup modal is open
 
-  let timer = null
+  // ----- Table / Top-scorers views (per-league, fetched on demand & cached) -----
+  const view = ref('scores') // 'scores' | 'table' | 'scorers'
+  const tableCache = {}       // slug -> { season, groups, teamMap }
+  const scorerCache = {}      // slug -> { goals, assists }
+  const table = ref(null)
+  const scorers = ref(null)
+  const tableLoading = ref(false)
+  const scorersLoading = ref(false)
+  const tableError = ref('')
+  const scorersError = ref('')
+  const tableLiveCount = ref(0)   // matches in play for the current league (Table view)
+  const tableUpdatedAt = ref(null)
+  const scorersLiveCount = ref(0) // matches in play (Best Player view)
+  const scorersUpdatedAt = ref(null)
+  const bracket = ref(null)       // knockout rounds for cups (Table view)
+  const bracketLoading = ref(false)
+  const bracketCache = {}         // slug -> rounds
+
+  let timer = null         // scoreboard poll (scores view)
+  let tableTimer = null    // standings poll (table view)
+  let scorersTimer = null  // leaders poll (best-player view)
   let reqId = 0
 
   const activeLeague = computed(() => leagues.find((l) => l.slug === leagueSlug.value))
@@ -288,16 +651,24 @@ export function useFootballScores() {
       error.value = ''
     }
     try {
-      const url = `${API}/${leagueSlug.value}/scoreboard?dates=${ymd(date.value)}`
+      // ESPN groups games by its own (US) timezone, so a single date can miss
+      // matches that fall on the selected day in Hanoi. Fetch a ±1-day window
+      // and keep only the games whose Hanoi calendar day matches the selection.
+      const prev = new Date(date.value); prev.setDate(prev.getDate() - 1)
+      const next = new Date(date.value); next.setDate(next.getDate() + 1)
+      const url = `${API}/${leagueSlug.value}/scoreboard?dates=${ymd(prev)}-${ymd(next)}`
       const data = await fetchJson(url)
       if (mine !== reqId) return // a newer request superseded this one
       leagueName.value = data.leagues?.[0]?.name || activeLeague.value?.name || ''
-      events.value = (data.events || []).map(normalize)
+      const wanted = hanoiYmd(date.value)
+      events.value = (data.events || [])
+        .filter((e) => hanoiYmd(e.date) === wanted)
+        .map(normalize)
       updatedAt.value = new Date()
       schedulePoll()
     } catch {
       if (mine === reqId && !silent)
-        error.value = 'Score service is slow or unreachable — tap Retry'
+        error.value = t('football.errorSlow')
     } finally {
       if (mine === reqId && !silent) loading.value = false
     }
@@ -334,6 +705,7 @@ export function useFootballScores() {
         [id]: {
           lineup,
           prediction: computePrediction(data),
+          stats: mapMatchStats(data, event.home?.id, event.away?.id),
           assists: parseAssists(data),
           h2h: mapH2H(data),
           form: {
@@ -374,6 +746,7 @@ export function useFootballScores() {
 
   const ensurePrediction = (event) => { if (event) ensureSummary(event) }
   const predictionFor = (id) => summaryCache.value[id]?.prediction || null
+  const statsFor = (id) => summaryCache.value[id]?.stats || null
   const assistsFor = (id) => summaryCache.value[id]?.assists || null
   const h2hFor = (id) => summaryCache.value[id]?.h2h || null
   const formFor = (id) => summaryCache.value[id]?.form || null
@@ -393,10 +766,175 @@ export function useFootballScores() {
   const lineupFor = (id) => summaryCache.value[id]?.lineup || null
   const detailsStateFor = (id) => summaryStatus.value[id] || null   // 'loading' | 'error' | null
 
+  const ensureTable = async (slug = leagueSlug.value) => {
+    if (tableCache[slug]) { table.value = tableCache[slug]; return tableCache[slug] }
+    tableLoading.value = true
+    tableError.value = ''
+    try {
+      const { season, groups } = await fetchStandings(slug)
+      if (!groups.length) throw new Error('no standings')
+      const result = buildTableResult({ season, groups })
+      tableCache[slug] = result
+      if (slug === leagueSlug.value) { // ignore if league switched mid-fetch
+        table.value = result
+        tableUpdatedAt.value = new Date()
+      }
+      return result
+    } catch {
+      if (slug === leagueSlug.value) tableError.value = t('football.noStandings')
+      return null
+    } finally {
+      if (slug === leagueSlug.value) tableLoading.value = false
+    }
+  }
+
+  // Build the goals/assists leaderboard for a league. Cups add knockout goals/assists
+  // on top of the group-phase feed. Shared by the initial load and the live poll.
+  const buildScorers = async (slug) => {
+    const tbl = await ensureTable(slug)            // reuse season + team crests
+    if (!tbl?.season) throw new Error('no season')
+    let data = await fetchLeaders(slug, tbl.season, tbl.teamMap)
+    if (isCup(slug)) {
+      const rounds = bracketCache[slug] || (await fetchBracket(slug))
+      data = mergeKnockout(data, await fetchKnockoutStats(slug, rounds, tbl.teamMap))
+    }
+    return data
+  }
+
+  const ensureScorers = async (slug = leagueSlug.value) => {
+    if (scorerCache[slug]) { scorers.value = scorerCache[slug]; return }
+    scorersLoading.value = true
+    scorersError.value = ''
+    try {
+      const data = await buildScorers(slug)
+      if (!data.goals.length && !data.assists.length) throw new Error('no leaders')
+      scorerCache[slug] = data
+      if (slug === leagueSlug.value) { scorers.value = data; scorersUpdatedAt.value = new Date() }
+    } catch {
+      if (slug === leagueSlug.value) scorersError.value = t('football.noScorers')
+    } finally {
+      if (slug === leagueSlug.value) scorersLoading.value = false
+    }
+  }
+
+  // ----- Live leaders polling (Best Player view) -----
+  // While the tab is open and a match is in play, silently rebuild the leaderboard so
+  // new goals/assists show up. Guarded against a stale league/view before applying.
+  const refreshScorersLive = async () => {
+    const slug = leagueSlug.value
+    if (view.value !== 'scorers') return
+    const live = await fetchLiveCount(slug)
+    if (slug !== leagueSlug.value || view.value !== 'scorers') return
+    scorersLiveCount.value = live
+    if (!live) return
+    try {
+      delete scorerCache[slug] // force a fresh feed (cached knockout box scores are reused)
+      const data = await buildScorers(slug)
+      if ((data.goals.length || data.assists.length) && slug === leagueSlug.value && view.value === 'scorers') {
+        scorerCache[slug] = data
+        scorers.value = data
+        scorersUpdatedAt.value = new Date()
+      }
+    } catch { /* keep the last-good leaderboard on a transient failure */ }
+  }
+
+  const startScorersPolling = () => {
+    clearInterval(scorersTimer)
+    refreshScorersLive()
+    scorersTimer = setInterval(refreshScorersLive, TABLE_POLL_MS)
+  }
+  const stopScorersPolling = () => {
+    clearInterval(scorersTimer)
+    scorersLiveCount.value = 0
+  }
+
+  const isCup = (slug) => !!leagues.find((l) => l.slug === slug)?.cup
+
+  // Knockout bracket for cup competitions (Table view). No-op for regular leagues.
+  const ensureBracket = async (slug = leagueSlug.value) => {
+    if (!isCup(slug)) { bracket.value = null; return }
+    if (bracketCache[slug]) { bracket.value = bracketCache[slug]; return }
+    bracketLoading.value = true
+    try {
+      const rounds = await fetchBracket(slug)
+      bracketCache[slug] = rounds
+      if (slug === leagueSlug.value) bracket.value = rounds
+    } catch {
+      if (slug === leagueSlug.value) bracket.value = null
+    } finally {
+      if (slug === leagueSlug.value) bracketLoading.value = false
+    }
+  }
+
+  // ----- Live standings polling (Table view) -----
+  // While the Table view is open, watch for a live match and — when one is in play —
+  // silently refresh the standings and (for cups) the knockout bracket so scores stay
+  // current. Guarded so it stops the moment the user leaves the tab or switches
+  // league (any stale result is discarded before it's applied).
+  const stale = (slug) => slug !== leagueSlug.value || view.value !== 'table'
+
+  const refreshTableLive = async () => {
+    const slug = leagueSlug.value
+    if (view.value !== 'table') return
+    const liveCount = await fetchLiveCount(slug)
+    if (stale(slug)) return
+    tableLiveCount.value = liveCount
+    if (!liveCount) return
+    try {
+      const { season, groups } = await fetchStandings(slug)
+      if (!stale(slug) && groups.length) {
+        const result = buildTableResult({ season, groups })
+        tableCache[slug] = result
+        table.value = result
+        tableUpdatedAt.value = new Date()
+      }
+    } catch { /* keep the last-good table on a transient failure */ }
+    if (isCup(slug)) { delete bracketCache[slug]; ensureBracket(slug) } // live bracket scores
+  }
+
+  const startTablePolling = () => {
+    clearInterval(tableTimer)
+    refreshTableLive()
+    tableTimer = setInterval(refreshTableLive, TABLE_POLL_MS)
+  }
+  const stopTablePolling = () => {
+    clearInterval(tableTimer)
+    tableLiveCount.value = 0
+  }
+
+  const setView = (v) => {
+    if (v === view.value) return
+    view.value = v
+    stopTablePolling()
+    stopScorersPolling()
+    if (v === 'table') { ensureTable(); ensureBracket(); startTablePolling() }
+    else if (v === 'scorers') { ensureScorers(); startScorersPolling() }
+  }
+
+  // Header refresh button — re-fetch whatever the current view shows.
+  const refreshCurrent = () => {
+    const slug = leagueSlug.value
+    if (view.value === 'table') {
+      delete tableCache[slug]; table.value = null
+      delete bracketCache[slug]; bracket.value = null
+      ensureTable(); ensureBracket(); refreshTableLive()
+    } else if (view.value === 'scorers') {
+      delete scorerCache[slug]; scorers.value = null; ensureScorers()
+    } else fetchScores()
+  }
+
   const selectLeague = (slug) => {
     if (slug === leagueSlug.value) return
     leagueSlug.value = slug
     fetchScores()
+    // Swap in the new league's data for whichever view is open.
+    table.value = tableCache[slug] || null
+    scorers.value = scorerCache[slug] || null
+    bracket.value = bracketCache[slug] || null
+    stopTablePolling()
+    stopScorersPolling()
+    if (view.value === 'table') { ensureTable(); ensureBracket(); startTablePolling() }
+    else if (view.value === 'scorers') { ensureScorers(); startScorersPolling() }
   }
 
   const shiftDay = (delta) => {
@@ -433,19 +971,19 @@ export function useFootballScores() {
     const today = new Date()
     const tomorrow = new Date(today); tomorrow.setDate(today.getDate() + 1)
     const yesterday = new Date(today); yesterday.setDate(today.getDate() - 1)
-    if (sameDay(d, today)) return 'Today'
-    if (sameDay(d, tomorrow)) return 'Tomorrow'
-    if (sameDay(d, yesterday)) return 'Yesterday'
+    if (sameDay(d, today)) return t('football.today')
+    if (sameDay(d, tomorrow)) return t('football.tomorrow')
+    if (sameDay(d, yesterday)) return t('football.yesterday')
     return d.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' })
   })
 
-  const updatedText = computed(() =>
-    updatedAt.value
-      ? updatedAt.value.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })
-      : '',
-  )
+  const clockText = (d) =>
+    d ? d.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' }) : ''
+  const updatedText = computed(() => clockText(updatedAt.value))
+  const tableUpdatedText = computed(() => clockText(tableUpdatedAt.value))
+  const scorersUpdatedText = computed(() => clockText(scorersUpdatedAt.value))
 
-  onUnmounted(() => clearInterval(timer))
+  onUnmounted(() => { clearInterval(timer); clearInterval(tableTimer); clearInterval(scorersTimer) })
 
   return {
     dark, toggleTheme,
@@ -453,10 +991,15 @@ export function useFootballScores() {
     date, dateLabel, isToday,
     events, featured, others, liveCount,
     loading, error, updatedText,
+    view, setView, refreshCurrent,
+    table, scorers, tableLoading, scorersLoading, tableError, scorersError,
+    tableLiveCount, tableUpdatedText,
+    scorersLiveCount, scorersUpdatedText,
+    bracket, bracketLoading,
     fetchScores, selectLeague, shiftDay, goToday,
     lineupEvent, openLineup, closeLineup, retryLineup,
     lineupFor, detailsStateFor,
-    ensurePrediction, predictionFor, assistsFor,
+    ensurePrediction, predictionFor, statsFor, assistsFor,
     h2hFor, formFor, ratingSourceFor,
   }
 }

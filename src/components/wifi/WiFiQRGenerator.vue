@@ -5,7 +5,7 @@
     <div v-if="networks.length > 0" class="space-y-4">
       <div class="flex items-center gap-2">
         <div class="flex-1 h-px bg-gray-200"></div>
-        <span class="text-xs text-gray-400 font-semibold uppercase tracking-widest">Generated</span>
+        <span class="text-xs text-gray-400 font-semibold uppercase tracking-widest">{{ t('wifi.generated') }}</span>
         <div class="flex-1 h-px bg-gray-200"></div>
       </div>
       <WiFiCard
@@ -20,7 +20,7 @@
       <svg xmlns="http://www.w3.org/2000/svg" class="w-12 h-12 text-gray-200 mx-auto mb-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M8.111 16.404a5.5 5.5 0 017.778 0M12 20h.01m-7.08-7.071c3.904-3.905 10.236-3.905 14.141 0M1.394 9.393c5.857-5.857 15.355-5.857 21.213 0" />
       </svg>
-      <p class="text-sm text-gray-400">Fill in the form above to generate your first QR code.</p>
+      <p class="text-sm text-gray-400">{{ t('wifi.empty') }}</p>
     </div>
   </div>
 </template>
@@ -29,6 +29,9 @@
 import { ref } from 'vue'
 import WiFiForm from './WiFiForm.vue'
 import WiFiCard from './WiFiCard.vue'
+import { useI18n } from '@/i18n'
+
+const { t } = useI18n()
 
 const networks = ref([])
 

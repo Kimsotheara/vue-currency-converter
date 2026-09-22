@@ -2,14 +2,24 @@
   <Transition name="fade">
     <div class="fixed inset-0 z-50 bg-black/70 flex items-end sm:items-center justify-center p-0 sm:p-4" @click.self="$emit('close')">
       <div class="modal-panel bg-slate-900 w-full sm:max-w-2xl lg:max-w-3xl sm:rounded-2xl rounded-t-2xl max-h-[92vh] flex flex-col shadow-2xl" :class="{ 'ft-light': !dark }">
+        <!-- Mobile drag handle / dismiss affordance -->
+        <button class="sm:hidden w-full pt-2.5 pb-1 flex justify-center shrink-0" aria-label="Close" @click="$emit('close')">
+          <span class="w-10 h-1.5 rounded-full bg-white/25" />
+        </button>
         <!-- Result header (always shown) -->
-        <div class="px-5 py-4 border-b border-white/10">
+        <div class="px-5 pt-3 pb-4 border-b border-white/10">
           <div class="flex items-center">
             <p class="flex-1 text-xs font-semibold inline-flex items-center gap-1.5"
                :class="event.live ? 'text-red-400' : 'text-slate-400'">
               <span v-if="event.live" class="w-1.5 h-1.5 rounded-full bg-red-400" />{{ statusText }}
             </p>
-            <button @click="$emit('close')" class="w-8 h-8 rounded-lg bg-white/10 hover:bg-white/20 text-white text-lg flex items-center justify-center transition">✕</button>
+            <button
+              @click="$emit('close')"
+              class="shrink-0 w-9 h-9 rounded-full bg-white/10 hover:bg-white/20 text-white flex items-center justify-center transition active:scale-90"
+              aria-label="Close match details"
+            >
+              <X class="w-5 h-5" :stroke-width="2.4" />
+            </button>
           </div>
 
           <div class="mt-2 grid grid-cols-[1fr_auto_1fr] items-center gap-3">
@@ -43,33 +53,42 @@
               </li>
             </ul>
           </div>
+
+          <!-- Match stats: possession / shots on target -->
+          <div v-if="statRows.length" class="mt-3 pt-3 border-t border-white/5 space-y-1.5">
+            <div v-for="row in statRows" :key="row.label" class="flex items-center text-[11px]">
+              <span class="w-12 text-left font-semibold text-white tabular-nums">{{ row.home }}</span>
+              <span class="flex-1 text-center text-slate-400">{{ row.label }}</span>
+              <span class="w-12 text-right font-semibold text-white tabular-nums">{{ row.away }}</span>
+            </div>
+          </div>
         </div>
 
         <!-- Tabs -->
         <div class="flex px-3 pt-3 gap-2">
           <button
-            v-for="t in tabs"
-            :key="t.key"
-            @click="tab = t.key"
+            v-for="tb in tabs"
+            :key="tb.key"
+            @click="tab = tb.key"
             :class="[
               'flex-1 py-2 rounded-lg text-xs sm:text-sm font-semibold transition',
-              tab === t.key ? 'bg-emerald-500 text-white' : 'bg-white/10 text-slate-300 hover:bg-white/20',
+              tab === tb.key ? 'bg-emerald-500 text-white' : 'bg-white/10 text-slate-300 hover:bg-white/20',
             ]"
-          >{{ t.label }}</button>
+          >{{ t(tb.labelKey) }}</button>
         </div>
 
         <div class="overflow-y-auto px-3 pb-5 pt-3">
           <!-- Loading -->
           <div v-if="state === 'loading'" class="py-16 text-center">
             <span class="inline-block text-3xl animate-spin">↻</span>
-            <p class="text-slate-400 text-sm mt-3">Loading match details…</p>
+            <p class="text-slate-400 text-sm mt-3">{{ t('football.loadingDetails') }}</p>
           </div>
 
           <!-- Error -->
           <div v-else-if="state === 'error'" class="py-14 px-6 text-center">
             <p class="text-4xl mb-3">📡</p>
-            <p class="text-slate-300 text-sm">Couldn't load match details.</p>
-            <button @click="$emit('retry', event)" class="mt-4 px-5 py-2 rounded-lg bg-emerald-500 hover:bg-emerald-400 text-white text-sm font-semibold transition">Retry</button>
+            <p class="text-slate-300 text-sm">{{ t('football.cantLoad') }}</p>
+            <button @click="$emit('retry', event)" class="mt-4 px-5 py-2 rounded-lg bg-emerald-500 hover:bg-emerald-400 text-white text-sm font-semibold transition">{{ t('football.retry') }}</button>
           </div>
 
           <template v-else>
@@ -77,9 +96,9 @@
             <template v-if="tab === 'lineup'">
               <div v-if="!teams" class="py-12 px-6 text-center">
                 <p class="text-4xl mb-3">📋</p>
-                <p class="text-slate-200 text-sm font-semibold">Line-ups not announced yet</p>
-                <p class="text-slate-500 text-xs mt-1.5">Official XIs are usually confirmed about an hour before kick-off.</p>
-                <button @click="$emit('retry', event)" class="mt-5 px-5 py-2 rounded-lg bg-emerald-500 hover:bg-emerald-400 text-white text-sm font-semibold transition">Check again</button>
+                <p class="text-slate-200 text-sm font-semibold">{{ t('football.lineupsNotYet') }}</p>
+                <p class="text-slate-500 text-xs mt-1.5">{{ t('football.lineupsHint') }}</p>
+                <button @click="$emit('retry', event)" class="mt-5 px-5 py-2 rounded-lg bg-emerald-500 hover:bg-emerald-400 text-white text-sm font-semibold transition">{{ t('football.checkAgain') }}</button>
               </div>
               <template v-else>
                 <!-- Combined pitch: away (top) vs home (bottom), FotMob-style -->
@@ -138,12 +157,12 @@
 
                 <!-- Bench: both teams -->
                 <div class="mt-4 grid sm:grid-cols-2 gap-x-5 gap-y-4">
-                  <div v-for="(t, ti) in teams" :key="'sub'+ti">
+                  <div v-for="(tm, ti) in teams" :key="'sub'+ti">
                     <p class="text-slate-400 text-xs font-bold mb-2 flex items-center gap-1.5">
-                      <img v-if="t.logo" :src="t.logo" class="w-4 h-4 object-contain" />{{ t.name }} · Bench
+                      <img v-if="tm.logo" :src="tm.logo" class="w-4 h-4 object-contain" />{{ tm.name }} · {{ t('football.bench') }}
                     </p>
                     <div class="space-y-2">
-                      <div v-for="(p, i) in t.subs" :key="'s'+ti+i" class="flex items-center gap-2.5">
+                      <div v-for="(p, i) in tm.subs" :key="'s'+ti+i" class="flex items-center gap-2.5">
                         <div class="relative shrink-0">
                           <img v-if="photoFor(p.name)" :src="photoFor(p.name)" class="w-8 h-8 rounded-full object-cover object-top bg-white/10" loading="lazy" />
                           <img v-else-if="p.shirt" :src="p.shirt" class="w-7 h-7 object-contain" loading="lazy" />
@@ -164,13 +183,13 @@
 
                 <!-- Legend + meta -->
                 <div class="mt-5 pt-4 border-t border-white/5">
-                  <p v-if="event.completed" class="text-slate-500 text-[11px] mb-2">Player ratings (0–10)
-                    <span v-if="ratingSource === 'API-Football'">via API-Football</span>
-                    <span v-else>estimated from match data</span>
+                  <p v-if="event.completed" class="text-slate-500 text-[11px] mb-2">{{ t('football.ratings') }}
+                    <span v-if="ratingSource === 'API-Football'">{{ t('football.viaApiFootball') }}</span>
+                    <span v-else>{{ t('football.estimated') }}</span>
                   </p>
                   <div class="flex flex-wrap gap-x-4 gap-y-1 text-[10px] text-slate-400">
-                    <span>⚽ Goal</span><span>🅰 Assist</span><span>🟨 Yellow</span><span>🟥 Red</span>
-                    <span class="text-emerald-400">▲ Sub in</span>
+                    <span>⚽ {{ t('football.goal') }}</span><span>🅰 {{ t('football.assist') }}</span><span>🟨 {{ t('football.yellow') }}</span><span>🟥 {{ t('football.red') }}</span>
+                    <span class="text-emerald-400">▲ {{ t('football.subIn') }}</span>
                   </div>
                   <p v-if="event.venue" class="text-slate-600 text-[10px] mt-2">📍 {{ event.venue }}</p>
                 </div>
@@ -179,7 +198,7 @@
 
             <!-- ===== FORM (last 10) ===== -->
             <template v-else-if="tab === 'form'">
-              <div v-if="!hasForm" class="py-12 text-center text-slate-500 text-sm">No recent results available.</div>
+              <div v-if="!hasForm" class="py-12 text-center text-slate-500 text-sm">{{ t('football.noRecentResults') }}</div>
               <div v-else class="space-y-5">
                 <div v-for="(side, key) in { home: form.home, away: form.away }" :key="key">
                   <div class="flex items-center gap-2 mb-2">
@@ -205,9 +224,9 @@
 
             <!-- ===== HEAD TO HEAD ===== -->
             <template v-else>
-              <div v-if="!h2h" class="py-12 text-center text-slate-500 text-sm">No recent meetings between these teams.</div>
+              <div v-if="!h2h" class="py-12 text-center text-slate-500 text-sm">{{ t('football.noRecentMeetings') }}</div>
               <div v-else>
-                <p class="text-slate-400 text-xs mb-3">Recent meetings — from <span class="text-white font-semibold">{{ h2h.subject }}</span>'s view</p>
+                <p class="text-slate-400 text-xs mb-3">{{ t('football.recentMeetings') }} <span class="text-white font-semibold">{{ h2h.subject }}</span></p>
                 <div class="rounded-xl bg-slate-800/50 ring-1 ring-white/5 divide-y divide-white/5">
                   <div v-for="(g, i) in h2h.games" :key="i" class="flex items-center gap-2.5 px-3 py-2.5 text-xs">
                     <span :class="['w-5 h-5 rounded text-[10px] font-bold flex items-center justify-center text-white shrink-0', resultBg(g.result)]">{{ g.result }}</span>
@@ -229,8 +248,12 @@
 </template>
 
 <script setup>
-import { ref, computed, watch } from 'vue'
+import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
+import { X } from 'lucide-vue-next'
 import { usePlayerPhotos } from './playerPhotos'
+import { useI18n } from '@/i18n'
+
+const { t } = useI18n()
 
 const props = defineProps({
   event:   { type: Object, required: true },
@@ -239,19 +262,38 @@ const props = defineProps({
   teams:   { type: Array, default: null },    // lineup [home, away] or null
   form:    { type: Object, default: null },   // { home:[], away:[] }
   h2h:     { type: Object, default: null },
+  stats:   { type: Object, default: null },   // { home:{possession,shotsOnTarget}, away:{...} }
   assists: { type: Object, default: null },   // { scorerNameLower: assistName }
   ratingSource: { type: String, default: null }, // 'API-Football' when real ratings loaded
 })
-defineEmits(['close', 'retry'])
+const emit = defineEmits(['close', 'retry'])
+
+// Close on Escape (desktop) — pairs with the back-button/back-gesture handling
+// and the on-screen close button.
+const onKeydown = (e) => { if (e.key === 'Escape') emit('close') }
+onMounted(() => document.addEventListener('keydown', onKeydown))
+onUnmounted(() => document.removeEventListener('keydown', onKeydown))
 
 const tabs = [
-  { key: 'lineup', label: 'Line-up' },
-  { key: 'form',   label: 'Last 10' },
-  { key: 'h2h',    label: 'H2H' },
+  { key: 'lineup', labelKey: 'football.tabLineup' },
+  { key: 'form',   labelKey: 'football.tabForm' },
+  { key: 'h2h',    labelKey: 'football.tabH2h' },
 ]
 const tab = ref('lineup')
 const home = computed(() => props.teams?.[0] || null)
 const away = computed(() => props.teams?.[1] || null)
+
+// Match stats (possession / shots on target) — only available once a match is
+// live or finished. Shown in the header across every tab.
+const statRows = computed(() => {
+  const s = props.stats
+  if (!s || (!props.event.live && !props.event.completed)) return []
+  const dash = (v) => (v == null || v === '' ? '–' : v)
+  return [
+    { label: t('football.possession'), home: dash(s.home?.possession), away: dash(s.away?.possession) },
+    { label: t('football.shotsOnTarget'), home: dash(s.home?.shotsOnTarget), away: dash(s.away?.shotsOnTarget) },
+  ]
+})
 
 // Both teams on one pitch (Google-style): away attacks down from the top,
 // home attacks up from the bottom, so the two front lines meet in the middle.
@@ -279,13 +321,14 @@ const hasForm = computed(() => (props.form?.home?.length || props.form?.away?.le
 
 const statusText = computed(() => {
   const e = props.event
-  if (e.live) return e.detail || 'LIVE'
-  if (e.completed) return e.detail || 'FT'
-  return 'Scheduled'
+  if (e.live) return e.detail || t('football.statusLive')
+  if (e.completed) return e.detail || t('football.statusFt')
+  return t('football.statusScheduled')
 })
 const kickoff = computed(() =>
   new Date(props.event.date).toLocaleString('en-GB', {
     weekday: 'short', day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit',
+    timeZone: 'Asia/Ho_Chi_Minh',
   }),
 )
 const scorerText = (s) => {

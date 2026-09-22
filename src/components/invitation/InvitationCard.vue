@@ -48,12 +48,12 @@
       </div>
 
       <p :style="{ color: t.eyebrow, fontSize: '11px', letterSpacing: '3px', fontWeight: 700, textTransform: 'uppercase', margin: '14px 0 0' }">
-        {{ t.eyebrowText || "You're Invited" }}
+        {{ t.eyebrowText || L('invitation.youreInvited') }}
       </p>
 
       <!-- Khmer Moul glyphs are tall — extra line-height keeps them from clipping -->
       <h3 :style="{ color: t.title, fontFamily: headingFont, fontSize: headingSize, fontWeight: isScript ? 400 : 700, lineHeight: titleFont ? 1.8 : (isScript ? 1.35 : 1.25), margin: '8px 0 0', wordBreak: 'break-word' }">
-        {{ eventTitle || 'Our Special Event' }}
+        {{ eventTitle || L('invitation.specialEvent') }}
       </h3>
 
       <img
@@ -65,7 +65,7 @@
 
       <div :style="{ width: '64px', height: '2px', background: t.accent, marginTop: '16px', borderRadius: '2px' }" />
 
-      <p :style="{ color: t.muted, fontSize: '13px', margin: '14px 0 0' }">Dear</p>
+      <p :style="{ color: t.muted, fontSize: '13px', margin: '14px 0 0' }">{{ L('invitation.dear') }}</p>
       <p :style="{ color: t.guest, fontFamily: headingFont, fontSize: guestSize, fontWeight: isScript ? 400 : 700, lineHeight: titleFont ? 1.8 : (isScript ? 1.35 : 1.3), margin: '2px 0 0', wordBreak: 'break-word' }">
         {{ guest }}
       </p>
@@ -88,7 +88,7 @@
           v-if="hostName"
           :style="{ color: t.eyebrow, fontSize: '10.5px', letterSpacing: '2.5px', textTransform: 'uppercase', fontWeight: 700, margin: '12px 0 0' }"
         >
-          Hosted by {{ hostName }}
+          {{ L('invitation.hostedBy', { host: hostName }) }}
         </p>
         <p v-if="contact" :style="{ color: t.muted, fontSize: '12px', margin: hostName ? '4px 0 0' : '12px 0 0' }">
           ☎ {{ contact }}
@@ -105,6 +105,9 @@
 <script setup>
 import { computed } from 'vue'
 import { scriptFont } from './templates'
+import { useI18n } from '@/i18n'
+
+const { t: L } = useI18n()
 
 const props = defineProps({
   template: { type: Object, required: true },

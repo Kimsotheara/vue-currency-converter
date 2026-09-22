@@ -26,30 +26,31 @@ export const provinces = [
   { id: 'tboungkhmum', name: 'Tboung Khmum', km: 'ត្បូងឃ្មុំ', lat: 11.9118, lon: 105.6582 },
 ]
 
+// [translation key, emoji] — the label text is resolved via i18n (weather.codes.*)
 const codes = {
-  0: ['Clear sky', '☀️'],
-  1: ['Mainly clear', '🌤️'],
-  2: ['Partly cloudy', '⛅'],
-  3: ['Overcast', '☁️'],
-  45: ['Foggy', '🌫️'],
-  48: ['Foggy', '🌫️'],
-  51: ['Light drizzle', '🌦️'],
-  53: ['Drizzle', '🌦️'],
-  55: ['Heavy drizzle', '🌧️'],
-  61: ['Light rain', '🌦️'],
-  63: ['Rain', '🌧️'],
-  65: ['Heavy rain', '🌧️'],
-  66: ['Freezing rain', '🌧️'],
-  67: ['Freezing rain', '🌧️'],
-  80: ['Light showers', '🌦️'],
-  81: ['Showers', '🌧️'],
-  82: ['Heavy showers', '⛈️'],
-  95: ['Thunderstorm', '⛈️'],
-  96: ['Thunderstorm + hail', '⛈️'],
-  99: ['Thunderstorm + hail', '⛈️'],
+  0: ['clear', '☀️'],
+  1: ['mainlyClear', '🌤️'],
+  2: ['partlyCloudy', '⛅'],
+  3: ['overcast', '☁️'],
+  45: ['foggy', '🌫️'],
+  48: ['foggy', '🌫️'],
+  51: ['lightDrizzle', '🌦️'],
+  53: ['drizzle', '🌦️'],
+  55: ['heavyDrizzle', '🌧️'],
+  61: ['lightRain', '🌦️'],
+  63: ['rain', '🌧️'],
+  65: ['heavyRain', '🌧️'],
+  66: ['freezingRain', '🌧️'],
+  67: ['freezingRain', '🌧️'],
+  80: ['lightShowers', '🌦️'],
+  81: ['showers', '🌧️'],
+  82: ['heavyShowers', '⛈️'],
+  95: ['thunderstorm', '⛈️'],
+  96: ['thunderstormHail', '⛈️'],
+  99: ['thunderstormHail', '⛈️'],
 }
 
 export const weatherInfo = (code) => {
-  const [label, emoji] = codes[code] || ['—', '🌡️']
-  return { label, emoji }
+  const [key, emoji] = codes[code] || ['unknown', '🌡️']
+  return { key, emoji }
 }

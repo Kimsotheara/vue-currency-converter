@@ -28,3 +28,6 @@ coverage
 *.sw?
 
 *.tsbuildinfo
+
+# Local design reference screenshots (not part of the app)
+src/assets/img/

@@ -10,22 +10,22 @@
           <h2 class="text-white text-lg font-bold leading-tight truncate">
             {{ leagueName || activeLeague?.name }}
           </h2>
-          <p class="text-slate-400 text-xs font-medium">Live Scores & Results</p>
+          <p class="text-slate-400 text-xs font-medium">{{ t('football.liveScores') }}</p>
         </div>
         <button
           @click="toggleTheme"
           class="ml-auto shrink-0 w-9 h-9 rounded-lg bg-white/10 hover:bg-white/20 active:scale-95 transition flex items-center justify-center text-white text-base"
-          :title="dark ? 'Switch to light' : 'Switch to dark'"
+          :title="dark ? t('football.switchLight') : t('football.switchDark')"
         >
           {{ dark ? '☀️' : '🌙' }}
         </button>
         <button
-          @click="fetchScores()"
-          :disabled="loading"
+          @click="refreshCurrent()"
+          :disabled="busy"
           class="shrink-0 w-9 h-9 rounded-lg bg-white/10 hover:bg-white/20 active:scale-95 transition flex items-center justify-center text-white disabled:opacity-50"
-          title="Refresh"
+          :title="t('football.refresh')"
         >
-          <span class="text-base" :class="{ 'animate-spin': loading }">↻</span>
+          <span class="text-base" :class="{ 'animate-spin': busy }">↻</span>
         </button>
       </div>
 
@@ -47,23 +47,42 @@
       </div>
     </div>
 
-    <!-- ===== Date bar ===== -->
-    <div class="bg-slate-800 px-5 py-2.5 flex items-center justify-between border-t border-white/5">
-      <button :class="navBtn" @click="shiftDay(-1)" title="Previous day">‹</button>
+    <!-- ===== View tabs ===== -->
+    <div class="bg-slate-800 px-3 pt-2 flex gap-1 border-t border-white/5">
+      <button
+        v-for="tab in tabs"
+        :key="tab.id"
+        @click="setView(tab.id)"
+        :class="[
+          'flex-1 inline-flex items-center justify-center gap-1.5 py-2 rounded-t-lg text-xs font-semibold transition border-b-2',
+          view === tab.id
+            ? 'text-white border-emerald-500 bg-white/5'
+            : 'text-slate-400 border-transparent hover:text-slate-200',
+        ]"
+      >
+        <span>{{ tab.emoji }}</span>{{ tab.label }}
+      </button>
+    </div>
+
+    <!-- ===== Date bar (scores only) ===== -->
+    <div v-if="view === 'scores'" class="bg-slate-800 px-5 py-2.5 flex items-center justify-between border-t border-white/5">
+      <button :class="navBtn" @click="shiftDay(-1)" :title="t('football.prevDay')">‹</button>
       <button
         @click="goToday"
         class="flex items-center gap-2 text-sm font-semibold text-white px-3 py-1 rounded-lg hover:bg-white/10 transition"
       >
         <span>📅</span>{{ dateLabel }}
         <span v-if="liveCount" class="inline-flex items-center gap-1 text-red-400 text-xs">
-          <span class="live-dot" />{{ liveCount }} live
+          <span class="live-dot" />{{ t('football.liveCount', { n: liveCount }) }}
         </span>
       </button>
-      <button :class="navBtn" @click="shiftDay(1)" title="Next day">›</button>
+      <button :class="navBtn" @click="shiftDay(1)" :title="t('football.nextDay')">›</button>
     </div>
 
     <!-- ===== Body ===== -->
     <div class="ft-body bg-slate-900 rounded-b-2xl px-4 sm:px-5 pt-4 pb-5 min-h-[260px]">
+      <!-- ============ SCORES ============ -->
+      <template v-if="view === 'scores'">
       <!-- Loading -->
       <div v-if="loading && !events.length" class="space-y-3 animate-pulse">
         <div class="h-44 rounded-2xl bg-slate-800/70" />
@@ -81,15 +100,15 @@
           @click="fetchScores()"
           class="px-5 py-2 rounded-lg bg-emerald-500 hover:bg-emerald-400 text-white text-sm font-semibold transition"
         >
-          Retry
+          {{ t('football.retry') }}
         </button>
       </div>
 
       <!-- Empty -->
       <div v-else-if="!events.length" class="text-center py-12">
         <p class="text-5xl mb-3">⚽</p>
-        <p class="text-slate-400 text-sm">No matches for {{ dateLabel.toLowerCase() }} in this league.</p>
-        <p class="text-slate-600 text-xs mt-1">Try another day or league above.</p>
+        <p class="text-slate-400 text-sm">{{ t('football.noMatches', { day: dateLabel.toLowerCase() }) }}</p>
+        <p class="text-slate-600 text-xs mt-1">{{ t('football.tryAnother') }}</p>
       </div>
 
       <template v-else>
@@ -134,23 +153,33 @@
             <ul class="space-y-1.5 text-left text-slate-300">
               <li v-for="(s, i) in featured.homeScorers" :key="'h'+i">
                 ⚽ {{ scorerText(s) }}
-                <span v-if="assistFor(s)" class="block text-[10px] text-slate-500">↳ assist {{ assistFor(s) }}</span>
+                <span v-if="assistFor(s)" class="block text-[10px] text-slate-500">↳ {{ t('football.assist') }} {{ assistFor(s) }}</span>
               </li>
             </ul>
             <span class="text-slate-500 pt-0.5">⚽</span>
             <ul class="space-y-1.5 text-right text-slate-300">
               <li v-for="(s, i) in featured.awayScorers" :key="'a'+i">
                 {{ scorerText(s) }} ⚽
-                <span v-if="assistFor(s)" class="block text-[10px] text-slate-500">{{ assistFor(s) }} assist ↳</span>
+                <span v-if="assistFor(s)" class="block text-[10px] text-slate-500">{{ assistFor(s) }} {{ t('football.assist') }} ↳</span>
               </li>
             </ul>
+          </div>
+
+          <!-- Match stats (possession / shots on target) -->
+          <div v-if="matchStats" class="mt-5 pt-4 border-t border-white/5 space-y-2">
+            <div class="text-[11px] text-slate-400 font-semibold uppercase tracking-wider mb-1">📊 {{ t('football.stats') }}</div>
+            <div v-for="row in statRows" :key="row.label" class="flex items-center text-[11px]">
+              <span class="w-10 text-left font-semibold text-emerald-400">{{ row.home }}</span>
+              <span class="flex-1 text-center text-slate-400">{{ row.label }}</span>
+              <span class="w-10 text-right font-semibold text-sky-400">{{ row.away }}</span>
+            </div>
           </div>
 
           <!-- Prediction -->
           <div v-if="prediction" class="mt-5 pt-4 border-t border-white/5">
             <div class="flex items-center justify-between text-[11px] mb-2">
-              <span class="text-slate-400 font-semibold uppercase tracking-wider">🔮 Prediction</span>
-              <span v-if="prediction.provider" class="text-slate-600">via {{ prediction.provider }}</span>
+              <span class="text-slate-400 font-semibold uppercase tracking-wider">🔮 {{ t('football.prediction') }}</span>
+              <span v-if="prediction.provider" class="text-slate-600">{{ t('football.via', { provider: prediction.provider }) }}</span>
             </div>
             <div class="flex h-2.5 rounded-full overflow-hidden bg-slate-700">
               <div class="bg-emerald-500" :style="{ width: prediction.home + '%' }" />
@@ -158,9 +187,9 @@
               <div class="bg-sky-500" :style="{ width: prediction.away + '%' }" />
             </div>
             <div class="flex justify-between mt-1.5 text-[11px] font-semibold">
-              <span class="text-emerald-400">{{ featured.home.short || 'Home' }} {{ prediction.home }}%</span>
-              <span class="text-slate-300">Draw {{ prediction.draw }}%</span>
-              <span class="text-sky-400">{{ featured.away.short || 'Away' }} {{ prediction.away }}%</span>
+              <span class="text-emerald-400">{{ featured.home.short || t('football.home') }} {{ prediction.home }}%</span>
+              <span class="text-slate-300">{{ t('football.draw') }} {{ prediction.draw }}%</span>
+              <span class="text-sky-400">{{ featured.away.short || t('football.away') }} {{ prediction.away }}%</span>
             </div>
           </div>
 
@@ -170,13 +199,13 @@
             @click="openLineup(featured)"
             class="mt-4 w-full py-2.5 rounded-xl bg-white/10 hover:bg-white/20 active:scale-[0.99] text-white text-sm font-semibold transition flex items-center justify-center gap-2"
           >
-            📋 Line-up · Form · H2H
+            📋 {{ t('football.lineupFormH2h') }}
           </button>
         </div>
 
         <!-- ===== Other matches ===== -->
         <div v-if="others.length" class="mt-4">
-          <p class="text-slate-500 text-xs font-semibold uppercase tracking-wider mb-2 px-1">Other matches</p>
+          <p class="text-slate-500 text-xs font-semibold uppercase tracking-wider mb-2 px-1">{{ t('football.otherMatches') }}</p>
           <div class="grid sm:grid-cols-2 gap-2.5">
             <div
               v-for="m in others"
@@ -204,15 +233,234 @@
                 @click="openLineup(m)"
                 class="mt-2.5 w-full py-1.5 rounded-lg bg-white/5 hover:bg-white/15 text-slate-300 hover:text-white text-[11px] font-semibold transition"
               >
-                📋 Details
+                📋 {{ t('football.details') }}
               </button>
             </div>
           </div>
         </div>
 
         <p v-if="updatedText" class="mt-4 text-center text-[11px] text-slate-600">
-          Updated {{ updatedText }}<span v-if="liveCount"> · auto-refreshing</span>
+          {{ t('football.updated', { time: updatedText }) }}<span v-if="liveCount"> · {{ t('football.autoRefreshing') }}</span>
         </p>
+      </template>
+      </template>
+
+      <!-- ============ LEAGUE TABLE ============ -->
+      <template v-else-if="view === 'table'">
+        <div v-if="tableLoading && !table" class="space-y-2 animate-pulse">
+          <div v-for="n in 8" :key="n" class="h-9 rounded-lg bg-slate-800/70" />
+        </div>
+        <div v-else-if="tableError" class="text-center py-12">
+          <p class="text-4xl mb-3">📊</p>
+          <p class="text-slate-400 text-sm mb-4">{{ tableError }}</p>
+          <button @click="refreshCurrent()" class="px-5 py-2 rounded-lg bg-emerald-500 hover:bg-emerald-400 text-white text-sm font-semibold transition">{{ t('football.retry') }}</button>
+        </div>
+        <div v-else-if="table">
+          <!-- ===== Knockout bracket (cups only) — shown above the table ===== -->
+          <div v-if="bracketLoading && !bracket" class="mb-6 flex gap-4 animate-pulse overflow-hidden">
+            <div v-for="n in 3" :key="n" class="flex-1 space-y-2">
+              <div class="h-3 w-16 rounded bg-slate-800/70" />
+              <div v-for="k in (5 - n)" :key="k" class="h-12 rounded-lg bg-slate-800/70" />
+            </div>
+          </div>
+          <div v-else-if="bracketColumns.length" class="mb-6">
+            <div class="flex items-center justify-between mb-2 px-1">
+              <h3 class="text-white text-sm font-bold">🏆 {{ t('football.knockout') }}</h3>
+              <span v-if="tableLiveCount" class="inline-flex items-center gap-1 text-red-400 text-[11px] font-semibold">
+                <span class="live-dot" />{{ t('football.liveCount', { n: tableLiveCount }) }}
+              </span>
+            </div>
+
+            <!-- Full-width flag bracket — no horizontal scroll -->
+            <div class="ft-bracket">
+              <!-- Round labels -->
+              <div class="ft-brow">
+                <div v-for="(c, ci) in bracketColumns" :key="'l' + ci" class="ft-bcol">
+                  <span class="ft-blabel" :class="{ 'ft-blabel-final': c.side === 'final' }">{{ shortRound(c) }}</span>
+                </div>
+              </div>
+              <!-- Bracket tree -->
+              <div class="ft-brow" :style="{ height: bracketHeight + 'px' }">
+                <div
+                  v-for="(c, ci) in bracketColumns"
+                  :key="ci"
+                  class="ft-bcol"
+                  :class="[`side-${c.side}`, { 'col-outer': c.outer, 'col-final': c.side === 'final' }]"
+                >
+                  <div
+                    v-for="(m, mi) in c.matches"
+                    :key="m.id"
+                    class="ft-bmatch"
+                    :class="{ 'pair-top': mi % 2 === 0 }"
+                    :style="{ '--v': bracketHeight / c.matches.length + 'px' }"
+                  >
+                    <span v-if="c.matches.length > 1 && mi % 2 === 0 && c.side !== 'final'" class="rail" />
+                    <div class="ft-node" :class="{ 'ft-node-final': c.side === 'final', 'ft-node-live': m.live }">
+                      <div v-for="side in ['home', 'away']" :key="side" class="ft-team" :class="rowDim(m, side)">
+                        <img v-if="m[side].logo" :src="m[side].logo" class="ft-flag" loading="lazy" :alt="m[side].short" />
+                        <span v-else class="ft-flag ft-flag-ph" />
+                        <span v-if="m.state !== 'pre'" class="ft-sc">{{ m[side].score }}</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- 3rd-place match -->
+            <div v-if="thirdPlace" class="mt-4 flex items-center justify-center gap-2">
+              <span class="text-[10px] font-semibold uppercase tracking-wider text-amber-400 shrink-0">🥉 {{ shortRound({ label: thirdPlace.label }) }}</span>
+              <div class="ft-node ft-node-row" :class="{ 'ft-node-live': thirdPlace.match.live }">
+                <div v-for="side in ['home', 'away']" :key="side" class="ft-team" :class="rowDim(thirdPlace.match, side)">
+                  <img v-if="thirdPlace.match[side].logo" :src="thirdPlace.match[side].logo" class="ft-flag" loading="lazy" alt="" />
+                  <span v-else class="ft-flag ft-flag-ph" />
+                  <span v-if="thirdPlace.match.state !== 'pre'" class="ft-sc">{{ thirdPlace.match[side].score }}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="flex items-center justify-between mb-3 px-1">
+            <h3 class="text-white text-sm font-bold">📊 {{ t('football.standings') }}</h3>
+            <div class="flex items-center gap-2.5">
+              <span v-if="tableLiveCount" class="inline-flex items-center gap-1 text-red-400 text-[11px] font-semibold">
+                <span class="live-dot" />{{ t('football.liveCount', { n: tableLiveCount }) }}
+              </span>
+              <span class="text-slate-500 text-[11px] font-semibold">{{ seasonText(table.season) }}</span>
+            </div>
+          </div>
+
+          <div v-for="(g, gi) in table.groups" :key="gi" :class="{ 'mt-5': gi }">
+            <p v-if="table.groups.length > 1" class="text-slate-400 text-[11px] font-semibold uppercase tracking-wider mb-1.5 px-1">{{ g.name }}</p>
+            <table class="w-full text-xs">
+              <thead>
+                <tr class="text-slate-500 text-[10px] uppercase tracking-wider">
+                  <th class="font-semibold text-left py-1.5 pl-1 w-6">#</th>
+                  <th class="font-semibold text-left py-1.5">{{ t('football.team') }}</th>
+                  <th class="font-semibold text-center py-1.5 w-7">P</th>
+                  <th class="font-semibold text-center py-1.5 w-7 hidden sm:table-cell">W</th>
+                  <th class="font-semibold text-center py-1.5 w-7 hidden sm:table-cell">D</th>
+                  <th class="font-semibold text-center py-1.5 w-7 hidden sm:table-cell">L</th>
+                  <th class="font-semibold text-center py-1.5 w-9 hidden md:table-cell">GF</th>
+                  <th class="font-semibold text-center py-1.5 w-9 hidden md:table-cell">GA</th>
+                  <th class="font-semibold text-center py-1.5 w-8">GD</th>
+                  <th class="font-semibold text-right py-1.5 pr-1 w-9">Pts</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr v-for="r in g.rows" :key="r.team.id" class="border-t border-white/5">
+                  <td class="py-1.5 pl-1 relative">
+                    <span v-if="r.note" class="absolute left-0 top-1 bottom-1 w-0.5 rounded" :style="{ background: r.note.color }" :title="r.note.text" />
+                    <span class="text-slate-400 font-semibold tabular-nums">{{ r.rank }}</span>
+                  </td>
+                  <td class="py-1.5">
+                    <div class="flex items-center gap-2 min-w-0">
+                      <img v-if="r.team.logo" :src="r.team.logo" class="w-5 h-5 object-contain shrink-0" loading="lazy" :alt="r.team.name" />
+                      <span class="text-white truncate">{{ r.team.name }}</span>
+                    </div>
+                  </td>
+                  <td class="text-center text-slate-300 tabular-nums">{{ r.gp }}</td>
+                  <td class="text-center text-slate-300 tabular-nums hidden sm:table-cell">{{ r.w }}</td>
+                  <td class="text-center text-slate-300 tabular-nums hidden sm:table-cell">{{ r.d }}</td>
+                  <td class="text-center text-slate-300 tabular-nums hidden sm:table-cell">{{ r.l }}</td>
+                  <td class="text-center text-slate-300 tabular-nums hidden sm:table-cell">{{ r.gf }}</td>
+                  <td class="text-center text-slate-300 tabular-nums hidden sm:table-cell">{{ r.ga }}</td>
+                  <td class="text-center tabular-nums" :class="r.gd > 0 ? 'text-emerald-400' : r.gd < 0 ? 'text-red-400' : 'text-slate-400'">{{ r.gd > 0 ? '+' + r.gd : r.gd }}</td>
+                  <td class="text-right pr-1 font-bold text-white tabular-nums">{{ r.pts }}</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <!-- Qualification legend -->
+          <div v-if="legend.length" class="mt-4 pt-3 border-t border-white/5 flex flex-wrap gap-x-4 gap-y-1.5">
+            <span v-for="lg in legend" :key="lg.text" class="inline-flex items-center gap-1.5 text-[10px] text-slate-400">
+              <span class="w-2.5 h-2.5 rounded-sm shrink-0" :style="{ background: lg.color }" />{{ lg.text }}
+            </span>
+          </div>
+
+          <p v-if="tableLiveCount && tableUpdatedText" class="mt-4 text-center text-[11px] text-slate-600">
+            {{ t('football.updated', { time: tableUpdatedText }) }} · {{ t('football.autoRefreshing') }}
+          </p>
+        </div>
+      </template>
+
+      <!-- ============ TOP SCORERS ============ -->
+      <template v-else-if="view === 'scorers'">
+        <div v-if="scorersLoading && !scorers" class="space-y-2 animate-pulse">
+          <div v-for="n in 8" :key="n" class="h-12 rounded-xl bg-slate-800/70" />
+        </div>
+        <div v-else-if="scorersError" class="text-center py-12">
+          <p class="text-4xl mb-3">👟</p>
+          <p class="text-slate-400 text-sm mb-4">{{ scorersError }}</p>
+          <button @click="refreshCurrent()" class="px-5 py-2 rounded-lg bg-emerald-500 hover:bg-emerald-400 text-white text-sm font-semibold transition">{{ t('football.retry') }}</button>
+        </div>
+        <div v-else-if="scorers">
+          <div class="flex items-center justify-between mb-3 px-1">
+            <h3 class="text-white text-sm font-bold">
+              {{ scorerMetric === 'goals' ? '👟 ' + t('football.topScorers') : '🅰️ ' + t('football.topAssists') }}
+            </h3>
+            <div class="flex items-center gap-2.5">
+              <span v-if="scorersLiveCount" class="inline-flex items-center gap-1 text-red-400 text-[11px] font-semibold">
+                <span class="live-dot" />{{ t('football.liveCount', { n: scorersLiveCount }) }}
+              </span>
+              <span class="text-slate-500 text-[11px] font-semibold">{{ seasonText(table?.season) }}</span>
+            </div>
+          </div>
+
+          <!-- Goals / Assists toggle -->
+          <div class="flex bg-slate-800 rounded-full p-0.5 mb-3 text-xs font-semibold">
+            <button
+              v-for="m in [{ id: 'goals', emoji: '⚽', label: t('football.mGoals') }, { id: 'assists', emoji: '🅰️', label: t('football.mAssists') }]"
+              :key="m.id"
+              @click="scorerMetric = m.id"
+              :class="[
+                'flex-1 py-1.5 rounded-full transition',
+                scorerMetric === m.id ? 'bg-emerald-500 text-white' : 'text-slate-400 hover:text-slate-200',
+              ]"
+            >
+              {{ m.emoji }} {{ m.label }}
+            </button>
+          </div>
+
+          <div v-if="scorerList.length" class="space-y-1.5">
+            <div
+              v-for="p in scorerList"
+              :key="p.rank"
+              class="flex items-center gap-3 rounded-xl bg-slate-800/60 ring-1 ring-white/5 px-3 py-2"
+            >
+              <span class="w-5 text-center text-sm font-bold tabular-nums shrink-0"
+                    :class="p.rank === 1 ? 'text-amber-400' : p.rank <= 3 ? 'text-slate-300' : 'text-slate-500'">{{ p.rank }}</span>
+              <img v-if="p.flag" :src="p.flag" class="w-5 h-4 object-cover rounded-sm shrink-0" loading="lazy" alt="" />
+              <div class="min-w-0 flex-1">
+                <p class="text-white text-sm font-semibold leading-tight truncate">{{ p.name }}</p>
+                <p class="text-slate-400 text-[11px] flex items-center gap-1.5 mt-0.5">
+                  <img v-if="p.team.logo" :src="p.team.logo" class="w-3.5 h-3.5 object-contain" loading="lazy" alt="" />
+                  <span class="truncate">{{ p.team.name || p.team.abbr }}</span>
+                  <span v-if="p.pos" class="text-slate-600">· {{ p.pos }}</span>
+                </p>
+              </div>
+              <div class="text-right shrink-0 leading-tight">
+                <div class="font-bold text-lg tabular-nums" :class="scorerMetric === 'goals' ? 'text-emerald-400' : 'text-sky-400'">
+                  {{ scorerMetric === 'goals' ? p.goals : p.assists }}
+                </div>
+                <div class="text-slate-500 text-[10px]">
+                  <span v-if="scorerMetric === 'goals' ? p.assists : p.goals">
+                    {{ scorerMetric === 'goals' ? p.assists : p.goals }}
+                    {{ scorerMetric === 'goals' ? t('football.assistsShort') : t('football.goalsShort') }}
+                  </span>
+                  <span v-if="(scorerMetric === 'goals' ? p.assists : p.goals) && p.matches"> · </span>
+                  <span v-if="p.matches">{{ p.matches }} {{ t('football.appsShort') }}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+          <p v-else class="text-slate-500 text-sm text-center py-10">{{ t('football.noScorers') }}</p>
+
+          <p v-if="scorersLiveCount && scorersUpdatedText" class="mt-4 text-center text-[11px] text-slate-600">
+            {{ t('football.updated', { time: scorersUpdatedText }) }} · {{ t('football.autoRefreshing') }}
+          </p>
+        </div>
       </template>
     </div>
 
@@ -225,6 +473,7 @@
       :teams="lineupFor(lineupEvent.id)"
       :form="formFor(lineupEvent.id)"
       :h2h="h2hFor(lineupEvent.id)"
+      :stats="statsFor(lineupEvent.id)"
       :assists="assistsFor(lineupEvent.id)"
       :ratingSource="ratingSourceFor(lineupEvent.id)"
       @close="closeLineup"
@@ -234,40 +483,173 @@
 </template>
 
 <script setup>
-import { onMounted, watch, computed } from 'vue'
+import { onMounted, onUnmounted, watch, computed, ref } from 'vue'
 import { useFootballScores } from './useFootballScores'
 import MatchDetails from './MatchDetails.vue'
+import { useI18n } from '@/i18n'
+
+const { t } = useI18n()
 
 const {
   dark, toggleTheme,
   leagues, leagueSlug, activeLeague, leagueName,
   dateLabel, events, featured, others, liveCount,
   loading, error, updatedText,
+  view, setView, refreshCurrent,
+  table, scorers, tableLoading, scorersLoading, tableError, scorersError,
+  tableLiveCount, tableUpdatedText,
+  scorersLiveCount, scorersUpdatedText,
+  bracket, bracketLoading,
   fetchScores, selectLeague, shiftDay, goToday,
   lineupEvent, openLineup, closeLineup, retryLineup,
   lineupFor, detailsStateFor,
-  ensurePrediction, predictionFor, assistsFor,
+  ensurePrediction, predictionFor, statsFor, assistsFor,
   h2hFor, formFor, ratingSourceFor,
 } = useFootballScores()
 
 onMounted(fetchScores)
 
+const tabs = computed(() => [
+  { id: 'scores', emoji: '⚽', label: t('football.tabScores') },
+  { id: 'table', emoji: '📊', label: t('football.tabTable') },
+  { id: 'scorers', emoji: '🏅', label: t('football.tabScorers') },
+])
+
+// Knockout bracket: the halving rounds (R32 → Final) form the tree; the 3rd-place
+// match sits outside it and is shown on its own below.
+const isThirdPlace = (label) => /3rd|third/i.test(label)
+const bracketRounds = computed(() => {
+  const rounds = (bracket.value || []).filter((r) => !isThirdPlace(r.label))
+  // Keep only the clean-halving tail ending at the Final, so the symmetric tree is
+  // well-formed. This drops rounds that don't halve into the next — e.g. UCL's
+  // knockout play-off round (8 ties, same as the Round of 16 it feeds).
+  const tail = []
+  let expected = 0
+  for (let i = rounds.length - 1; i >= 0; i--) {
+    const n = rounds[i].matches.length
+    if (!tail.length || n === expected) { tail.unshift(rounds[i]); expected = n * 2 }
+    else break
+  }
+  return tail
+})
+const thirdPlace = computed(() => {
+  const r = (bracket.value || []).find((x) => isThirdPlace(x.label))
+  return r?.matches?.[0] ? { label: r.label, match: r.matches[0] } : null
+})
+
+// Symmetric bracket like the real World Cup wall chart: each feeder round is split
+// into a left and a (mirrored) right half that both converge on the central Final.
+// Rendered as one ordered column list — left halves, Final, then reversed right halves.
+const bracketColumns = computed(() => {
+  const rounds = bracketRounds.value
+  if (!rounds.length) return []
+  if (rounds.length === 1)
+    return [{ label: rounds[0].label, matches: rounds[0].matches, side: 'left', outer: true }]
+
+  const feeders = rounds.slice(0, -1) // R32 … SF
+  const final = rounds[rounds.length - 1]
+  const mid = (m) => Math.ceil(m.length / 2)
+  const cols = []
+  feeders.forEach((r, i) => cols.push({ label: r.label, matches: r.matches.slice(0, mid(r.matches)), side: 'left', outer: i === 0 }))
+  cols.push({ label: final.label, matches: final.matches.slice(0, 1), side: 'final' })
+  ;[...feeders].reverse().forEach((r, i, arr) =>
+    cols.push({ label: r.label, matches: r.matches.slice(mid(r.matches)), side: 'right', outer: i === arr.length - 1 }),
+  )
+  return cols
+})
+
+// One row-height drives the whole tree; every round centres between its pair via
+// CSS `justify-content: space-around`. Height = tallest column (the R32 halves).
+const BRACKET_ROW = 62
+const bracketHeight = computed(() => {
+  const cols = bracketColumns.value
+  if (!cols.length) return 0
+  return Math.max(1, ...cols.map((c) => c.matches.length)) * BRACKET_ROW
+})
+
+// Short column headers so nine rounds fit the width (Round of 32 → R32, Final → 🏆).
+const shortRound = (c) => {
+  if (c.side === 'final') return '🏆'
+  const l = (c.label || '').toLowerCase()
+  if (l.includes('32')) return 'R32'
+  if (l.includes('16')) return 'R16'
+  if (l.includes('quarter')) return 'QF'
+  if (l.includes('semi')) return 'SF'
+  if (l.includes('3rd') || l.includes('third')) return '3rd'
+  if (l.includes('final')) return 'F'
+  return c.label
+}
+
+// Goals / Assists toggle within the Scorers view.
+const scorerMetric = ref('goals')
+const scorerList = computed(() =>
+  scorerMetric.value === 'goals' ? scorers.value?.goals || [] : scorers.value?.assists || [],
+)
+
+// Spin/disable the header refresh button while the active view is loading.
+const busy = computed(() =>
+  view.value === 'table' ? tableLoading.value
+    : view.value === 'scorers' ? scorersLoading.value
+    : loading.value,
+)
+
+// ESPN season year N is the "N–N+1" campaign, e.g. 2025 → "2025-26".
+const seasonText = (s) => (s ? `${s}-${String(s + 1).slice(-2)}` : '')
+
+// Distinct qualification markers (Champions League / relegation …) for the legend.
+const legend = computed(() => {
+  if (!table.value) return []
+  const seen = new Map()
+  for (const g of table.value.groups)
+    for (const r of g.rows)
+      if (r.note?.text && !seen.has(r.note.text)) seen.set(r.note.text, r.note.color)
+  return [...seen].map(([text, color]) => ({ text, color }))
+})
+
+// Make the device/browser Back button (and back-swipe) close the lineup modal
+// instead of leaving the app. We push a history entry when the modal opens and
+// pop it when it closes, keeping the back stack clean.
+const onPopState = () => { if (lineupEvent.value) closeLineup() }
+watch(lineupEvent, (open, wasOpen) => {
+  if (open && !wasOpen) history.pushState({ ftLineup: true }, '')
+  else if (!open && wasOpen && history.state?.ftLineup) history.back()
+})
+onMounted(() => window.addEventListener('popstate', onPopState))
+onUnmounted(() => window.removeEventListener('popstate', onPopState))
+
 // Pull the match prediction for whichever game is featured.
 watch(featured, (m) => { if (m) ensurePrediction(m) }, { immediate: true })
 const prediction = computed(() => (featured.value ? predictionFor(featured.value.id) : null))
+// Possession / shots exist only once a match is live or finished.
+const matchStats = computed(() => {
+  const m = featured.value
+  if (!m || (!m.live && !m.completed)) return null
+  return statsFor(m.id)
+})
+const statRows = computed(() => {
+  const s = matchStats.value
+  if (!s) return []
+  const dash = (v) => (v == null || v === '' ? '–' : v)
+  return [
+    { label: t('football.possession'), home: dash(s.home?.possession), away: dash(s.away?.possession) },
+    { label: t('football.shotsOnTarget'), home: dash(s.home?.shotsOnTarget), away: dash(s.away?.shotsOnTarget) },
+  ]
+})
 const assists = computed(() => (featured.value ? assistsFor(featured.value.id) : null))
 const assistFor = (s) => assists.value?.[s.name?.toLowerCase()] || ''
 
 const statusText = (m) => {
-  if (m.live) return m.detail || 'LIVE'
-  if (m.completed) return m.detail || 'FT'
-  return 'Scheduled'
+  if (m.live) return m.detail || t('football.statusLive')
+  if (m.completed) return m.detail || t('football.statusFt')
+  return t('football.statusScheduled')
 }
 const statusClass = (m) =>
   m.live ? 'text-red-400' : m.completed ? 'text-slate-400' : 'text-emerald-400'
 
 const kickoff = (m) =>
-  new Date(m.date).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })
+  new Date(m.date).toLocaleTimeString('en-GB', {
+    hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Ho_Chi_Minh',
+  })
 
 const scoreCell = (m, side) => (m.state === 'pre' ? '–' : m[side].score)
 
@@ -295,6 +677,54 @@ const navBtn =
 .no-scrollbar::-webkit-scrollbar { display: none; }
 .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
 
+/* ===== Knockout bracket — full-width symmetric flag tree (no scroll) ===== */
+.ft-bracket { --ft-line: #f59e0b; width: 100%; }
+.ft-brow { display: flex; align-items: stretch; }
+.ft-bcol {
+  flex: 1 1 0; min-width: 0; position: relative;
+  display: flex; flex-direction: column; justify-content: space-around; align-items: center;
+}
+.ft-blabel { font-size: 9px; font-weight: 700; letter-spacing: .03em; color: #94a3b8; padding-bottom: 4px; }
+.ft-blabel-final { color: #fbbf24; font-size: 13px; }
+
+.ft-bmatch {
+  position: relative; width: 100%;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+}
+/* Node (two stacked flags) sits above the connector lines and hides their inner ends. */
+.ft-node {
+  position: relative; z-index: 1; background: #0f172a; border-radius: 10px;
+  display: flex; flex-direction: column; gap: 3px; padding: 2px;
+}
+.ft-node-row { flex-direction: row; gap: 8px; padding: 4px 8px; }
+.ft-team { display: flex; align-items: center; gap: 2px; }
+.ft-flag {
+  width: clamp(15px, 4vw, 26px); height: clamp(15px, 4vw, 26px);
+  border-radius: 9999px; object-fit: cover; background: #334155;
+  box-shadow: 0 0 0 1.5px rgba(255,255,255,.18);
+}
+/* Undecided slot → orange hexagon, echoing the poster. */
+.ft-flag-ph {
+  display: inline-block; background: #f59e0b; opacity: .45; box-shadow: none; border-radius: 0;
+  clip-path: polygon(25% 4%, 75% 4%, 100% 50%, 75% 96%, 25% 96%, 0 50%);
+}
+.ft-sc { font-size: 10px; font-weight: 700; color: #fff; font-variant-numeric: tabular-nums; min-width: 7px; }
+.ft-node-final .ft-flag { box-shadow: 0 0 0 1.5px rgba(251,191,36,.8); }
+.ft-node-final { box-shadow: 0 0 16px -4px rgba(251,191,36,.6); }
+.ft-node-live { box-shadow: 0 0 12px -3px rgba(248,113,113,.75); }
+
+/* Connectors: percentage widths so they scale with each flex column (no scroll). */
+.side-left .ft-bmatch::after { content: ''; position: absolute; top: 50%; left: 50%; width: 50%; height: 2px; background: var(--ft-line); }
+.side-left:not(.col-outer) .ft-bmatch::before { content: ''; position: absolute; top: 50%; right: 50%; width: 50%; height: 2px; background: var(--ft-line); }
+.side-left .ft-bmatch.pair-top .rail { position: absolute; top: 50%; left: 100%; width: 2px; height: var(--v); background: var(--ft-line); }
+
+.side-right .ft-bmatch::after { content: ''; position: absolute; top: 50%; right: 50%; width: 50%; height: 2px; background: var(--ft-line); }
+.side-right:not(.col-outer) .ft-bmatch::before { content: ''; position: absolute; top: 50%; left: 50%; width: 50%; height: 2px; background: var(--ft-line); }
+.side-right .ft-bmatch.pair-top .rail { position: absolute; top: 50%; right: 100%; width: 2px; height: var(--v); background: var(--ft-line); }
+
+.col-final .ft-bmatch::before { content: ''; position: absolute; top: 50%; right: 50%; width: 50%; height: 2px; background: var(--ft-line); }
+.col-final .ft-bmatch::after { content: ''; position: absolute; top: 50%; left: 50%; width: 50%; height: 2px; background: var(--ft-line); }
+
 /* ===== Light theme (header stays dark, body flips) ===== */
 .ft-light .ft-body { background: #ffffff; }
 .ft-light .ft-body .text-white { color: #0f172a; }
@@ -314,4 +744,6 @@ const navBtn =
 .ft-light .ft-body .hover\:text-white:hover { color: #0f172a; }
 .ft-light .ft-body .border-white\/5 { border-color: #e2e8f0; }
 .ft-light .ft-body .ring-white\/5 { --tw-ring-color: #e2e8f0; }
+.ft-light .ft-node { background: #ffffff; }
+.ft-light .ft-sc { color: #0f172a; }
 </style>

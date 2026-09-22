@@ -1,29 +1,57 @@
 <template>
   <div class="space-y-4">
-    <CurrencyForm
-      v-model:fromCurrency="fromCurrency"
-      v-model:toCurrency="toCurrency"
-      v-model:amount="amount"
-      :currencyOptions="currencyOptions"
-      @switch="switchCurrencies"
-      @clear="clear"
-    />
-    <CurrencyResult
-      v-if="result !== null"
-      :amount="amount"
-      :fromCurrency="fromCurrency"
-      :toCurrency="toCurrency"
-      :result="result"
-    />
-    <p v-if="error" class="text-sm text-red-600">{{ error }}</p>
+
+    <!-- Tabs: Convert · Salary Tax -->
+    <div class="flex rounded-xl bg-gray-100 p-1">
+      <button
+        v-for="tb in tabs"
+        :key="tb.key"
+        @click="tab = tb.key"
+        :class="[
+          'flex-1 py-2 rounded-lg text-sm font-semibold transition-colors',
+          tab === tb.key ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500',
+        ]"
+      >{{ t(tb.labelKey) }}</button>
+    </div>
+
+    <template v-if="tab === 'convert'">
+      <CurrencyForm
+        v-model:fromCurrency="fromCurrency"
+        v-model:toCurrency="toCurrency"
+        v-model:amount="amount"
+        :currencyOptions="currencyOptions"
+        @switch="switchCurrencies"
+        @clear="clear"
+      />
+      <CurrencyResult
+        v-if="result !== null"
+        :amount="amount"
+        :fromCurrency="fromCurrency"
+        :toCurrency="toCurrency"
+        :result="result"
+      />
+      <p v-if="error" class="text-sm text-red-600">{{ error }}</p>
+    </template>
+
+    <SalaryTaxCalculator v-else />
   </div>
 </template>
 
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import axios from 'axios'
+import { useI18n } from '@/i18n'
 import CurrencyForm from './CurrencyForm.vue'
 import CurrencyResult from './CurrencyResult.vue'
+import SalaryTaxCalculator from './SalaryTaxCalculator.vue'
+
+const { t } = useI18n()
+
+const tabs = [
+  { key: 'convert', labelKey: 'currency.convert' },
+  { key: 'salarytax', labelKey: 'currency.salaryTax' },
+]
+const tab = ref('convert')
 
 const currencies = ref({})
 const rates = ref({})
@@ -60,7 +88,7 @@ onMounted(async () => {
     rates.value = ratesRes.data.rates
     setDefaultCurrencies()
   } catch {
-    error.value = 'Failed to load currencies or rates.'
+    error.value = t('currency.loadError')
   }
 })
 

@@ -2,17 +2,18 @@ import { ref, computed } from 'vue'
 import jsPDF from 'jspdf'
 import { formatCurrency } from '@/utils/format'
 import { downloadBlob } from '@/utils/download'
+import { useI18n } from '@/i18n'
 
 export const docTypes = [
-  { value: 'quotation', label: 'Quotation' },
-  { value: 'invoice', label: 'Invoice' },
+  { value: 'quotation', labelKey: 'invoice.quotation' },
+  { value: 'invoice', labelKey: 'invoice.invoice' },
 ]
 
 export const paymentStatuses = [
-  { value: 'draft', label: 'Draft' },
-  { value: 'unpaid', label: 'Unpaid' },
-  { value: 'partial', label: 'Partially Paid' },
-  { value: 'paid', label: 'Paid' },
+  { value: 'draft', labelKey: 'invoice.statusDraft' },
+  { value: 'unpaid', labelKey: 'invoice.statusUnpaid' },
+  { value: 'partial', labelKey: 'invoice.statusPartial' },
+  { value: 'paid', labelKey: 'invoice.statusPaid' },
 ]
 
 const todayInputValue = () => new Date().toISOString().slice(0, 10)
@@ -33,6 +34,7 @@ export const formatDate = (dateStr) => {
 const blankItem = () => ({ description: '', qty: 1, unitPrice: 0, image: null })
 
 export function useInvoiceGenerator() {
+  const { t } = useI18n()
   const docType = ref('quotation')
 
   const companyName = ref('')
@@ -140,8 +142,8 @@ export function useInvoiceGenerator() {
 
   const discountLabel = computed(() =>
     discountType.value === 'percent' && (discountValue.value || 0) > 0
-      ? `Discount (${Math.min(discountValue.value, 100)}%)`
-      : 'Discount',
+      ? t('invoice.discountPct', { pct: Math.min(discountValue.value, 100) })
+      : t('invoice.discount'),
   )
 
   const afterDiscount = computed(() => subtotal.value - discountAmount.value)

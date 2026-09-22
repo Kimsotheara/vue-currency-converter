@@ -7,7 +7,7 @@
         :class="['px-5 py-2.5 text-sm font-semibold transition-colors duration-150',
           inputMode === 'link' ? 'bg-blue-600 text-white' : 'bg-white text-gray-500 hover:bg-gray-50']"
       >
-        🔗 Link
+        🔗 {{ t('linkqr.link') }}
       </button>
       <div class="w-px bg-gray-200" />
       <button
@@ -15,12 +15,12 @@
         :class="['px-5 py-2.5 text-sm font-semibold transition-colors duration-150',
           inputMode === 'text' ? 'bg-blue-600 text-white' : 'bg-white text-gray-500 hover:bg-gray-50']"
       >
-        📝 Text
+        📝 {{ t('linkqr.text') }}
       </button>
     </div>
 
     <div v-if="inputMode === 'link'">
-      <label class="block text-sm font-semibold text-gray-700 mb-1">Paste your link</label>
+      <label class="block text-sm font-semibold text-gray-700 mb-1">{{ t('linkqr.pasteLink') }}</label>
       <input
         v-model="url"
         type="url"
@@ -30,15 +30,15 @@
       <div v-if="platform && url.trim()" class="flex items-center gap-2 mt-2">
         <span class="text-lg">{{ platform.icon }}</span>
         <span class="text-sm font-semibold text-gray-700">{{ platform.name }}</span>
-        <span class="text-xs text-gray-400 bg-gray-100 px-2 py-0.5 rounded-full">detected</span>
+        <span class="text-xs text-gray-400 bg-gray-100 px-2 py-0.5 rounded-full">{{ t('linkqr.detected') }}</span>
       </div>
     </div>
 
     <div v-else>
-      <label class="block text-sm font-semibold text-gray-700 mb-1">Enter your text</label>
+      <label class="block text-sm font-semibold text-gray-700 mb-1">{{ t('linkqr.enterText') }}</label>
       <textarea
         v-model="textContent"
-        placeholder="Type any text, message, or content..."
+        :placeholder="t('linkqr.textPlaceholder')"
         rows="4"
         maxlength="500"
         class="w-full border border-gray-300 rounded-xl px-3 py-2.5 text-base focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
@@ -51,7 +51,7 @@
       <img v-else-if="qrDataUrl" :src="qrDataUrl" class="w-72 max-w-full rounded-2xl shadow-xl" alt="QR Preview" />
       <div v-else class="w-72 max-w-full h-80 rounded-2xl bg-gray-50 border-2 border-dashed border-gray-200 flex flex-col items-center justify-center gap-2 text-gray-300">
         <span class="text-5xl">{{ inputMode === 'link' ? '🔗' : '📝' }}</span>
-        <p class="text-xs">{{ inputMode === 'link' ? 'Paste a link above' : 'Enter text above' }}</p>
+        <p class="text-xs">{{ inputMode === 'link' ? t('linkqr.pasteAbove') : t('linkqr.enterAbove') }}</p>
       </div>
     </div>
 
@@ -67,31 +67,31 @@
             activeTab === tab ? 'text-blue-600 border-b-2 border-blue-600 -mb-px bg-white' : 'text-gray-500 hover:text-gray-700',
           ]"
         >
-          {{ tab }}
+          {{ t(`linkqr.tabs.${tab.toLowerCase()}`) }}
         </button>
       </div>
 
       <div v-if="activeTab === 'Templates'" class="p-4 grid grid-cols-2 sm:grid-cols-4 gap-2">
         <button
-          v-for="t in TEMPLATES"
-          :key="t.id"
-          @click="template = t.id"
-          :class="['rounded-xl overflow-hidden transition-all', template === t.id ? 'ring-2 ring-blue-500 ring-offset-1' : 'opacity-80 hover:opacity-100']"
+          v-for="tpl in TEMPLATES"
+          :key="tpl.id"
+          @click="template = tpl.id"
+          :class="['rounded-xl overflow-hidden transition-all', template === tpl.id ? 'ring-2 ring-blue-500 ring-offset-1' : 'opacity-80 hover:opacity-100']"
         >
-          <div :class="['h-16 flex items-center justify-center', THUMBNAIL[t.id].bg]">
-            <div class="grid grid-cols-3 gap-0.5 w-8 h-8 p-0.5 rounded" :class="THUMBNAIL[t.id].qr">
-              <span v-for="i in 9" :key="i" class="rounded-sm" :class="THUMBNAIL[t.id].dot" />
+          <div :class="['h-16 flex items-center justify-center', THUMBNAIL[tpl.id].bg]">
+            <div class="grid grid-cols-3 gap-0.5 w-8 h-8 p-0.5 rounded" :class="THUMBNAIL[tpl.id].qr">
+              <span v-for="i in 9" :key="i" class="rounded-sm" :class="THUMBNAIL[tpl.id].dot" />
             </div>
           </div>
-          <p class="text-xs text-center py-1.5 font-medium text-gray-600 bg-white">{{ t.label }}</p>
+          <p class="text-xs text-center py-1.5 font-medium text-gray-600 bg-white">{{ t(`linkqr.templates.${tpl.id}`) }}</p>
         </button>
       </div>
 
       <div v-if="activeTab === 'Colors'" class="p-4 space-y-4">
         <div class="flex items-center justify-between">
           <div>
-            <p class="text-sm font-semibold text-gray-700">Background</p>
-            <p class="text-xs text-gray-400 mt-0.5">Card / gradient color</p>
+            <p class="text-sm font-semibold text-gray-700">{{ t('linkqr.background') }}</p>
+            <p class="text-xs text-gray-400 mt-0.5">{{ t('linkqr.backgroundHint') }}</p>
           </div>
           <div class="flex items-center gap-2">
             <span class="text-xs font-mono text-gray-500">{{ bgColor }}</span>
@@ -106,8 +106,8 @@
         <div class="h-px bg-gray-100" />
         <div class="flex items-center justify-between">
           <div>
-            <p class="text-sm font-semibold text-gray-700">QR Color</p>
-            <p class="text-xs text-gray-400 mt-0.5">Modules / dots color</p>
+            <p class="text-sm font-semibold text-gray-700">{{ t('linkqr.qrColor') }}</p>
+            <p class="text-xs text-gray-400 mt-0.5">{{ t('linkqr.qrColorHint') }}</p>
           </div>
           <div class="flex items-center gap-2">
             <span class="text-xs font-mono text-gray-500">{{ qrColor }}</span>
@@ -123,21 +123,21 @@
 
       <div v-if="activeTab === 'Text'" class="p-4 space-y-3">
         <div>
-          <label class="block text-sm font-semibold text-gray-700 mb-1">Title</label>
+          <label class="block text-sm font-semibold text-gray-700 mb-1">{{ t('linkqr.title') }}</label>
           <input
             v-model="titleText"
             type="text"
-            :placeholder="inputMode === 'link' ? 'e.g. Follow me on Instagram' : 'e.g. Scan to read'"
+            :placeholder="inputMode === 'link' ? t('linkqr.titlePhLink') : t('linkqr.titlePhText')"
             maxlength="40"
             class="w-full border border-gray-300 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
           />
         </div>
         <div>
-          <label class="block text-sm font-semibold text-gray-700 mb-1">Subtitle</label>
+          <label class="block text-sm font-semibold text-gray-700 mb-1">{{ t('linkqr.subtitle') }}</label>
           <input
             v-model="subtitleText"
             type="text"
-            :placeholder="inputMode === 'link' ? 'e.g. @username' : 'e.g. My message'"
+            :placeholder="inputMode === 'link' ? t('linkqr.subtitlePhLink') : t('linkqr.subtitlePhText')"
             maxlength="60"
             class="w-full border border-gray-300 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
           />
@@ -156,7 +156,7 @@
       <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
       </svg>
-      Download QR
+      {{ t('linkqr.download') }}
     </button>
 
   </div>
@@ -165,6 +165,9 @@
 <script setup>
 import { ref } from 'vue'
 import { useLinkQR } from './useLinkQR.js'
+import { useI18n } from '@/i18n'
+
+const { t } = useI18n()
 
 const {
   inputMode, url, textContent,

@@ -3,30 +3,30 @@
 
     <!-- Event details -->
     <div>
-      <p class="text-xs font-bold uppercase tracking-widest text-gray-400 mb-2">Event Details</p>
+      <p class="text-xs font-bold uppercase tracking-widest text-gray-400 mb-2">{{ t('invitation.eventDetails') }}</p>
       <div class="grid gap-3 md:grid-cols-2">
-        <input v-model="eventTitle" type="text" placeholder="Event Title (e.g. Wedding Ceremony)"
+        <input v-model="eventTitle" type="text" :placeholder="t('invitation.eventTitlePh')"
           class="w-full border border-gray-300 rounded-xl px-3 py-2.5 text-base focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent md:col-span-2" />
-        <input v-model="hostName" type="text" placeholder="Host Name (optional)"
+        <input v-model="hostName" type="text" :placeholder="t('invitation.hostNamePh')"
           class="w-full border border-gray-300 rounded-xl px-3 py-2.5 text-base focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent" />
-        <input v-model="contact" type="text" placeholder="Contact (phone / Telegram, optional)"
+        <input v-model="contact" type="text" :placeholder="t('invitation.contactPh')"
           class="w-full border border-gray-300 rounded-xl px-3 py-2.5 text-base focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent" />
         <div class="flex gap-2 md:col-span-2">
           <div class="flex-1 min-w-0">
-            <label class="block text-sm font-semibold text-gray-700 mb-1">Date</label>
+            <label class="block text-sm font-semibold text-gray-700 mb-1">{{ t('invitation.date') }}</label>
             <input v-model="eventDate" type="date"
               class="w-full min-w-0 appearance-none bg-white border border-gray-300 rounded-xl px-3 py-2.5 text-base focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent" />
           </div>
           <div class="flex-1 min-w-0">
-            <label class="block text-sm font-semibold text-gray-700 mb-1">Time</label>
+            <label class="block text-sm font-semibold text-gray-700 mb-1">{{ t('invitation.time') }}</label>
             <input v-model="eventTime" type="time"
               class="w-full min-w-0 appearance-none bg-white border border-gray-300 rounded-xl px-3 py-2.5 text-base focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent" />
-            <p v-if="timeText" class="text-xs text-gray-400 mt-1">On card: {{ timeText }}</p>
+            <p v-if="timeText" class="text-xs text-gray-400 mt-1">{{ t('invitation.onCard', { time: timeText }) }}</p>
           </div>
         </div>
-        <input v-model="place" type="text" placeholder="Place / Venue"
+        <input v-model="place" type="text" :placeholder="t('invitation.placePh')"
           class="w-full border border-gray-300 rounded-xl px-3 py-2.5 text-base focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent md:col-span-2" />
-        <textarea v-model="message" rows="2" placeholder="Message (optional, e.g. Please join us to celebrate...)"
+        <textarea v-model="message" rows="2" :placeholder="t('invitation.messagePh')"
           class="w-full border border-gray-300 rounded-xl px-3 py-2.5 text-base focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none md:col-span-2"></textarea>
       </div>
     </div>
@@ -39,7 +39,7 @@
         <button
           @click="removePhoto"
           type="button"
-          title="Remove photo"
+          :title="t('invitation.removePhoto')"
           class="absolute -top-2 -right-2 w-5 h-5 flex items-center justify-center rounded-full bg-red-500 text-white text-xs shadow"
         >
           ✕
@@ -48,7 +48,7 @@
       <label
         class="cursor-pointer border-2 border-dashed border-gray-300 text-gray-500 hover:border-blue-400 hover:text-blue-600 rounded-xl px-4 py-2.5 text-sm font-semibold transition-colors"
       >
-        {{ photo ? 'Change Photo' : '+ Upload Photo (optional)' }}
+        {{ photo ? t('invitation.changePhoto') : t('invitation.uploadPhoto') }}
         <input
           type="file"
           accept="image/png,image/jpeg,image/webp"
@@ -60,7 +60,7 @@
 
     <!-- Template picker: category tabs, 8 designs each -->
     <div>
-      <p class="text-xs font-bold uppercase tracking-widest text-gray-400 mb-2">Card Template</p>
+      <p class="text-xs font-bold uppercase tracking-widest text-gray-400 mb-2">{{ t('invitation.cardTemplate') }}</p>
       <div class="flex bg-gray-100 rounded-full p-1 w-full mb-2">
         <button
           v-for="category in templateCategories"
@@ -72,7 +72,7 @@
             activeCategory === category ? 'bg-blue-600 text-white shadow-sm' : 'text-gray-500 hover:text-gray-700',
           ]"
         >
-          {{ category }}
+          {{ t(`invitation.categories.${category}`) }}
         </button>
       </div>
       <div class="grid grid-cols-2 sm:grid-cols-4 gap-2">
@@ -96,7 +96,7 @@
             >
               {{ tpl.badge }}
             </span>
-            <span :style="{ color: tpl.title, fontFamily: tpl.script ? scriptFont : tpl.font, fontWeight: tpl.script ? 400 : 700, fontSize: tpl.script ? '15px' : '13px' }">Invite</span>
+            <span :style="{ color: tpl.title, fontFamily: tpl.script ? scriptFont : tpl.font, fontWeight: tpl.script ? 400 : 700, fontSize: tpl.script ? '15px' : '13px' }">{{ t('invitation.invite') }}</span>
           </div>
           <p :class="['text-xs font-semibold mt-1 text-center', templateId === tpl.id ? 'text-blue-700' : 'text-gray-600']">
             {{ tpl.name }}
@@ -112,8 +112,8 @@
       class="w-full flex items-center justify-between gap-3 border border-gray-200 rounded-xl px-4 py-3 hover:bg-gray-50 transition-colors text-left"
     >
       <div>
-        <p class="text-sm font-semibold text-gray-700">Khmer Moul font (អក្សរមូល)</p>
-        <p class="text-xs text-gray-400">Use the Moul heading script for the event title and guest names</p>
+        <p class="text-sm font-semibold text-gray-700">{{ t('invitation.khmerMoul') }}</p>
+        <p class="text-xs text-gray-400">{{ t('invitation.khmerMoulHint') }}</p>
       </div>
       <span
         :class="[
@@ -132,12 +132,12 @@
 
     <!-- Guest names -->
     <div>
-      <label class="block text-sm font-semibold text-gray-700 mb-1">Guest Names</label>
+      <label class="block text-sm font-semibold text-gray-700 mb-1">{{ t('invitation.guestNames') }}</label>
       <textarea v-model="namesInput" rows="2"
-        placeholder="Separate names with commas — e.g. Theara, Lina, Youna, Kak, Vita, Vanna, Sinmeas"
+        :placeholder="t('invitation.guestNamesPh')"
         class="w-full border border-gray-300 rounded-xl px-3 py-2.5 text-base focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"></textarea>
       <p v-if="parsedNames.length" class="text-xs text-gray-400 mt-1">
-        {{ parsedNames.length }} guest{{ parsedNames.length > 1 ? 's' : '' }} — one card each
+        {{ t('invitation.guestCount', { n: parsedNames.length }) }}
       </p>
     </div>
 
@@ -148,13 +148,13 @@
         :disabled="!parsedNames.length"
         class="flex-1 bg-blue-600 hover:bg-blue-700 active:bg-blue-800 disabled:bg-gray-300 disabled:cursor-not-allowed text-white font-semibold py-2.5 rounded-xl transition-colors"
       >
-        Generate Cards
+        {{ t('invitation.generate') }}
       </button>
       <button
         @click="onClear"
         class="flex-1 bg-red-500 hover:bg-red-600 active:bg-red-700 text-white font-semibold py-2.5 rounded-xl transition-colors"
       >
-        Clear
+        {{ t('invitation.clear') }}
       </button>
     </div>
 
@@ -162,14 +162,14 @@
     <div v-if="guests.length" class="space-y-3">
       <div class="flex items-center justify-between gap-3 flex-wrap">
         <p class="text-sm font-semibold text-gray-700">
-          {{ guests.length }} card{{ guests.length > 1 ? 's' : '' }} generated
+          {{ t('invitation.cardsGenerated', { n: guests.length }) }}
         </p>
         <button
           @click="onDownloadAll"
           :disabled="downloading"
           class="bg-green-600 hover:bg-green-700 active:bg-green-800 disabled:bg-gray-300 text-white text-sm font-semibold px-4 py-2 rounded-xl transition-colors"
         >
-          {{ downloading ? 'Downloading…' : '⬇ Download All' }}
+          {{ downloading ? t('invitation.downloading') : t('invitation.downloadAll') }}
         </button>
       </div>
 
@@ -195,7 +195,7 @@
             :disabled="downloading"
             class="w-full bg-blue-50 hover:bg-blue-100 disabled:opacity-50 text-blue-700 text-sm font-semibold py-2 rounded-xl transition-colors"
           >
-            ⬇ Download {{ guest }}
+            {{ t('invitation.downloadOne', { guest }) }}
           </button>
         </div>
       </div>
@@ -209,6 +209,9 @@ import { ref, onBeforeUpdate } from 'vue'
 import { templates, templateCategories, scriptFont } from './templates'
 import { useInvitationCards } from './useInvitationCards'
 import InvitationCard from './InvitationCard.vue'
+import { useI18n } from '@/i18n'
+
+const { t } = useI18n()
 
 const {
   eventTitle, hostName, contact, eventDate, eventTime, place, message,

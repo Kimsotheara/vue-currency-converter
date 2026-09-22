@@ -14,13 +14,13 @@
         ]"
       >
         <span>{{ cat.icon }}</span>
-        <span>{{ cat.label }}</span>
+        <span>{{ t(`unit.categories.${cat.key}`) }}</span>
       </button>
     </div>
 
     <div class="flex flex-col sm:flex-row sm:items-start gap-3">
       <div class="flex-1 space-y-1.5 w-full">
-        <label class="block text-sm font-semibold text-gray-700">From</label>
+        <label class="block text-sm font-semibold text-gray-700">{{ t('unit.from') }}</label>
         <Multiselect
           v-model="fromUnit"
           :options="currentUnits"
@@ -33,7 +33,7 @@
           :value="inputValue ?? ''"
           @input="inputValue = $event.target.value === '' ? null : Number($event.target.value)"
           type="number"
-          placeholder="Enter value"
+          :placeholder="t('unit.enterValue')"
           class="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-base focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
         />
       </div>
@@ -46,7 +46,7 @@
       </button>
 
       <div class="flex-1 space-y-1.5 w-full">
-        <label class="block text-sm font-semibold text-gray-700">To</label>
+        <label class="block text-sm font-semibold text-gray-700">{{ t('unit.to') }}</label>
         <Multiselect
           v-model="toUnit"
           :options="currentUnits"
@@ -58,7 +58,7 @@
         <input
           :value="resultDisplay"
           readonly
-          placeholder="Result"
+          :placeholder="t('unit.resultPlaceholder')"
           class="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-base bg-gray-50 text-gray-500 cursor-default"
         />
       </div>
@@ -68,11 +68,11 @@
       @click="clear"
       class="w-full bg-red-500 hover:bg-red-600 active:bg-red-700 text-white font-semibold py-2.5 rounded-xl transition-colors"
     >
-      Clear
+      {{ t('unit.clear') }}
     </button>
 
     <div v-if="result !== null" class="rounded-2xl bg-gradient-to-r from-blue-600 to-cyan-500 px-5 py-4 text-white shadow-lg">
-      <p class="text-sm opacity-80 mb-1">Result</p>
+      <p class="text-sm opacity-80 mb-1">{{ t('unit.result') }}</p>
       <div class="flex flex-wrap items-baseline gap-x-2 gap-y-1">
         <span class="text-lg font-medium opacity-90">{{ formatNumber(inputValue) }} {{ fromUnit?.label }}</span>
         <span class="opacity-60">=</span>
@@ -88,6 +88,9 @@ import { ref, computed, watch } from 'vue'
 import Multiselect from 'vue-multiselect'
 import 'vue-multiselect/dist/vue-multiselect.min.css'
 import { categories, convert } from './units.js'
+import { useI18n } from '@/i18n'
+
+const { t } = useI18n()
 
 const activeCategory = ref('length')
 const inputValue = ref(null)
