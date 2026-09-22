@@ -71,12 +71,11 @@ export function useVehicleLoanCalculator() {
   }
 
   const error = computed(() => {
-    if (!vehiclePrice.value && !termMonths.value) return null
-    if (vehiclePrice.value <= 0) return t('loan.errors.price')
-    if (downPayment.value < 0) return t('loan.errors.downNeg')
-    if (downPayment.value > vehiclePrice.value) return t('loan.errors.downExceed')
-    if (interestRate.value < 0) return t('loan.errors.rateNeg')
-    if (termMonths.value <= 0) return t('loan.errors.term')
+    if (vehiclePrice.value !== null && vehiclePrice.value <= 0) return t('loan.errors.price')
+    if (downPayment.value !== null && downPayment.value < 0) return t('loan.errors.downNeg')
+    if (downPayment.value !== null && vehiclePrice.value !== null && downPayment.value > vehiclePrice.value) return t('loan.errors.downExceed')
+    if (interestRate.value !== null && interestRate.value < 0) return t('loan.errors.rateNeg')
+    if (termMonths.value !== null && termMonths.value <= 0) return t('loan.errors.term')
     return null
   })
 
